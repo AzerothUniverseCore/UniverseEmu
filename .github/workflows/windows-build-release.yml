@@ -89,9 +89,8 @@ jobs:
           Start-Process msiexec.exe -ArgumentList "/i `"$dest`" /quiet /norestart ADDLOCAL=ALL" -Wait -NoNewWindow
 
           # ── Détection du chemin réel ────────────────────────────────────────
-          # On ne fait pas confiance à un INSTALLDIR forcé en silencieux : on lit
-          # directement la clé de registre que FindMySQL.cmake (SyphrenaCore)
-          # utilise lui-même en fallback, pour être certain que MYSQL_ROOT
+          # On lit directement la clé de registre que FindMySQL.cmake (SyphrenaCore)
+          # utilise elle-même en fallback, pour être certain que MYSQL_ROOT
           # pointe exactement là où CMake ira chercher.
           $regKeys = @(
             "HKLM:\SOFTWARE\MariaDB 10.5 (x64)",
@@ -268,8 +267,22 @@ jobs:
         run: |
           $binDir = "${{ env.BUILD_DIR }}/bin/${{ env.BUILD_TYPE }}"
           Get-ChildItem $binDir
-          & "$binDir/authserver.exe"  --version
+
+          # authserver.exe / worldserver.exe cherchent leur fichier de config
+          # (authserver.conf / worldserver.conf) au démarrage, même avec
+          # --version sur certains forks TrinityCore. Seuls les .conf.dist
+          # sont générés par le build : on les copie donc en .conf avant de
+          # lancer le check, sinon le process quitte avec exit code 1.
+          Copy-Item "$binDir\authserver.conf.dist"  "$binDir\authserver.conf"  -Force
+          Copy-Item "$binDir\worldserver.conf.dist" "$binDir\worldserver.conf" -Force
+
+          Write-Host "=== authserver.exe --version ==="
+          & "$binDir/authserver.exe" --version
+          Write-Host "Exit code: $LASTEXITCODE"
+
+          Write-Host "=== worldserver.exe --version ==="
           & "$binDir/worldserver.exe" --version
+          Write-Host "Exit code: $LASTEXITCODE"
 
       # ── 12. Upload artifact ───────────────────────────────────────────────────
       - name: Upload Artifacts
