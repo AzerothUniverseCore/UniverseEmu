@@ -1,0 +1,4 @@
+#ifndef SHADOPANMONASTERY_H_
+#define SHADOPANMONASTERY_H_
+
+#endif

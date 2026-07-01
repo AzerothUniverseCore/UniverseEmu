@@ -1,0 +1,4 @@
+#ifndef STORMSTOUT_BREWERY_H_
+#define STORMSTOUT_BREWERY_H_
+
+#endif

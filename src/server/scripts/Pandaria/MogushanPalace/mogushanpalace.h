@@ -1,0 +1,4 @@
+#ifndef MOGUSHANPALACE_H_
+#define MOGUSHANPALACE_H_
+
+#endif

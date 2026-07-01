@@ -1,0 +1,4 @@
+#ifndef MOGUSHANVAULTS_H_
+#define MOGUSHANVAULTS_H_
+
+#endif

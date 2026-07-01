@@ -1,0 +1,4 @@
+#ifndef WELLOFETERNITY_H_
+#define WELLOFETERNITY_H_
+
+#endif

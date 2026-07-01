@@ -1,0 +1,28 @@
+#include "ScriptPCH.h"
+#include "Player.h"
+#include "Unit.h"
+
+// Define your buffid and zoneid here! 
+#define buffid 68085
+#define zoneid 5186
+
+class buff_zone : public PlayerScript
+{
+public:
+    buff_zone() : PlayerScript("buff_zone") {}
+
+    void OnUpdateZone(Player* player, uint32 newZone, uint32 /*newArea*/)
+    {
+        if (newZone == zoneid) {
+            player->AddAura(buffid, player);
+        }
+        else {
+            player->RemoveAurasDueToSpell(buffid);
+        }
+    }
+};
+
+void AddSC_Buff_Zone()
+{
+    new buff_zone();
+}
