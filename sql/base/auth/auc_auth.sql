@@ -71,7 +71,7 @@ CREATE TABLE `account_access` (
 /*Data for the table `account_access` */
 
 insert  into `account_access`(`AccountID`,`SecurityLevel`,`RealmID`,`Comment`) values 
-(1,4,-1,'UniverseBot');
+(1,3,-1,'UniverseBot');
 
 /*Table structure for table `account_banned` */
 
