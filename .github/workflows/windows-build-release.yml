@@ -208,8 +208,15 @@ jobs:
           $binDir = "${{ env.BUILD_DIR }}\bin\${{ env.BUILD_TYPE }}"
 
           # ── MariaDB DLL ────────────────────────────────────────────────────
+          # Les exe compilés (authserver.exe/worldserver.exe) demandent
+          # explicitement "libmysql.dll" au chargement (table d'imports),
+          # même si on a linké contre libmariadb.lib. On copie donc le fichier
+          # réel de MariaDB mais renommé en libmysql.dll pour que Windows le
+          # trouve au runtime.
           $mysqlLib = "$env:MYSQL_ROOT\lib\libmariadb.dll"
-          Write-Host "Copying MariaDB DLL from $mysqlLib..."
+          Write-Host "Copying MariaDB DLL from $mysqlLib as libmysql.dll..."
+          Copy-Item $mysqlLib "$binDir\libmysql.dll" -Force
+          # On garde aussi une copie sous son nom d'origine, au cas où.
           Copy-Item $mysqlLib "$binDir\libmariadb.dll" -Force
 
           # ── OpenSSL DLLs ───────────────────────────────────────────────────
