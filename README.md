@@ -44,5 +44,5 @@
 
 ## Discord
 
-+ [AzerothUniverseCore](https://discord.gg/gbJEAWN3r5)
++ [AzerothUniverseCore](https://discord.gg/efTx9k4nfE)
 
