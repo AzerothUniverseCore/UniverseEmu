@@ -19,6 +19,9 @@
 
 ## Content
 
+- 23 Class
+- 31 Races
+- 20 CharactersPerRealm
 - Account Achievements
 - Account Companion
 - Account Mount
@@ -28,19 +31,30 @@
 - Eluna
 - GobjScale
 - GoMove
+- Interface UI Dragonflight
+- Interface Menu Connection
+- Interface Selection & Create Characters
+- Interface Item Upgrade
 - LfgSolo
 - Limitation de Statistique retirés
 - MultiTrainer
 - MultiVendor
 - Phase 0
+- Parangon
 - Reload Creature & Item Template & Game Object
 - Retouche Arcanique
+- System Players NPC Bot
+- Shop in Game
+- System Talent Dragonflight
 - Solocraft
 - TemplateNPC
+- Tooltip Mythic
+- Mode Mythic+
 - Transmogrification
 - TransmogDisplayVendor
 - Rebirth
 - XP Week End
+- [...]
 
 ## Discord
 
