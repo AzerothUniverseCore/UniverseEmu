@@ -19,9 +19,9 @@
 
 ## Content
 
-- 23 Class
+- 23 Classes
 - 31 Races
-- 20 CharactersPerRealm
+- 20 Personnages par Royaume
 - Account Achievements
 - Account Companion
 - Account Mount
