@@ -58,5 +58,5 @@
 
 ## Discord
 
-+ [AzerothUniverseCore](https://discord.gg/efTx9k4nfE)
++ [AzerothUniverseCore](https://discord.gg/HJ6pDKjysa)
 
