@@ -69885,6 +69885,19 @@ CREATE TABLE `custom_item_enchant_visuals` (
 
 /*Data for the table `custom_item_enchant_visuals` */
 
+/*Table structure for table `custom_netheril_progress` */
+
+DROP TABLE IF EXISTS `custom_netheril_progress`;
+
+CREATE TABLE `custom_netheril_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `criteria_id` int(10) unsigned NOT NULL,
+  `counter` int(10) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`guid`,`criteria_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `custom_netheril_progress` */
+
 /*Table structure for table `custom_reforging` */
 
 DROP TABLE IF EXISTS `custom_reforging`;
