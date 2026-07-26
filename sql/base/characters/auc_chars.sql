@@ -14612,6 +14612,30 @@ CREATE TABLE `character_banned` (
 
 /*Data for the table `character_banned` */
 
+/*Table structure for table `character_bastionbaradin_progress` */
+
+DROP TABLE IF EXISTS `character_bastionbaradin_progress`;
+
+CREATE TABLE `character_bastionbaradin_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_bastionbaradin_progress` */
+
+/*Table structure for table `character_bastionfreux_progress` */
+
+DROP TABLE IF EXISTS `character_bastionfreux_progress`;
+
+CREATE TABLE `character_bastionfreux_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_bastionfreux_progress` */
+
 /*Table structure for table `character_battleground_data` */
 
 DROP TABLE IF EXISTS `character_battleground_data`;
@@ -14646,6 +14670,30 @@ CREATE TABLE `character_battleground_random` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 /*Data for the table `character_battleground_random` */
+
+/*Table structure for table `character_brasseriebrumeorage_progress` */
+
+DROP TABLE IF EXISTS `character_brasseriebrumeorage_progress`;
+
+CREATE TABLE `character_brasseriebrumeorage_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_brasseriebrumeorage_progress` */
+
+/*Table structure for table `character_cognefort_progress` */
+
+DROP TABLE IF EXISTS `character_cognefort_progress`;
+
+CREATE TABLE `character_cognefort_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_cognefort_progress` */
 
 /*Table structure for table `character_declinedname` */
 
@@ -14712,6 +14760,18 @@ CREATE TABLE `character_equipmentsets` (
 
 /*Data for the table `character_equipmentsets` */
 
+/*Table structure for table `character_firelands_progress` */
+
+DROP TABLE IF EXISTS `character_firelands_progress`;
+
+CREATE TABLE `character_firelands_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_firelands_progress` */
+
 /*Table structure for table `character_fishingsteps` */
 
 DROP TABLE IF EXISTS `character_fishingsteps`;
@@ -14723,6 +14783,18 @@ CREATE TABLE `character_fishingsteps` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 /*Data for the table `character_fishingsteps` */
+
+/*Table structure for table `character_fyralands_progress` */
+
+DROP TABLE IF EXISTS `character_fyralands_progress`;
+
+CREATE TABLE `character_fyralands_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_fyralands_progress` */
 
 /*Table structure for table `character_gifts` */
 
@@ -14841,6 +14913,30 @@ insert  into `character_inventory`(`guid`,`bag`,`slot`,`item`) values
 (1,0,25,6816),
 (1,0,26,7817);
 
+/*Table structure for table `character_mogushan_progress` */
+
+DROP TABLE IF EXISTS `character_mogushan_progress`;
+
+CREATE TABLE `character_mogushan_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_mogushan_progress` */
+
+/*Table structure for table `character_monasterepandashan_progress` */
+
+DROP TABLE IF EXISTS `character_monasterepandashan_progress`;
+
+CREATE TABLE `character_monasterepandashan_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_monasterepandashan_progress` */
+
 /*Table structure for table `character_mythic` */
 
 DROP TABLE IF EXISTS `character_mythic`;
@@ -14853,6 +14949,18 @@ CREATE TABLE `character_mythic` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 /*Data for the table `character_mythic` */
+
+/*Table structure for table `character_palaismogushan_progress` */
+
+DROP TABLE IF EXISTS `character_palaismogushan_progress`;
+
+CREATE TABLE `character_palaismogushan_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_palaismogushan_progress` */
 
 /*Table structure for table `character_pet` */
 
@@ -15161,6 +15269,18 @@ CREATE TABLE `character_secondary_spell_choices` (
 
 /*Data for the table `character_secondary_spell_choices` */
 
+/*Table structure for table `character_serpentdejade_progress` */
+
+DROP TABLE IF EXISTS `character_serpentdejade_progress`;
+
+CREATE TABLE `character_serpentdejade_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_serpentdejade_progress` */
+
 /*Table structure for table `character_skills` */
 
 DROP TABLE IF EXISTS `character_skills`;
@@ -15328,6 +15448,18 @@ CREATE TABLE `character_transmog` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 /*Data for the table `character_transmog` */
+
+/*Table structure for table `character_vaisseaulegion_progress` */
+
+DROP TABLE IF EXISTS `character_vaisseaulegion_progress`;
+
+CREATE TABLE `character_vaisseaulegion_progress` (
+  `guid` int(10) unsigned NOT NULL,
+  `entry` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`entry`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_vaisseaulegion_progress` */
 
 /*Table structure for table `character_void_storage` */
 
