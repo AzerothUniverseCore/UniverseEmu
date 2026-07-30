@@ -80,13 +80,6 @@ float CONF_flat_liquid_delta_limit = 0.001f; // If max - min less this value - l
 
 // List MPQ for extract from
 const char *CONF_mpq_list[]={
-    "common.MPQ",
-    "common-2.MPQ",
-	"expansion.MPQ",
-    "lichking.MPQ",
-    "patch.MPQ",
-    "patch-2.MPQ",
-    "patch-3.MPQ",
 	"patch-4.MPQ",
 	"patch-5.MPQ",
 	"patch-6.MPQ",
@@ -98,13 +91,8 @@ const char *CONF_mpq_list[]={
 	"patch-C.MPQ",
 	"patch-D.MPQ",
 	"patch-E.MPQ",
-	"patch-F.MPQ",
-	"patch-I.MPQ",
-	"patch-K.MPQ",
-	"patch-N.MPQ",
-	"patch-T.MPQ",
+	"patch-X.MPQ",
 	"patch-Y.MPQ",
-	"patch-Z.MPQ",
 };
 
 static char const* const langs[] = {"enGB", "enUS", "deDE", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };

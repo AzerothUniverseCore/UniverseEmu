@@ -521,7 +521,33 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     for (uint8 i = 0; i < PLAYER_SLOTS_COUNT; i++)
         m_items[i] = nullptr;
 
-    Relocate(info->positionX, info->positionY, info->positionZ, info->orientation);
+    uint32 startMapId = info->mapId;
+    float startX = info->positionX;
+    float startY = info->positionY;
+    float startZ = info->positionZ;
+    float startO = info->orientation;
+
+    if (createInfo->StartInShadowlands)
+    {
+        if (Player::TeamForRace(createInfo->Race) == HORDE)
+        {
+            startMapId = 861;
+            startX = -1059.47f;
+            startY = -1051.51f;
+            startZ = 8.82241f;
+            startO = 5.49088f;
+        }
+        else
+        {
+            startMapId = 860;
+            startX = -1069.42f;
+            startY = -1069.43f;
+            startZ = 13.0739f;
+            startO = 0.816743f;
+        }
+    }
+
+    Relocate(startX, startY, startZ, startO);
 
     ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(createInfo->Class);
     if (!cEntry)
@@ -531,7 +557,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         return false;
     }
 
-    SetMap(sMapMgr->CreateMap(info->mapId, this));
+    SetMap(sMapMgr->CreateMap(startMapId, this));
 
     uint8 powertype = cEntry->DisplayPower;
 

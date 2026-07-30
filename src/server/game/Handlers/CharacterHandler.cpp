@@ -290,6 +290,12 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
              >> createInfo->FacialHair
              >> createInfo->OutfitId;
 
+    if (!createInfo->Name.empty() && createInfo->Name.back() == 'u')
+    {
+        createInfo->Name.pop_back();
+        createInfo->StartInShadowlands = true;
+    }
+
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_TEAMMASK))
     {
         if (uint32 mask = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED))
