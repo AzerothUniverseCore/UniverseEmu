@@ -19,42 +19,86 @@
 
 ## Content
 
-- 23 Classes
-- 31 Races
-- 20 Personnages par Royaume
-- Account Achievements
-- Account Companion
-- Account Mount
+### 🌍 World & Content
+- Cataclysm Azeroth (replaces the original WotLK Azeroth)
+- Pandaria Continent
+- Pandaria Questlines
+- Max Level 90
+- 31 Playable Races
+- 24 Playable Classes
+- New Custom Classes (Monk, Demon Hunter, Blood Battle Mage, Hero)
+- New Secondary Classes (Pyromancer, Geomancer, Chronomancer, Venomancer, Necromancer, Chaos Ravager, Beastmaster, Knight, Evoker)
+
+### ⚔️ Progression
+- Paragon System
+- Rebirth System
+- Prodigious Weapons (A0 → A8)
+- Prodigious Weapon Upgrades
+- Heroic Gear (S0 → S8)
+- Mythic Gear (M0 → M8)
+- Endgame Mythic+ (M+FULL)
+- Mythic Mode
+- Mythic+ Mode
+- Removed Stat Caps
+
+### 🛡️ Dungeons, Raids & PvP
+- Custom Dungeons & Raids
+- Dungeon Codex
+- Hall of Heroes
 - Arena 1v1
-- AutoLoot
+- New Arenas & Battlegrounds (Tol'Vir, Temple of Kotmogu, Twin Peaks, Tiger's Fang, Battle for Gilneas)
+
+### 🎨 Customization
+- Transmogrification
+- Arcane Reforging
+- Item Upgrade System
+- Cosmetic Gear Collection
+- Cosmetic Zone
+- Collections
 - DressNPC
-- Eluna
-- GobjScale
-- GoMove
-- Interface UI Dragonflight
-- Interface Menu Connection
-- Interface Selection & Create Characters
-- Interface Item Upgrade
-- LfgSolo
-- Limitation de Statistique retirés
+- Transmog Display Vendor
+
+### 🐉 Mounts & Companions
+- Flying Mounts in Azeroth & Pandaria
+- All WotLK+ Mounts
+- Account-wide Mount Collection
+- All WotLK+ Companions
+- Account-wide Companion Collection
+
+### 🏆 Account Features
+- 20 Characters per Realm
+- Account-wide Achievements
+- Identity & Conversion Grimoires
+
+### ⚙️ Gameplay
+- Zone-wide Loot Pickup
+- Auto Loot
+- Solo LFG
+- SoloCraft
 - MultiTrainer
 - MultiVendor
+- NPC Bot System
+- NPC Template System
+- Easy Travel Teleporter
+- XP Rate Modifier
+- Weekend XP
+- No Pay-to-Win Shop
+- In-Game Shop
+- Events
+
+### 🖥️ Interface
+- Dragonflight UI
+- Dragonflight Talent System
+- Dragonflight Login Screen
+- Dragonflight Character Selection & Creation
+- Mythic Tooltips
+
+### 🛠️ Engine
+- Eluna Lua Engine
+- Reload Creature, Item & GameObject Templates
+- GameObject Scaling (GobjScale)
+- GameObject Movement (GoMove)
 - Phase 0
-- Parangon
-- Reload Creature & Item Template & Game Object
-- Retouche Arcanique
-- System Players NPC Bot
-- Shop in Game
-- System Talent Dragonflight
-- Solocraft
-- TemplateNPC
-- Tooltip Mythic
-- Mode Mythic+
-- Transmogrification
-- TransmogDisplayVendor
-- Rebirth
-- XP Week End
-- [...]
 
 ## Discord
 
