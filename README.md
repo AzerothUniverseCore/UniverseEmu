@@ -22,48 +22,49 @@
 ### 🌍 World & Content
 - Cataclysm Azeroth (replaces the original WotLK Azeroth)
 - Pandaria Continent
-- Pandaria Questlines
+- Mists of Pandaria Questlines
 - Max Level 90
 - 31 Playable Races
 - 24 Playable Classes
-- New Custom Classes (Monk, Demon Hunter, Blood Battle Mage, Hero)
-- New Secondary Classes (Pyromancer, Geomancer, Chronomancer, Venomancer, Necromancer, Chaos Ravager, Beastmaster, Knight, Evoker)
+- Ported Classes (Monk, Demon Hunter, Evoker)
+- Fully Custom Classes (Blood Battle Mage, Hero)
+- Custom Prestige Specializations (Pyromancer, Geomancer, Chronomancer, Venomancer, Necromancer, Chaos Ravager, Beastmaster, Knight)
 
 ### ⚔️ Progression
 - Paragon System
 - Rebirth System
-- Prodigious Weapons (A0 → A8)
-- Prodigious Weapon Upgrades
+- Artifact Weapons (A0 → A8)
+- Artifact Weapon Upgrades
 - Heroic Gear (S0 → S8)
-- Mythic Gear (M0 → M8)
-- Endgame Mythic+ (M+FULL)
-- Mythic Mode
-- Mythic+ Mode
+- Mythic Gear (M0 → M+8)
+- Full Mythic+ (M+FULL)
+- Mythic Raid Difficulty
+- Mythic+ Dungeons
 - Removed Stat Caps
 
 ### 🛡️ Dungeons, Raids & PvP
 - Custom Dungeons & Raids
-- Dungeon Codex
-- Hall of Heroes
-- Arena 1v1
-- New Arenas & Battlegrounds (Tol'Vir, Temple of Kotmogu, Twin Peaks, Tiger's Fang, Battle for Gilneas)
+- Codex Encounter Journal (Adventure Guide)
+- Hero's Call Board
+- 1v1 Arena
+- New Arenas & Battlegrounds (Tol'viron Arena, Temple of Kotmogu, Twin Peaks, The Tiger's Peak, Battle for Gilneas)
 
 ### 🎨 Customization
 - Transmogrification
-- Arcane Reforging
+- Reforging
 - Item Upgrade System
-- Cosmetic Gear Collection
+- Appearance Collection (Wardrobe)
 - Cosmetic Zone
 - Collections
 - DressNPC
 - Transmog Display Vendor
 
-### 🐉 Mounts & Companions
+### 🐉 Mounts & Battle Pets
 - Flying Mounts in Azeroth & Pandaria
 - All WotLK+ Mounts
-- Account-wide Mount Collection
-- All WotLK+ Companions
-- Account-wide Companion Collection
+- Account-wide Mount Journal
+- All WotLK+ Battle Pets
+- Account-wide Pet Journal
 
 ### 🏆 Account Features
 - 20 Characters per Realm
@@ -72,14 +73,13 @@
 
 ### ⚙️ Gameplay
 - Zone-wide Loot Pickup
-- Auto Loot
 - Solo LFG
 - SoloCraft
 - MultiTrainer
 - MultiVendor
 - NPC Bot System
 - NPC Template System
-- Easy Travel Teleporter
+- Teleporter
 - XP Rate Modifier
 - Weekend XP
 - No Pay-to-Win Shop
@@ -88,9 +88,9 @@
 
 ### 🖥️ Interface
 - Dragonflight UI
-- Dragonflight Talent System
-- Dragonflight Login Screen
-- Dragonflight Character Selection & Creation
+- Talent System Custom
+- Multi Expansion Login Screen
+- Character Selection & Creation Custom
 - Mythic Tooltips
 
 ### 🛠️ Engine
@@ -100,7 +100,8 @@
 - GameObject Movement (GoMove)
 - Phase 0
 
+And more...
+
 ## Discord
 
 + [AzerothUniverseCore](https://discord.gg/HJ6pDKjysa)
-
