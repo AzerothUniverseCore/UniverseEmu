@@ -466,6 +466,8 @@ public:
     void OnPlayerEnterCombat(Player* pPlayer, Unit* pEnemy);
     void OnPlayerLeaveCombat(Player* pPlayer);
     void OnPVPKill(Player* pKiller, Player* pKilled);
+    void OnDealDamage(Player* attacker, Unit* victim, uint32 damage);
+    void OnTargetChange(Player* player, Unit* newTarget);
     void OnCreatureKill(Player* pKiller, Creature* pKilled);
     void OnPlayerKilledByCreature(Creature* pKiller, Player* pKilled);
     void OnPlayerKilledByEnvironment(Player* pKilled, uint8 damageType);

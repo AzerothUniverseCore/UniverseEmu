@@ -569,6 +569,11 @@ void WorldSession::HandleSetSelectionOpcode(WorldPacket& recvData)
     recvData >> guid;
 
     _player->SetSelection(guid);
+#ifdef ELUNA
+    if (!guid.IsEmpty())
+        if (Unit* newTarget = ObjectAccessor::GetUnit(*_player, guid))
+            sEluna->OnTargetChange(_player, newTarget);
+#endif
 
     // Update target of current autoshoot spell
      if (!guid.IsEmpty())

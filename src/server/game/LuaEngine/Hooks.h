@@ -218,6 +218,8 @@ namespace Hooks
         PLAYER_EVENT_ON_QUEST_STATUS_CHANGED    =     54,       // (event, player, questId, status)
 		// UNUSED                               =     55,       // (event, player)
 		PLAYER_EVENT_ON_GROUP_ROLL_REWARD_ITEM  =     56,       // (event, player, item, count, voteType, roll)
+        PLAYER_EVENT_ON_DEAL_DAMAGE             =     57,       // (event, player, victim, damage)
+        PLAYER_EVENT_ON_TARGET_CHANGE           =     58,       // (event, player, newTarget)
 
         PLAYER_EVENT_COUNT
     };

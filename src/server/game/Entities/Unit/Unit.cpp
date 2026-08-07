@@ -759,6 +759,10 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit* excludeCasterChannel) cons
 
     // Hook for OnDamage Event
     sScriptMgr->OnDamage(attacker, victim, damage);
+#ifdef ELUNA
+    if (Player* damagingPlayer = attacker ? attacker->ToPlayer() : nullptr)
+        sEluna->OnDealDamage(damagingPlayer, victim, damage);
+#endif
 
     // Signal to pets that their owner was attacked - except when DOT.
     if (attacker != victim && damagetype != DOT)

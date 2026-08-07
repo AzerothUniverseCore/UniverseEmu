@@ -203,6 +203,23 @@ void Eluna::OnPVPKill(Player* pKiller, Player* pKilled)
     CallAllFunctions(PlayerEventBindings, key);
 }
 
+void Eluna::OnDealDamage(Player* attacker, Unit* victim, uint32 damage)
+{
+    START_HOOK(PLAYER_EVENT_ON_DEAL_DAMAGE);
+    Push(attacker);
+    Push(victim);
+    Push(damage);
+    CallAllFunctions(PlayerEventBindings, key);
+}
+
+void Eluna::OnTargetChange(Player* player, Unit* newTarget)
+{
+    START_HOOK(PLAYER_EVENT_ON_TARGET_CHANGE);
+    Push(player);
+    Push(newTarget);
+    CallAllFunctions(PlayerEventBindings, key);
+}
+
 void Eluna::OnCreatureKill(Player* pKiller, Creature* pKilled)
 {
     START_HOOK(PLAYER_EVENT_ON_KILL_CREATURE);
