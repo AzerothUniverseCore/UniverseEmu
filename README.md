@@ -1,8 +1,8 @@
 # ![logo](AzerothUniverse.png) UniverseEmu 3.3.9a.49448
 
 * [Requirements](#requirements)
-* [Content](#content)
 * [Additionnal](#additionnal)
+* [Content](#content)
 * [Discord](#discord)
 
 ## Requirements
