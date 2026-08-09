@@ -35,6 +35,7 @@
 #include "Language.h"
 #include "Log.h"
 #include "Map.h"
+#include "MapManager.h"
 #include "Metric.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
@@ -296,6 +297,29 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         createInfo->StartInShadowlands = true;
     }
 
+    // GEAR UPDATE
+    uint8 gearUpdateTier = 0; // 0 = none, 1 = S0, 2 = S4, 3 = S7
+    if (createInfo->Name.size() >= 2)
+    {
+        std::string gearUpdateSuffix = createInfo->Name.substr(createInfo->Name.size() - 2);
+        if (gearUpdateSuffix == "qz")
+        {
+            gearUpdateTier = 1;
+            createInfo->Name.erase(createInfo->Name.size() - 2);
+        }
+        else if (gearUpdateSuffix == "xk")
+        {
+            gearUpdateTier = 2;
+            createInfo->Name.erase(createInfo->Name.size() - 2);
+        }
+        else if (gearUpdateSuffix == "vq")
+        {
+            gearUpdateTier = 3;
+            createInfo->Name.erase(createInfo->Name.size() - 2);
+        }
+    }
+    // GEAR UPDATE
+
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_TEAMMASK))
     {
         if (uint32 mask = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED))
@@ -453,7 +477,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         stmt->setUInt32(0, GetAccountId());
         queryCallback.SetNextQuery(CharacterDatabase.AsyncQuery(stmt));
     })
-        .WithChainingPreparedCallback([this, createInfo](QueryCallback& queryCallback, PreparedQueryResult result)
+        .WithChainingPreparedCallback([this, createInfo, gearUpdateTier](QueryCallback& queryCallback, PreparedQueryResult result)
     {
         if (result)
         {
@@ -470,7 +494,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         bool allowTwoSideAccounts = !sWorld->IsPvPRealm() || HasPermission(rbac::RBAC_PERM_TWO_SIDE_CHARACTER_CREATION);
         uint32 skipCinematics = sWorld->getIntConfig(CONFIG_SKIP_CINEMATICS);
 
-        std::function<void(PreparedQueryResult)> finalizeCharacterCreation = [this, createInfo](PreparedQueryResult result)
+        std::function<void(PreparedQueryResult)> finalizeCharacterCreation = [this, createInfo, gearUpdateTier](PreparedQueryResult result) mutable
         {
             bool haveSameRace = false;
             uint32 deathKnightReqLevel = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_MIN_LEVEL_FOR_DEATH_KNIGHT);
@@ -593,6 +617,140 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
                 newChar->setCinematic(1);                         // not show intro
 
             newChar->SetAtLoginFlag(AT_LOGIN_FIRST);              // First login
+
+            // GEAR UPDATE
+            if (gearUpdateTier > 0)
+            {
+                static uint32 const gearUpdateCostByTier[4] = { 0, 8000, 12000, 20000 }; // 0=none,1=S0,2=S4,3=S7
+                uint32 const GEARUPDATE_CURRENCY_ID = 7000655; // Breloque Superieure
+                uint32 gearUpdateCost = gearUpdateCostByTier[gearUpdateTier];
+
+                std::string gearUpdateCurrencyQuery = "SELECT count FROM accountwide_currency WHERE accountId = "
+                    + std::to_string(GetAccountId()) + " AND currencyId = " + std::to_string(GEARUPDATE_CURRENCY_ID);
+                QueryResult gearUpdateCurrencyResult = CharacterDatabase.Query(gearUpdateCurrencyQuery.c_str());
+
+                uint32 gearUpdateCurrentBalance = 0;
+                if (gearUpdateCurrencyResult)
+                {
+                    Field* gearUpdateCurrencyFields = gearUpdateCurrencyResult->Fetch();
+                    gearUpdateCurrentBalance = gearUpdateCurrencyFields[0].GetUInt32();
+                }
+
+                if (gearUpdateCurrentBalance < gearUpdateCost)
+                {
+                    SC_LOG_INFO("entities.player.character", "GearUpdate: account {} doesn't have enough Superior Charms for the level {} (solde {}, cout {}).",
+                        GetAccountId(), gearUpdateTier, gearUpdateCurrentBalance, gearUpdateCost);
+                    gearUpdateTier = 0;
+                }
+                else
+                {
+                    std::string gearUpdateDeductQuery = "UPDATE accountwide_currency SET count = count - "
+                        + std::to_string(gearUpdateCost) + " WHERE accountId = " + std::to_string(GetAccountId())
+                        + " AND currencyId = " + std::to_string(GEARUPDATE_CURRENCY_ID);
+                    CharacterDatabase.Execute(gearUpdateDeductQuery.c_str());
+
+                    SC_LOG_INFO("entities.player.character", "GearUpdate: {} Premium Charms Deducted from the Account {} for the landing {} (previous balance: {}).",
+                        gearUpdateCost, GetAccountId(), gearUpdateTier, gearUpdateCurrentBalance);
+                }
+            }
+            // GEAR UPDATE
+
+            // GEAR UPDATE
+            if (gearUpdateTier > 0)
+            {
+                static uint8 const gearUpdateLevelByTier[4] = { 0, 80, 80, 90 }; // 0=none,1=S0,2=S4,3=S7
+                uint8 gearUpdateTargetLevel = gearUpdateLevelByTier[gearUpdateTier];
+
+                if (gearUpdateTargetLevel > newChar->GetLevel())
+                    newChar->GiveLevel(gearUpdateTargetLevel);
+
+                static uint8 const gearUpdateEquipSlots[] = {
+                    EQUIPMENT_SLOT_HEAD, EQUIPMENT_SLOT_NECK, EQUIPMENT_SLOT_SHOULDERS,
+                    EQUIPMENT_SLOT_CHEST, EQUIPMENT_SLOT_WAIST, EQUIPMENT_SLOT_LEGS,
+                    EQUIPMENT_SLOT_FEET, EQUIPMENT_SLOT_WRISTS, EQUIPMENT_SLOT_HANDS,
+                    EQUIPMENT_SLOT_FINGER1, EQUIPMENT_SLOT_FINGER2, EQUIPMENT_SLOT_TRINKET1,
+                    EQUIPMENT_SLOT_TRINKET2, EQUIPMENT_SLOT_BACK, EQUIPMENT_SLOT_MAINHAND,
+                    EQUIPMENT_SLOT_OFFHAND, EQUIPMENT_SLOT_RANGED
+                };
+                for (uint8 gearUpdateSlot : gearUpdateEquipSlots)
+                {
+                    if (newChar->GetItemByPos(INVENTORY_SLOT_BAG_0, gearUpdateSlot))
+                        newChar->DestroyItem(INVENTORY_SLOT_BAG_0, gearUpdateSlot, true);
+                }
+
+                std::string gearUpdateQuery = "SELECT slot, item_entry FROM gear_update_items WHERE tier = "
+                    + std::to_string(gearUpdateTier) + " AND class_id = " + std::to_string(uint32(newChar->GetClass()));
+                QueryResult gearUpdateResult = WorldDatabase.Query(gearUpdateQuery.c_str());
+
+                if (gearUpdateResult)
+                {
+                    bool gearUpdateRangedWeaponClass = (newChar->GetClass() == CLASS_HUNTER ||
+                        newChar->GetClass() == CLASS_PRIEST || newChar->GetClass() == CLASS_MAGE ||
+                        newChar->GetClass() == CLASS_WARLOCK);
+
+                    do
+                    {
+                        Field* gearUpdateFields = gearUpdateResult->Fetch();
+                        std::string gearUpdateSlotName = gearUpdateFields[0].GetString();
+                        uint32 gearUpdateItemEntry = gearUpdateFields[1].GetUInt32();
+
+                        uint8 gearUpdateEquipSlot = NULL_SLOT;
+                        if (gearUpdateSlotName == "weapon")
+                            gearUpdateEquipSlot = gearUpdateRangedWeaponClass ? EQUIPMENT_SLOT_RANGED : EQUIPMENT_SLOT_MAINHAND;
+                        else if (gearUpdateSlotName == "head") gearUpdateEquipSlot = EQUIPMENT_SLOT_HEAD;
+                        else if (gearUpdateSlotName == "shoulder") gearUpdateEquipSlot = EQUIPMENT_SLOT_SHOULDERS;
+                        else if (gearUpdateSlotName == "chest") gearUpdateEquipSlot = EQUIPMENT_SLOT_CHEST;
+                        else if (gearUpdateSlotName == "waist") gearUpdateEquipSlot = EQUIPMENT_SLOT_WAIST;
+                        else if (gearUpdateSlotName == "legs") gearUpdateEquipSlot = EQUIPMENT_SLOT_LEGS;
+                        else if (gearUpdateSlotName == "feet") gearUpdateEquipSlot = EQUIPMENT_SLOT_FEET;
+                        else if (gearUpdateSlotName == "wrist") gearUpdateEquipSlot = EQUIPMENT_SLOT_WRISTS;
+                        else if (gearUpdateSlotName == "hands") gearUpdateEquipSlot = EQUIPMENT_SLOT_HANDS;
+                        else if (gearUpdateSlotName == "cloak") gearUpdateEquipSlot = EQUIPMENT_SLOT_BACK;
+                        else if (gearUpdateSlotName == "neck") gearUpdateEquipSlot = EQUIPMENT_SLOT_NECK;
+                        else if (gearUpdateSlotName == "ring1") gearUpdateEquipSlot = EQUIPMENT_SLOT_FINGER1;
+                        else if (gearUpdateSlotName == "ring2") gearUpdateEquipSlot = EQUIPMENT_SLOT_FINGER2;
+                        else if (gearUpdateSlotName == "trinket1") gearUpdateEquipSlot = EQUIPMENT_SLOT_TRINKET1;
+                        else if (gearUpdateSlotName == "trinket2") gearUpdateEquipSlot = EQUIPMENT_SLOT_TRINKET2;
+                        else if (gearUpdateSlotName == "relic") gearUpdateEquipSlot = EQUIPMENT_SLOT_RANGED;
+
+                        if (gearUpdateEquipSlot != NULL_SLOT)
+                        {
+                            if (newChar->GetItemByPos(INVENTORY_SLOT_BAG_0, gearUpdateEquipSlot))
+                                newChar->DestroyItem(INVENTORY_SLOT_BAG_0, gearUpdateEquipSlot, true);
+
+                            uint16 gearUpdatePos = (INVENTORY_SLOT_BAG_0 << 8) | gearUpdateEquipSlot;
+                            newChar->EquipNewItem(gearUpdatePos, gearUpdateItemEntry, true);
+                        }
+                        else if (gearUpdateSlotName == "bag")
+                        {
+                            ItemPosCountVec gearUpdateDest;
+                            if (newChar->CanStoreNewItem(NULL_BAG, NULL_SLOT, gearUpdateDest, gearUpdateItemEntry, 1) == EQUIP_ERR_OK)
+                                newChar->StoreNewItem(gearUpdateDest, gearUpdateItemEntry, true);
+                        }
+                    } while (gearUpdateResult->NextRow());
+                }
+                else
+                {
+                    SC_LOG_ERROR("entities.player.character", "GearUpdate: No equipment configured by default for tier {} class {}",
+                        gearUpdateTier, uint32(newChar->GetClass()));
+                }
+
+                {
+                    uint32 const gearUpdateTalentItem = 338404;
+                    uint32 const gearUpdateTalentCount = 60;
+                    ItemPosCountVec gearUpdateTalentDest;
+                    if (newChar->CanStoreNewItem(NULL_BAG, NULL_SLOT, gearUpdateTalentDest, gearUpdateTalentItem, gearUpdateTalentCount) == EQUIP_ERR_OK)
+                        newChar->StoreNewItem(gearUpdateTalentDest, gearUpdateTalentItem, true);
+                }
+
+                newChar->Relocate(1658.18f, 1573.7f, 5.84094f, 2.46316f);
+                newChar->ResetMap();
+                newChar->SetMap(sMapMgr->CreateMap(792, newChar.get()));
+
+                SC_LOG_INFO("entities.player.character", "GearUpdate: level {} applies to the creation of {} (level {})",
+                    gearUpdateTier, newChar->GetName(), gearUpdateTargetLevel);
+            }
+            // GEAR UPDATE
 
             CharacterDatabaseTransaction characterTransaction = CharacterDatabase.BeginTransaction();
             LoginDatabaseTransaction trans = LoginDatabase.BeginTransaction();
@@ -1117,7 +1275,6 @@ void WorldSession::HandleShowingCloakOpcode(WorldPackets::Character::ShowingCloa
 void WorldSession::HandleCharRenameOpcode(WorldPacket& recvData)
 {
     std::shared_ptr<CharacterRenameInfo> renameInfo = std::make_shared<CharacterRenameInfo>();
-
     recvData >> renameInfo->Guid
              >> renameInfo->Name;
 
@@ -1127,29 +1284,24 @@ void WorldSession::HandleCharRenameOpcode(WorldPacket& recvData)
         SendCharRename(CHAR_NAME_NO_NAME, renameInfo.get());
         return;
     }
-
     ResponseCodes res = ObjectMgr::CheckPlayerName(renameInfo->Name, GetSessionDbcLocale(), true);
     if (res != CHAR_NAME_SUCCESS)
     {
         SendCharRename(res, renameInfo.get());
         return;
     }
-
     // check name limitations
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_RESERVEDNAME) && sObjectMgr->IsReservedName(renameInfo->Name))
     {
         SendCharRename(CHAR_NAME_RESERVED, renameInfo.get());
         return;
     }
-
     // Ensure that the character belongs to the current account, that rename at login is enabled
     // and that there is no character with the desired new name
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_FREE_NAME);
-
     stmt->setUInt32(0, renameInfo->Guid.GetCounter());
     stmt->setUInt32(1, GetAccountId());
     stmt->setString(2, renameInfo->Name);
-
     _queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(stmt)
         .WithPreparedCallback(std::bind(&WorldSession::HandleCharRenameCallBack, this, renameInfo, std::placeholders::_1)));
 }
