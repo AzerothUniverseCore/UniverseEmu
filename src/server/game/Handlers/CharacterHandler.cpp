@@ -721,7 +721,14 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
                             uint16 gearUpdatePos = (INVENTORY_SLOT_BAG_0 << 8) | gearUpdateEquipSlot;
                             newChar->EquipNewItem(gearUpdatePos, gearUpdateItemEntry, true);
 
-                            if (gearUpdateSlotName == "weapon" && newChar->GetClass() == CLASS_ROGUE)
+                            uint8 gearUpdateCharClass = newChar->GetClass();
+                            bool gearUpdateDualWield =
+                                (gearUpdateCharClass == CLASS_ROGUE) || // Rogue
+                                (gearUpdateCharClass == CLASS_BLOODMAGE) || // Blood Battle Mage
+                                (gearUpdateCharClass == CLASS_DEMON_HUNTER) || // Demon Hunter
+                                (gearUpdateCharClass == CLASS_HERO); // Heros
+
+                            if (gearUpdateSlotName == "weapon" && gearUpdateDualWield)
                             {
                                 if (newChar->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
                                     newChar->DestroyItem(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND, true);
