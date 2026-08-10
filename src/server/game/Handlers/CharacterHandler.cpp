@@ -720,6 +720,15 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
 
                             uint16 gearUpdatePos = (INVENTORY_SLOT_BAG_0 << 8) | gearUpdateEquipSlot;
                             newChar->EquipNewItem(gearUpdatePos, gearUpdateItemEntry, true);
+
+                            if (gearUpdateSlotName == "weapon" && newChar->GetClass() == CLASS_ROGUE)
+                            {
+                                if (newChar->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
+                                    newChar->DestroyItem(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND, true);
+
+                                uint16 gearUpdateOffhandPos = (INVENTORY_SLOT_BAG_0 << 8) | EQUIPMENT_SLOT_OFFHAND;
+                                newChar->EquipNewItem(gearUpdateOffhandPos, gearUpdateItemEntry, true);
+                            }
                         }
                         else if (gearUpdateSlotName == "bag")
                         {
