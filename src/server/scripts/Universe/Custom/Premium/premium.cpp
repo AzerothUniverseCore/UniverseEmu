@@ -16,6 +16,7 @@
  *
  *Original Script by Mindsear
  *Refactored by SPP Developer MDic
+ *Feature : DurabilityRepairAll, ResetSpellCooldowns (with 60s timer)
 */
 
 #include "DatabaseEnv.h"
@@ -28,6 +29,8 @@
 #include "Spell.h"
 #include "Config.h"
 #include "WorldSession.h"
+#include "Chat.h"
+#include "SpellHistory.h"
 
 enum Vendors
 {
@@ -89,6 +92,10 @@ enum Mounts
 	LIGHTFORGED_DRAENEI_MOUNT = 150301
 };
 
+static const uint32 COOLDOWN_RESET_DELAY = 60;
+
+static const uint32 SPELL_RESURRECTION_SICKNESS = 15007;
+
 class premium_account : public ItemScript
 {
 public:
@@ -140,7 +147,7 @@ public:
         if (sConfigMgr->GetBoolDefault("Morph", true))
         {
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Changer d'apparence", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Rétablir l'apparence", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Restaurer l'apparence", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
         }
 
         if (sConfigMgr->GetBoolDefault("Mount", true))
@@ -151,6 +158,39 @@ public:
 
         if (sConfigMgr->GetBoolDefault("PlayerInteraction", true))
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Options", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 9);
+
+        if (sConfigMgr->GetBoolDefault("RepairAll", true))
+            AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Reparer l'equipement", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 10);
+
+        if (sConfigMgr->GetBoolDefault("RemoveResSickness", true))
+        {
+            if (player->HasAura(SPELL_RESURRECTION_SICKNESS))
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Retirer le Mal de la resurrection", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 12);
+        }
+
+        if (sConfigMgr->GetBoolDefault("ResetCooldowns", true))
+        {
+
+            auto it = _cooldownResetTracker.find(player->GetGUID().GetRawValue());
+            if (it != _cooldownResetTracker.end())
+            {
+                uint32 elapsed = (uint32)(time(nullptr) - it->second);
+                if (elapsed < COOLDOWN_RESET_DELAY)
+                {
+                    uint32 remaining = COOLDOWN_RESET_DELAY - elapsed;
+                    std::string label = "Reinitialiser les cooldowns (disponible dans " + std::to_string(remaining) + "s)";
+                    AddGossipItemFor(player, GOSSIP_ICON_CHAT, label.c_str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 11);
+                }
+                else
+                {
+                    AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Reinitialiser les cooldowns", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 11);
+                }
+            }
+            else
+            {
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Reinitialiser les cooldowns", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 11);
+            }
+        }
 
         SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
 
@@ -312,6 +352,48 @@ public:
                 SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
                 break;
             }
+            case GOSSIP_ACTION_INFO_DEF + 10: /*Repair All Equipment*/
+            {
+                player->DurabilityRepairAll(false, 0.0f, false);
+                ChatHandler(player->GetSession()).PSendSysMessage("Votre equipement a ete entierement repare.");
+                CloseGossipMenuFor(player);
+                break;
+            }
+            case GOSSIP_ACTION_INFO_DEF + 11: /*Reset Spell Cooldowns*/
+            {
+                auto it = _cooldownResetTracker.find(player->GetGUID().GetRawValue());
+                if (it != _cooldownResetTracker.end())
+                {
+                    uint32 elapsed = (uint32)(time(nullptr) - it->second);
+                    if (elapsed < COOLDOWN_RESET_DELAY)
+                    {
+                        uint32 remaining = COOLDOWN_RESET_DELAY - elapsed;
+                        ChatHandler(player->GetSession()).PSendSysMessage("Vous devez attendre encore %u seconde(s) avant de reinitialiser vos cooldowns.", remaining);
+                        CloseGossipMenuFor(player);
+                        break;
+                    }
+                }
+
+                player->GetSpellHistory()->ResetAllCooldowns();
+                _cooldownResetTracker[player->GetGUID().GetRawValue()] = time(nullptr);
+                ChatHandler(player->GetSession()).PSendSysMessage("Tous vos cooldowns ont ete reinitialises.");
+                CloseGossipMenuFor(player);
+                break;
+            }
+            case GOSSIP_ACTION_INFO_DEF + 12: /*Remove Resurrection Sickness*/
+            {
+                if (player->HasAura(SPELL_RESURRECTION_SICKNESS))
+                {
+                    player->RemoveAurasDueToSpell(SPELL_RESURRECTION_SICKNESS);
+                    ChatHandler(player->GetSession()).PSendSysMessage("Le Mal de la resurrection a ete retire.");
+                }
+                else
+                {
+                    ChatHandler(player->GetSession()).PSendSysMessage("Vous n'etes pas affecte par le Mal de la resurrection.");
+                }
+                CloseGossipMenuFor(player);
+                break;
+            }
         }
     }
 
@@ -364,13 +446,19 @@ public:
             npcDuration = 60;
 
         Creature* npc = player->SummonCreature(entry, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60s);
+		if (!npc)
+			return;
+		
         npc->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
         npc->GetMotionMaster()->MoveFollow(player, PET_FOLLOW_DIST, player->GetFollowAngle());
         npc->SetFaction(player->GetFaction());
 
         if (salute && !(salute[0] == '\0'))
-            npc->Whisper(salute, LANG_UNIVERSAL, player, false);;
+            npc->Whisper(salute, LANG_UNIVERSAL, player, false);
     }
+
+    private:
+        std::unordered_map<uint64, time_t> _cooldownResetTracker;
 };
 
 void AddSC_premium_account()
