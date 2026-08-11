@@ -1076,12 +1076,14 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
     {
         pCurrChar->ResetSpells();
         SendNotification(LANG_RESET_SPELLS);
+        pCurrChar->RemoveAtLoginFlag(AT_LOGIN_RESET_SPELLS);
     }
 
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_TALENTS))
     {
         pCurrChar->ResetTalents(true);
         pCurrChar->SendTalentsInfoData(false);              // original talents send already in to SendInitialPacketsBeforeAddToMap, resend reset state
+        pCurrChar->RemoveAtLoginFlag(AT_LOGIN_RESET_TALENTS);
     }
 
     bool firstLogin = pCurrChar->HasAtLoginFlag(AT_LOGIN_FIRST);

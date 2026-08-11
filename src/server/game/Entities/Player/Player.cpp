@@ -2802,12 +2802,7 @@ void Player::InitTalentForLevel()
     // talents base at level diff (talents = level - 9 but some can be used already)
     if (level < 10)
     {
-        // Remove all talent points
-        if (m_usedTalentCount > 0)                           // Free any used talents
-        {
-            ResetTalents(true);
-            SetFreeTalentPoints(0);
-        }
+        SetFreeTalentPoints(0);
     }
     else
     {
@@ -2819,17 +2814,7 @@ void Player::InitTalentForLevel()
 
         uint32 talentPointsForLevel = CalculateTalentsPoints();
 
-        // if used more that have then reset
-        if (m_usedTalentCount > talentPointsForLevel)
-        {
-            if (!GetSession()->HasPermission(rbac::RBAC_PERM_SKIP_CHECK_MORE_TALENTS_THAN_ALLOWED))
-                ResetTalents(true);
-            else
-                SetFreeTalentPoints(0);
-        }
-        // else update amount of free points
-        else
-            SetFreeTalentPoints(talentPointsForLevel - m_usedTalentCount);
+        SetFreeTalentPoints(talentPointsForLevel > m_usedTalentCount ? talentPointsForLevel - m_usedTalentCount : 0);
     }
 
     if (!GetSession()->PlayerLoading())
