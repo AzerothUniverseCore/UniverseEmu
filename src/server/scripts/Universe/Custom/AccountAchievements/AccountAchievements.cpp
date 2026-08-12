@@ -22,12 +22,13 @@
 #include "DatabaseEnv.h"
 #include "AchievementMgr.h"
 #include "WorldSession.h"
+#include <set>
 
 class AccountAchievements : public PlayerScript
 {
 	static const bool limitrace = true; // Ce réglage à true ne permet d'obtenir que les succès des personnages de la même équipe, faites ce que vous voulez. IL N'EST PAS RECOMMANDÉ DE LE CHANGER !!!
 	static const bool limitlevel = false; // Cette fonction vérifie le niveau du joueur et n'ajoutera des réalisations qu'aux joueurs de ce niveau.
-	int minlevel = 80; // Il est fixé aux joueurs de niveau 60. Nécessite que limitlevel soit réglé sur true.
+	int minlevel = 90; // Il est fixé aux joueurs de niveau 90. Nécessite que limitlevel soit réglé sur true.
 	int setlevel = 1; // Ne pas changer
 
 public:
@@ -44,15 +45,18 @@ public:
 		{
 			Field* fields = result1->Fetch();
 
-			/*uint32 guid = fields[0].GetUInt32();*/
+			uint32 guid = fields[0].GetUInt32();
 			uint32 race = fields[1].GetUInt8();
 
 			if ((Player::TeamForRace(race) == Player::TeamForRace(pPlayer->GetRace())) || !limitrace)
-				Guids.push_back(result1->Fetch()[0].GetUInt32());
+				Guids.push_back(guid);
 
 		} while (result1->NextRow());
 
-		std::vector<uint32> Achievement;
+		// FIX: use a set instead of a vector so achievements shared by several
+		// characters on the account are only processed once per login, instead
+		// of once per character that has them.
+		std::set<uint32> Achievement;
 
 		for (auto& i : Guids)
 		{
@@ -62,13 +66,18 @@ public:
 
 			do
 			{
-				Achievement.push_back(result2->Fetch()[0].GetUInt32());
+				Achievement.insert(result2->Fetch()[0].GetUInt32());
 			} while (result2->NextRow());
 		}
 
 		for (auto& i : Achievement)
 		{
-			auto sAchievement = sAchievementStore.LookupEntry(i);
+			// FIX: LookupEntry can return nullptr for an achievement id that no
+			// longer exists in Achievement.dbc (a stale/orphaned row left behind
+			// after a dbc update). The old code dereferenced the result
+			// unconditionally (sAchievement->ID), which crashed the whole
+			// worldserver on login for that account. Skip silently instead.
+			if (AchievementEntry const* sAchievement = sAchievementStore.LookupEntry(i))
 				AddAchievements(pPlayer, sAchievement->ID);
 		}
 	}
@@ -78,8 +87,14 @@ public:
 		if (limitlevel)
 			setlevel = minlevel;
 
-		if (player->GetLevel() >= setlevel)
-			player->CompletedAchievement(sAchievementStore.LookupEntry(AchievementID));
+		if (player->GetLevel() < setlevel)
+			return;
+
+		// FIX: same nullptr guard here -- AddAchievements can in principle be
+		// called with an id that doesn't resolve, and CompletedAchievement()
+		// does not null-check its argument.
+		if (AchievementEntry const* achievement = sAchievementStore.LookupEntry(AchievementID))
+			player->CompletedAchievement(achievement);
 	}
 };
 
