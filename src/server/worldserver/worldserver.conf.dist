@@ -5102,6 +5102,27 @@ Vendor = 1
 
 MailBox = 1
 
+#    Repair All
+#        Description: Allow Players to use Repair All
+#        Default:     1  - (Enabled)
+#                     0  - (Disabled)
+
+RepairAll = 1
+
+#    Remove ResSickness
+#        Description: Allow Players to use Remove ResSickness
+#        Default:     1  - (Enabled)
+#                     0  - (Disabled)
+
+RemoveResSickness = 1
+
+#    Reset Cooldowns
+#        Description: Allow Players to use Remove Reset Cooldowns
+#        Default:     1  - (Enabled)
+#                     0  - (Disabled)
+
+ResetCooldowns = 1
+
 ##################################################################################################################
 #   Premium.NpcDuration
 #       Description: Time (in seconds) before despawn of summoned NPC
