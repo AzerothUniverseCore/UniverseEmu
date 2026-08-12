@@ -2340,7 +2340,7 @@ void AchievementGlobalMgr::LoadAchievementCriteriaList()
             {
                 WorldMapOverlayEntry const* worldOverlayEntry = sWorldMapOverlayStore.LookupEntry(criteria->Asset.WorldMapOverlayID);
                 if (!worldOverlayEntry)
-                    break;
+                    continue;
 
                 for (uint8 j = 0; j < MAX_WORLD_MAP_OVERLAY_AREA_IDX; ++j)
                 {
