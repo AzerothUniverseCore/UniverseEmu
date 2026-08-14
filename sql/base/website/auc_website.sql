@@ -386,15 +386,12 @@ insert  into `menu`(`id`,`name`,`url`,`icon`,`main`,`child`,`type`) values
 (1,'〡Game','#','fas fa-desktop',2,0,1),
 (2,'〡Community','#','fas fa-globe-europe',2,0,1),
 (3,'〡Vote','vote','vp-icon',1,0,1),
-(4,'〡Donate','donate','dp-icon',1,0,1),
 (9,'〡Discord','https://discord.gg/yBnzhaJChf','fab fa-discord',1,2,2),
-(10,'〡Forum','#','fa fa-comments',1,2,2),
-(11,'〡FAQ','#','fa fa-question',1,2,1),
 (12,'〡Azeroth Universe','download','fas fa-download',1,1,1),
 (13,'〡Store','store','fas fa-store-alt',1,0,1),
-(14,'〡Online Players','online','fas fa-globe-europe',1,2,2),
 (15,'〡Azeroth Universe TV','https://www.youtube.com/@AzerothUniverseTV','fab fa-youtube',1,2,2),
-(16,'〡FR','fr','fas fa-flag',1,0,1);
+(16,'〡FR','fr','fas fa-flag',1,0,1),
+(17,'〡Content','https://azeroth-universe.eu/content.php','fas fa-crown',1,1,2);
 
 /*Table structure for table `menufr` */
 
@@ -417,15 +414,12 @@ insert  into `menufr`(`id`,`name`,`url`,`icon`,`main`,`child`,`type`) values
 (1,'〡Jeu','#','fas fa-desktop',2,0,1),
 (2,'〡Communauté','#','fas fa-globe-europe',2,0,1),
 (3,'〡Vote','vote','vp-icon',1,0,1),
-(4,'〡Don','donate','dp-icon',1,0,1),
 (9,'〡Discord','https://discord.gg/yBnzhaJChf','fab fa-discord',1,2,2),
-(10,'〡Forum','#','fa fa-comments',1,2,2),
-(11,'〡FAQ','#','fa fa-question',1,2,1),
 (12,'〡Azeroth Universe','download','fas fa-download',1,1,1),
 (13,'〡Boutique','store','fas fa-store-alt',1,0,1),
-(14,'〡Joueurs en ligne','online','fas fa-globe-europe',1,2,2),
 (15,'〡Azeroth Universe TV','https://www.youtube.com/@AzerothUniverseTV','fab fa-youtube',1,2,2),
-(16,'〡US','en','fas fa-flag',1,0,1);
+(16,'〡US','en','fas fa-flag',1,0,1),
+(17,'〡Contenu','https://azeroth-universe.eu/content.php','fas fa-crown',1,1,2);
 
 /*Table structure for table `migrations` */
 
@@ -1433,7 +1427,7 @@ CREATE TABLE `store_logs` (
   `vp` int(10) unsigned NOT NULL DEFAULT 0,
   `date` int(10) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=222 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB AUTO_INCREMENT=226 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
 
 /*Data for the table `store_logs` */
 
@@ -1500,7 +1494,8 @@ insert  into `votes`(`id`,`name`,`url`,`time`,`points`,`image`) values
 (1,'RPG PARADIZE','https://rpg-paradize.com/vote/112289',3,24,'https://azeroth-universe.eu/news/vote.gif'),
 (2,'SERVEUR PRIVÉ','https://serveur-prive.net/world-of-warcraft/azeroth-universe-vote/vote',2,20,'https://azeroth-universe.eu/news/logo_spc.png'),
 (3,'GTOP100','https://gtop100.com/wow-private-servers/Azeroth-Universe-3-3-5-98279?vote=1',9,48,'https://azeroth-universe.eu/news/votebutton.jpg'),
-(4,'TOP100ARENA','https://www.top100arena.com/listing/101203/vote',24,96,'https://azeroth-universe.eu/news/101203.png');
+(4,'TOP100ARENA','https://www.top100arena.com/listing/101203/vote',24,96,'https://azeroth-universe.eu/news/101203.png'),
+(5,'CHRONICLE CODERS','https://chroniclecoders.com/servers/azeroth-universe-3-3-5',12,60,'https://chroniclecoders.com/_next/image?url=%2Fimages%2Fbranding%2Fapp_logo.png&w=32&q=75');
 
 /*Table structure for table `votes_logs` */
 
@@ -1514,7 +1509,7 @@ CREATE TABLE `votes_logs` (
   `lasttime` int(10) unsigned NOT NULL,
   `expired_at` int(10) unsigned NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=44414 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB AUTO_INCREMENT=44789 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
 
 /*Data for the table `votes_logs` */
 
