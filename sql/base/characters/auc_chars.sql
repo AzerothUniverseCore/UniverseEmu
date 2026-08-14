@@ -14402,6 +14402,24 @@ CREATE TABLE `battleground_deserters` (
 
 /*Data for the table `battleground_deserters` */
 
+/*Table structure for table `blackmarketauctionhouse` */
+
+DROP TABLE IF EXISTS `blackmarketauctionhouse`;
+
+CREATE TABLE `blackmarketauctionhouse` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `item_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `item_owner` varchar(32) NOT NULL DEFAULT '',
+  `time` int(11) NOT NULL DEFAULT 0,
+  `last_bid` int(10) unsigned NOT NULL DEFAULT 0,
+  `start_bid` int(10) unsigned NOT NULL DEFAULT 0,
+  `buyer_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `total_bids` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `blackmarketauctionhouse` */
+
 /*Table structure for table `bugreport` */
 
 DROP TABLE IF EXISTS `bugreport`;
@@ -15008,6 +15026,22 @@ CREATE TABLE `character_pet_declinedname` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 /*Data for the table `character_pet_declinedname` */
+
+/*Table structure for table `character_pierre_foyer_recall` */
+
+DROP TABLE IF EXISTS `character_pierre_foyer_recall`;
+
+CREATE TABLE `character_pierre_foyer_recall` (
+  `guid` int(10) unsigned NOT NULL,
+  `mapId` smallint(5) unsigned NOT NULL,
+  `x` float NOT NULL,
+  `y` float NOT NULL,
+  `z` float NOT NULL,
+  `o` float NOT NULL,
+  PRIMARY KEY (`guid`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `character_pierre_foyer_recall` */
 
 /*Table structure for table `character_queststatus` */
 
@@ -70126,6 +70160,19 @@ CREATE TABLE `game_event_save` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 /*Data for the table `game_event_save` */
+
+/*Table structure for table `gear_update_create_pending` */
+
+DROP TABLE IF EXISTS `gear_update_create_pending`;
+
+CREATE TABLE `gear_update_create_pending` (
+  `guid` int(10) unsigned NOT NULL,
+  `tier` tinyint(3) unsigned NOT NULL,
+  `requested_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`guid`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=DYNAMIC;
+
+/*Data for the table `gear_update_create_pending` */
 
 /*Table structure for table `gm_subsurvey` */
 
