@@ -6,6 +6,7 @@
 
 #include "Hooks.h"
 #include "LuaEngine.h"
+#include "HookHelpers.h"
 #include "BindingMap.h"
 #include "ElunaEventMgr.h"
 #include "ElunaIncludes.h"
@@ -13,7 +14,7 @@
 #include "ElunaUtility.h"
 #include "ElunaCreatureAI.h"
 #include "ElunaInstanceAI.h"
-#include "TicketMgr.h" // for GmTicket, used by the new Ticket event hooks
+#include "TicketMgr.h"
 
 #if defined(SYPHRENA_PLATFORM) && defined(SYPHRENA_PLATFORM_WINDOWS)
 #if SYPHRENA_PLATFORM == SYPHRENA_PLATFORM_WINDOWS
