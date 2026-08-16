@@ -644,6 +644,7 @@ class SC_GAME_API Guild
         uint32 GetMemberCount() const { return m_members.size(); }
         time_t GetCreatedDate() const { return m_createdDate; }
         uint64 GetBankMoney() const { return m_bankMoney; }
+        bool ModifyBankMoney(CharacterDatabaseTransaction trans, uint64 amount, bool add) { return _ModifyBankMoney(trans, amount, add); }
 
         bool SetName(std::string_view name);
 

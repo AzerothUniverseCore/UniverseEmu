@@ -242,6 +242,179 @@ namespace LuaGuild
         return 0;
     }
     
+    /**
+     * Sets the new name of the specified [Guild].
+     *
+     * @param string name : new name of this guild
+     */
+    int SetName(lua_State* L, Guild* guild)
+    {
+        std::string name = Eluna::CHECKVAL<std::string>(L, 2);
+
+        guild->SetName(name);
+        return 0;
+    }
+
+    /**
+     * Update [Player] data in [Guild] member list.
+     *
+     *     enum GuildMemberData
+     *     {
+     *         GUILD_MEMBER_DATA_ZONEID =  0
+     *         GUILD_MEMBER_DATA_LEVEL  =  1
+     *     };
+     *
+     * @param [Player] player : player you need to update data
+     * @param uint8 dataid : data you need to update
+     * @param uint32 value
+     */
+    int UpdateMemberData(lua_State* L, Guild* guild)
+    {
+        Player* player = Eluna::CHECKOBJ<Player>(L, 2);
+        uint8 dataid = Eluna::CHECKVAL<uint8>(L, 3);
+        uint32 value = Eluna::CHECKVAL<uint32>(L, 4);
+
+        guild->UpdateMemberData(player, dataid, value);
+        return 0;
+    }
+
+    /**
+     * Sends a chat message to the [Guild] from the specified [Player].
+     *
+     * @param [Player] player : the [Player] that is the author of the message
+     * @param bool officerOnly : send the message only on the officer channel
+     * @param string msg : the message to send
+     * @param uint32 lang = LANG_UNIVERSAL : language the message is spoken in
+     */
+    int SendMessage(lua_State* L, Guild* guild)
+    {
+        Player* player = Eluna::CHECKOBJ<Player>(L, 2);
+        bool officerOnly = Eluna::CHECKVAL<bool>(L, 3, false);
+        std::string msg = Eluna::CHECKVAL<std::string>(L, 4);
+        uint32 language = Eluna::CHECKVAL<uint32>(L, 5, LANG_UNIVERSAL);
+
+        guild->BroadcastToGuild(player->GetSession(), officerOnly, msg, language);
+        return 0;
+    }
+
+    /**
+     * Invites [Guild] members to an event based on level and rank filters.
+     *
+     * @param [Player] player : the [Player] sending the invitation
+     * @param uint32 minLevel : the required minimum level
+     * @param uint32 maxLevel : the required maximum level
+     * @param uint32 minRank : the required minimum rank
+     */
+    int MassInviteToEvent(lua_State* L, Guild* guild)
+    {
+        Player* player = Eluna::CHECKOBJ<Player>(L, 2);
+        uint32 minLevel = Eluna::CHECKVAL<uint32>(L, 3);
+        uint32 maxLevel = Eluna::CHECKVAL<uint32>(L, 4);
+        uint32 minRank = Eluna::CHECKVAL<uint32>(L, 5);
+
+        guild->MassInviteToEvent(player->GetSession(), minLevel, maxLevel, minRank);
+        return 0;
+    }
+
+    /**
+     * Swaps an item between two slots in the [Guild] bank.
+     *
+     * @param [Player] player : the [Player] performing the swap
+     * @param uint8 tabId : source tab id
+     * @param uint8 slotId : source slot id
+     * @param uint8 destTabId : destination tab id
+     * @param uint8 destSlotId : destination slot id
+     * @param uint32 splitedAmount : if the item is stackable, how much should be moved
+     */
+    int SwapItems(lua_State* L, Guild* guild)
+    {
+        Player* player = Eluna::CHECKOBJ<Player>(L, 2);
+        uint8 tabId = Eluna::CHECKVAL<uint8>(L, 3);
+        uint8 slotId = Eluna::CHECKVAL<uint8>(L, 4);
+        uint8 destTabId = Eluna::CHECKVAL<uint8>(L, 5);
+        uint8 destSlotId = Eluna::CHECKVAL<uint8>(L, 6);
+        uint32 splitedAmount = Eluna::CHECKVAL<uint32>(L, 7);
+
+        guild->SwapItems(player, tabId, slotId, destTabId, destSlotId, splitedAmount);
+        return 0;
+    }
+
+    /**
+     * Swaps an item between a [Guild] bank slot and a [Player]'s inventory slot.
+     *
+     * @param [Player] player : the [Player] performing the swap
+     * @param bool toChar : true to move from bank to inventory, false to move from inventory to bank
+     * @param uint8 tabId : bank tab id
+     * @param uint8 slotId : bank slot id
+     * @param uint8 playerBag : inventory bag id
+     * @param uint8 playerSlotId : inventory slot id
+     * @param uint32 splitedAmount : if the item is stackable, how much should be moved
+     */
+    int SwapItemsWithInventory(lua_State* L, Guild* guild)
+    {
+        Player* player = Eluna::CHECKOBJ<Player>(L, 2);
+        bool toChar = Eluna::CHECKVAL<bool>(L, 3, false);
+        uint8 tabId = Eluna::CHECKVAL<uint8>(L, 4);
+        uint8 slotId = Eluna::CHECKVAL<uint8>(L, 5);
+        uint8 playerBag = Eluna::CHECKVAL<uint8>(L, 6);
+        uint8 playerSlotId = Eluna::CHECKVAL<uint8>(L, 7);
+        uint32 splitedAmount = Eluna::CHECKVAL<uint32>(L, 8);
+
+        guild->SwapItemsWithInventory(player, toChar, tabId, slotId, playerBag, playerSlotId, splitedAmount);
+        return 0;
+    }
+
+    /**
+     * Returns the total amount of money in the [Guild] bank.
+     *
+     * @return uint64 totalBankMoney
+     */
+    int GetTotalBankMoney(lua_State* L, Guild* guild)
+    {
+        Eluna::Push(L, guild->GetBankMoney());
+        return 1;
+    }
+
+    /**
+     * Returns the creation date of the [Guild].
+     *
+     * @return uint32 createdDate
+     */
+    int GetCreatedDate(lua_State* L, Guild* guild)
+    {
+        Eluna::Push(L, uint32(guild->GetCreatedDate()));
+        return 1;
+    }
+
+    /**
+     * Resets the number of item withdrawals in every tab for all [Guild] members.
+     */
+    int ResetTimes(lua_State* /*L*/, Guild* guild)
+    {
+        guild->ResetTimes();
+        return 0;
+    }
+
+    /**
+     * Modifies the [Guild] bank money. Can deposit or withdraw.
+     *
+     * @param uint64 amount : amount to add or remove
+     * @param bool add : true to deposit, false to withdraw
+     * @return bool success
+     */
+    int ModifyBankMoney(lua_State* L, Guild* guild)
+    {
+        uint64 amount = Eluna::CHECKVAL<uint64>(L, 2);
+        bool add = Eluna::CHECKVAL<bool>(L, 3);
+
+        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+        bool success = guild->ModifyBankMoney(trans, amount, add);
+        CharacterDatabase.CommitTransaction(trans);
+
+        Eluna::Push(L, success);
+        return 1;
+    }
+
     ElunaRegister<Guild> GuildMethods[] =
     {
         // Getters
@@ -253,10 +426,13 @@ namespace LuaGuild
         { "GetMOTD", &LuaGuild::GetMOTD },
         { "GetInfo", &LuaGuild::GetInfo },
         { "GetMemberCount", &LuaGuild::GetMemberCount },
+        { "GetTotalBankMoney", &LuaGuild::GetTotalBankMoney },
+        { "GetCreatedDate", &LuaGuild::GetCreatedDate },
 
         // Setters
         { "SetBankTabText", &LuaGuild::SetBankTabText },
         { "SetMemberRank", &LuaGuild::SetMemberRank },
+        { "SetName", &LuaGuild::SetName },
 #ifndef CATA
         { "SetLeader", &LuaGuild::SetLeader },
 #else
@@ -269,6 +445,13 @@ namespace LuaGuild
         { "Disband", &LuaGuild::Disband },
         { "AddMember", &LuaGuild::AddMember },
         { "DeleteMember", &LuaGuild::DeleteMember },
+        { "UpdateMemberData", &LuaGuild::UpdateMemberData },
+        { "SendMessage", &LuaGuild::SendMessage },
+        { "MassInviteToEvent", &LuaGuild::MassInviteToEvent },
+        { "SwapItems", &LuaGuild::SwapItems },
+        { "SwapItemsWithInventory", &LuaGuild::SwapItemsWithInventory },
+        { "ResetTimes", &LuaGuild::ResetTimes },
+        { "ModifyBankMoney", &LuaGuild::ModifyBankMoney },
 
         { NULL, NULL }
     };

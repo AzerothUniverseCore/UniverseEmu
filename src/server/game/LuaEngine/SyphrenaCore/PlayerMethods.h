@@ -7,6 +7,8 @@
 #ifndef PLAYERMETHODS_H
 #define PLAYERMETHODS_H
 
+#include "AchievementMgr.h"
+
 /***
  * Inherits all methods from: [Object], [WorldObject], [Unit]
  */
@@ -3808,6 +3810,253 @@ namespace LuaPlayer
         return 0;
     }
     
+    /**
+     * Returns the [Player]s today Honor points.
+     *
+     * @return uint32 todayHonorPoints
+     */
+    int GetTodayHonorPoints(lua_State* L, Player* player)
+    {
+        Eluna::Push(L, player->GetUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION));
+        return 1;
+    }
+
+    /**
+     * Returns the [Player]s yesterday Honor points.
+     *
+     * @return uint32 yesterdayHonorPoints
+     */
+    int GetYesterdayHonorPoints(lua_State* L, Player* player)
+    {
+        Eluna::Push(L, player->GetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION));
+        return 1;
+    }
+
+    /**
+     * Returns the [Player]s today Honorable Kills.
+     *
+     * @return uint32 todayKills
+     */
+    int GetTodayKills(lua_State* L, Player* player)
+    {
+        Eluna::Push(L, uint32(player->GetUInt16Value(PLAYER_FIELD_KILLS, 0)));
+        return 1;
+    }
+
+    /**
+     * Returns the [Player]s yesterday Honorable Kills.
+     *
+     * @return uint32 yesterdayKills
+     */
+    int GetYesterdayKills(lua_State* L, Player* player)
+    {
+        Eluna::Push(L, uint32(player->GetUInt16Value(PLAYER_FIELD_KILLS, 1)));
+        return 1;
+    }
+
+    /**
+     * Returns the number of quests the [Player] has completed.
+     *
+     * @return uint32 completedQuestsCount
+     */
+    int GetCompletedQuestsCount(lua_State* L, Player* player)
+    {
+        uint32 count = player->GetRewardedQuestCount();
+
+        Eluna::Push(L, count);
+        return 1;
+    }
+
+    /**
+     * Returns the number of free slots in the [Player]'s inventory (backpack and equipped bags).
+     *
+     * @return uint32 freeSlots
+     */
+    int GetInventoryFreeSlots(lua_State* L, Player* player)
+    {
+        uint32 freeSlots = 0;
+
+        for (uint8 i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; ++i)
+        {
+            if (!player->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+                ++freeSlots;
+        }
+
+        for (uint8 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
+        {
+            if (Bag* bag = player->GetBagByPos(i))
+            {
+                for (uint32 j = 0; j < bag->GetBagSize(); ++j)
+                {
+                    if (!player->GetItemByPos(i, j))
+                        ++freeSlots;
+                }
+            }
+        }
+
+        Eluna::Push(L, freeSlots);
+        return 1;
+    }
+
+    /**
+     * Returns the number of free slots in the [Player]'s bank (main bank and bank bags).
+     *
+     * @return uint32 freeSlots
+     */
+    int GetBankFreeSlots(lua_State* L, Player* player)
+    {
+        uint32 freeSlots = 0;
+
+        for (uint8 i = BANK_SLOT_ITEM_START; i < BANK_SLOT_ITEM_END; ++i)
+        {
+            if (!player->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+                ++freeSlots;
+        }
+
+        for (uint8 i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; ++i)
+        {
+            if (Bag* bag = player->GetBagByPos(i))
+            {
+                for (uint32 j = 0; j < bag->GetBagSize(); ++j)
+                {
+                    if (!player->GetItemByPos(i, j))
+                        ++freeSlots;
+                }
+            }
+        }
+
+        Eluna::Push(L, freeSlots);
+        return 1;
+    }
+
+    /**
+     * Returns a table with the taxi nodes known by the [Player].
+     *
+     * @return table knownTaxiNodes
+     */
+    int GetKnownTaxiNodes(lua_State* L, Player* player)
+    {
+        if (!player)
+            return 0;
+
+        lua_newtable(L);
+
+        ByteBuffer data;
+        player->m_taxi.AppendTaximaskTo(data, false);
+
+        uint32 idx = 1;
+
+        for (uint8 i = 0; i < TaxiMaskSize; i++)
+        {
+            uint32 mask;
+            data >> mask;
+
+            for (uint8 bit = 0; bit < 32; bit++)
+            {
+                if (mask & (1u << bit))
+                {
+                    uint32 nodeId = (i * 32) + bit + 1;
+                    lua_pushinteger(L, nodeId);
+                    lua_rawseti(L, -2, idx++);
+                }
+            }
+        }
+
+        return 1;
+    }
+
+    /**
+     * Sets the taxi nodes known by the [Player] from a table of node ids.
+     *
+     * @param table knownTaxiNodes : table of taxi node ids
+     */
+    int SetKnownTaxiNodes(lua_State* L, Player* player)
+    {
+        if (!player)
+            return 0;
+
+        if (!lua_istable(L, 2))
+            return 0;
+
+        lua_pushnil(L);
+
+        while (lua_next(L, 2) != 0)
+        {
+            uint32 nodeId = luaL_checkinteger(L, -1);
+
+            if (nodeId > 0)
+                player->m_taxi.SetTaximaskNode(nodeId);
+
+            lua_pop(L, 1);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Returns the [Player]s current progress on the specified achievement criteria.
+     *
+     * @param uint32 criteriaId
+     * @return uint32 criteriaProgress : nil if no progress has been made
+     */
+    int GetAchievementCriteriaProgress(lua_State* L, Player* player)
+    {
+        uint32 criteriaId = Eluna::CHECKVAL<uint32>(L, 2);
+        AchievementCriteriaEntry const* criteria = sAchievementMgr->GetAchievementCriteria(criteriaId);
+        if (!criteria)
+        {
+            Eluna::Push(L);
+            return 1;
+        }
+
+        CriteriaProgress* progress = player->GetAchievementMgr()->GetCriteriaProgress(criteria);
+        if (progress)
+            Eluna::Push(L, progress->counter);
+        else
+            Eluna::Push(L);
+
+        return 1;
+    }
+
+    /**
+     * Returns the total amount of achievement points the [Player] has earned.
+     *
+     * @return uint32 achievementPoints
+     */
+    int GetAchievementPoints(lua_State* L, Player* player)
+    {
+        uint32 count = 0;
+        for (auto const& pair : player->GetAchievementMgr()->GetCompletedAchievements())
+        {
+            if (AchievementEntry const* achievement = sAchievementMgr->GetAchievement(pair.first))
+                count += achievement->Points;
+        }
+
+        Eluna::Push(L, count);
+        return 1;
+    }
+
+    /**
+     * Returns the number of achievements the [Player] has completed.
+     *
+     * @param bool countFeatsOfStrength = false : include Feats of Strength achievements in the count
+     * @return uint32 completedAchievementsCount
+     */
+    int GetCompletedAchievementsCount(lua_State* L, Player* player)
+    {
+        uint32 count = 0;
+        bool countFeatsOfStrength = Eluna::CHECKVAL<bool>(L, 2, false);
+        for (auto const& pair : player->GetAchievementMgr()->GetCompletedAchievements())
+        {
+            if (AchievementEntry const* achievement = sAchievementMgr->GetAchievement(pair.first))
+                if (achievement->Category != 81 || countFeatsOfStrength)
+                    ++count;
+        }
+
+        Eluna::Push(L, count);
+        return 1;
+    }
+
     ElunaRegister<Player> PlayerMethods[] =
     {
         // Getters
@@ -3829,6 +4078,17 @@ namespace LuaPlayer
         { "GetHonorPoints", nullptr },
 #endif
         { "GetLifetimeKills", &LuaPlayer::GetLifetimeKills },
+        { "GetTodayHonorPoints", &LuaPlayer::GetTodayHonorPoints },
+        { "GetYesterdayHonorPoints", &LuaPlayer::GetYesterdayHonorPoints },
+        { "GetTodayKills", &LuaPlayer::GetTodayKills },
+        { "GetYesterdayKills", &LuaPlayer::GetYesterdayKills },
+        { "GetCompletedQuestsCount", &LuaPlayer::GetCompletedQuestsCount },
+        { "GetInventoryFreeSlots", &LuaPlayer::GetInventoryFreeSlots },
+        { "GetBankFreeSlots", &LuaPlayer::GetBankFreeSlots },
+        { "GetKnownTaxiNodes", &LuaPlayer::GetKnownTaxiNodes },
+        { "GetAchievementCriteriaProgress", &LuaPlayer::GetAchievementCriteriaProgress },
+        { "GetAchievementPoints", &LuaPlayer::GetAchievementPoints },
+        { "GetCompletedAchievementsCount", &LuaPlayer::GetCompletedAchievementsCount },
         { "GetPlayerIP", &LuaPlayer::GetPlayerIP },
         { "GetLevelPlayedTime", &LuaPlayer::GetLevelPlayedTime },
         { "GetTotalPlayedTime", &LuaPlayer::GetTotalPlayedTime },
@@ -3921,6 +4181,7 @@ namespace LuaPlayer
         { "SetGameMaster", &LuaPlayer::SetGameMaster },
         { "SetGMChat", &LuaPlayer::SetGMChat },
         { "SetTaxiCheat", &LuaPlayer::SetTaxiCheat },
+        { "SetKnownTaxiNodes", &LuaPlayer::SetKnownTaxiNodes },
         { "SetGMVisible", &LuaPlayer::SetGMVisible },
         { "SetPvPDeath", &LuaPlayer::SetPvPDeath },
         { "SetAcceptWhispers", &LuaPlayer::SetAcceptWhispers },

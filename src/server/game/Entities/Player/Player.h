@@ -2196,6 +2196,8 @@ public:
     void RemoveTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry);
     void CompletedAchievement(AchievementEntry const* entry);
 
+    AchievementMgr* GetAchievementMgr() const { return m_achievementMgr; }
+
     bool HasTitle(uint32 bitIndex) const;
     bool HasTitle(CharTitlesEntry const* title) const;
     void SetTitle(CharTitlesEntry const* title, bool lost = false);

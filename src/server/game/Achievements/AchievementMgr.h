@@ -291,11 +291,12 @@ class SC_GAME_API AchievementMgr
         void UpdateTimedAchievements(uint32 timeDiff);
         void StartTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry, uint32 timeLost = 0);
         void RemoveTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry);   // used for quest and scripted timed achievements
+        CriteriaProgress* GetCriteriaProgress(AchievementCriteriaEntry const* entry);
+        CompletedAchievementMap const& GetCompletedAchievements() const { return m_completedAchievements; }
 
     private:
         void SendAchievementEarned(AchievementEntry const* achievement) const;
         void SendCriteriaUpdate(AchievementCriteriaEntry const* entry, CriteriaProgress const* progress, uint32 timeElapsed, bool timedCompleted) const;
-        CriteriaProgress* GetCriteriaProgress(AchievementCriteriaEntry const* entry);
         void SetCriteriaProgress(AchievementCriteriaEntry const* entry, uint32 changeValue, ProgressType ptype = PROGRESS_SET);
         void RemoveCriteriaProgress(AchievementCriteriaEntry const* entry);
         void CompletedCriteriaFor(AchievementEntry const* achievement);

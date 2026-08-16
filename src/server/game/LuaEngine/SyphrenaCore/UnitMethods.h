@@ -2528,7 +2528,145 @@ namespace LuaUnit
     Eluna::Push(L, summon);
     return 1;
     }*/
-    
+
+    /**
+     * Definit l'immunite du [Unit] a un masque de mecaniques donne.
+     *
+     * @param int32 immunity : masque d'immunite a appliquer
+     * @param bool apply = true : true pour appliquer, false pour retirer
+     */
+    int SetImmuneTo(lua_State* L, Unit* unit)
+    {
+        int32 immunity = Eluna::CHECKVAL<int32>(L, 2);
+        bool apply = Eluna::CHECKVAL<bool>(L, 3, true);
+
+        unit->ApplySpellImmune(0, 5, immunity, apply);
+        return 0;
+    }
+
+    /**
+     * Modifie une stat "a plat" (flat) du [Unit].
+     *
+     * @param int32 stat : index de la stat (0=Force, 1=Agilite, 2=Endurance, 3=Intellect, 4=Esprit)
+     * @param int8 type : type de modificateur (UnitModifierFlatType)
+     * @param float value : valeur a appliquer
+     * @param bool apply = false : true pour appliquer, false pour retirer
+     */
+    int HandleStatFlatModifier(lua_State* L, Unit* unit)
+    {
+        int32 stat = Eluna::CHECKVAL<int32>(L, 2);
+        int8  type = Eluna::CHECKVAL<int8>(L, 3);
+        float value = Eluna::CHECKVAL<float>(L, 4);
+        bool apply = Eluna::CHECKVAL<bool>(L, 5, false);
+
+        unit->HandleStatFlatModifier(UnitMods(UNIT_MOD_STAT_START + stat), (UnitModifierFlatType)type, value, apply);
+        return 0;
+    }
+
+    /**
+     * Retourne le taux de vitesse (rate) du [Unit] pour un UnitMoveType donne.
+     * Contrairement a GetSpeed() qui renvoie la vitesse reelle calculee
+     * (yards/sec), GetSpeedRate() renvoie le multiplicateur brut (1.0 = normal).
+     *
+     * @param uint32 type : UnitMoveType (0=Walk,1=Run,2=RunBack,3=Swim,4=SwimBack,5=TurnRate,6=Flight,7=FlightBack,8=PitchRate)
+     * @return float speedRate
+     */
+    int GetSpeedRate(lua_State* L, Unit* unit)
+    {
+        uint32 type = Eluna::CHECKVAL<uint32>(L, 2);
+        if (type >= MAX_MOVE_TYPE)
+            return luaL_argerror(L, 2, "valid UnitMoveType expected");
+
+        Eluna::Push(L, unit->GetSpeedRate((UnitMoveType)type));
+        return 1;
+    }
+
+    /**
+     * Retourne la liste des [Unit] qui attaquent ce [Unit].
+     *
+     * @return table attackers : table de [Unit]
+     */
+    int GetAttackers(lua_State* L, Unit* unit)
+    {
+        const Unit::AttackerSet& attackers = unit->getAttackers();
+
+        lua_newtable(L);
+        int table = lua_gettop(L);
+        uint32 i = 1;
+        for (Unit* attacker : attackers)
+        {
+            if (!attacker)
+                continue;
+
+            Eluna::Push(L, attacker);
+            lua_rawseti(L, table, i);
+            ++i;
+        }
+
+        lua_settop(L, table);
+        return 1;
+    }
+
+    /**
+     * Retourne la table de menace (threat list) du [Unit].
+     *
+     * @return table threatList : table de [Unit]
+     */
+    int GetThreatList(lua_State* L, Unit* unit)
+    {
+        if (!unit->CanHaveThreatList())
+        {
+            Eluna::Push(L);
+            return 1;
+        }
+
+        lua_newtable(L);
+        int table = lua_gettop(L);
+        uint32 i = 1;
+        for (ThreatReference const* item : unit->GetThreatManager().GetSortedThreatList())
+        {
+            Unit* victim = item->GetVictim();
+            if (!victim)
+                continue;
+
+            Eluna::Push(L, victim);
+            lua_rawseti(L, table, i);
+            ++i;
+        }
+
+        lua_settop(L, table);
+        return 1;
+    }
+
+    /**
+     * Retourne la menace (threat) d'une cible sur ce [Unit].
+     *
+     * @param [Unit] target
+     * @return float threat
+     */
+    int GetThreat(lua_State* L, Unit* unit)
+    {
+        Unit* target = Eluna::CHECKOBJ<Unit>(L, 2);
+
+        Eluna::Push(L, unit->GetThreatManager().GetThreat(target));
+        return 1;
+    }
+
+    /**
+     * Modifie la menace (en %) d'une cible sur ce [Unit].
+     *
+     * @param [Unit] victim : [Unit] ayant cause la menace
+     * @param int32 percent : pourcentage de menace a appliquer
+     */
+    int ModifyThreatPct(lua_State* L, Unit* unit)
+    {
+        Unit* victim = Eluna::CHECKOBJ<Unit>(L, 2);
+        int32 threatPct = Eluna::CHECKVAL<int32>(L, 3, true);
+
+        unit->GetThreatManager().ModifyThreatByPercent(victim, threatPct);
+        return 0;
+    }
+
     ElunaRegister<Unit> UnitMethods[] =
     {
         // Getters
@@ -2569,11 +2707,15 @@ namespace LuaUnit
         { "GetStandState", &LuaUnit::GetStandState },
         { "GetVictim", &LuaUnit::GetVictim },
         { "GetSpeed", &LuaUnit::GetSpeed },
+        { "GetSpeedRate", &LuaUnit::GetSpeedRate },
         { "GetStat", &LuaUnit::GetStat },
         { "GetBaseSpellPower", &LuaUnit::GetBaseSpellPower },
         { "GetVehicleKit", &LuaUnit::GetVehicleKit },
         { "GetVehicle", &LuaUnit::GetVehicle },
         { "GetMovementType", &LuaUnit::GetMovementType },
+        { "GetAttackers", &LuaUnit::GetAttackers },
+        { "GetThreatList", &LuaUnit::GetThreatList },
+        { "GetThreat", &LuaUnit::GetThreat },
 
         // Setters
         { "SetFaction", &LuaUnit::SetFaction },
@@ -2597,6 +2739,8 @@ namespace LuaUnit
         { "SetSanctuary", &LuaUnit::SetSanctuary },
         { "SetCanFly", &LuaUnit::SetCanFly },
         { "SetVisible", &LuaUnit::SetVisible },
+        { "SetImmuneTo", &LuaUnit::SetImmuneTo },
+        { "HandleStatFlatModifier", &LuaUnit::HandleStatFlatModifier },
         { "SetOwnerGUID", &LuaUnit::SetOwnerGUID },
         { "SetName", &LuaUnit::SetName },
         { "SetSheath", &LuaUnit::SetSheath },
@@ -2701,6 +2845,7 @@ namespace LuaUnit
         { "DealDamage", &LuaUnit::DealDamage },
         { "DealHeal", &LuaUnit::DealHeal },
         { "AddThreat", &LuaUnit::AddThreat },
+        { "ModifyThreatPct", &LuaUnit::ModifyThreatPct },
 
         // Not implemented methods
         { "SummonGuardian", nullptr }, // not implemented
