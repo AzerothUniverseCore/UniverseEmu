@@ -55,6 +55,9 @@
 #include "TradeData.h"
 #include "Unit.h"
 #include "UpdateData.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "UpdateMask.h"
 #include "UniqueTrackablePtr.h"
 #include "Util.h"
@@ -3199,6 +3202,11 @@ SpellCastResult Spell::prepare(SpellCastTargets const& targets, AuraEffect const
 
     m_spellState = SPELL_STATE_PREPARING;
 
+#ifdef ELUNA
+    if (Unit* elunaCaster = m_caster->ToUnit())
+        sEluna->OnSpellPrepare(elunaCaster, this, m_spellInfo);
+#endif
+
     if (triggeredByAura)
         m_triggeredByAuraSpell  = triggeredByAura->GetSpellInfo();
 
@@ -3363,6 +3371,13 @@ void Spell::cancel()
     uint32 oldState = m_spellState;
     m_spellState = SPELL_STATE_FINISHED;
 
+#ifdef ELUNA
+    if (Unit* elunaCaster = m_caster->ToUnit())
+        // NOTE: this codebase's Spell::cancel() doesn't track who initiated the cancel,
+        // so `bySelf` is not authoritative here - defaulting to true.
+        sEluna->OnSpellCastCancel(elunaCaster, this, m_spellInfo, true);
+#endif
+
     m_autoRepeat = false;
     switch (oldState)
     {
@@ -3440,6 +3455,11 @@ void Spell::_cast(bool skipCheck)
         cancel();
         return;
     }
+
+#ifdef ELUNA
+    if (Unit* elunaCaster = m_caster->ToUnit())
+        sEluna->OnSpellCast(elunaCaster, this, m_spellInfo, skipCheck);
+#endif
 
     if (Player* playerCaster = m_caster->ToPlayer())
     {

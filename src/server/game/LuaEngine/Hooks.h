@@ -86,6 +86,9 @@ namespace Hooks
         REGTYPE_BG,
         REGTYPE_MAP,
         REGTYPE_INSTANCE,
+        REGTYPE_TICKET,
+        REGTYPE_SPELL,
+        REGTYPE_ALL_CREATURE,
         REGTYPE_COUNT
     };
 
@@ -369,6 +372,45 @@ namespace Hooks
         INSTANCE_EVENT_ON_GAMEOBJECT_CREATE             = 6,    // (event, instance_data, map, go)
         INSTANCE_EVENT_ON_CHECK_ENCOUNTER_IN_PROGRESS   = 7,    // (event, instance_data, map)
         INSTANCE_EVENT_COUNT
+    };
+
+    enum TicketEvents
+    {
+        TICKET_EVENT_ON_CREATE                          = 1,    // (event, ticket)
+        TICKET_EVENT_UPDATE_LAST_CHANGE                 = 2,    // (event, ticket, message)
+        TICKET_EVENT_ON_CLOSE                           = 3,    // (event, ticket)
+        TICKET_EVENT_ON_RESOLVE                         = 4,    // (event, ticket)
+        TICKET_EVENT_COUNT
+    };
+
+    enum SpellEvents
+    {
+        SPELL_EVENT_ON_PREPARE                          = 1, // (event, caster, spell)
+        SPELL_EVENT_ON_CAST                             = 2, // (event, caster, spell, skipCheck)
+        SPELL_EVENT_ON_CAST_CANCEL                      = 3, // (event, caster, spell, bySelf)
+        SPELL_EVENT_COUNT
+    };
+
+    // NOTE: ALL_CREATURE_EVENT_ON_MODIFY_PERIODIC_DAMAGE_AURAS_TICK is registered/reachable from Lua
+    // but is not yet wired to a call site (would need the periodic aura tick handler, e.g.
+    // AuraEffect::HandlePeriodicDamageAurasTick, which lives outside the files reviewed so far).
+    // Registering for it will simply never fire until that call site is added.
+    enum AllCreatureEvents
+    {
+        ALL_CREATURE_EVENT_ON_ADD                               = 1, // (event, creature)
+        ALL_CREATURE_EVENT_ON_REMOVE                            = 2, // (event, creature)
+        ALL_CREATURE_EVENT_ON_SELECT_LEVEL                      = 3, // (event, creature_template, creature)
+        ALL_CREATURE_EVENT_ON_BEFORE_SELECT_LEVEL               = 4, // (event, creature_template, creature, level) - Can return the new level
+        ALL_CREATURE_EVENT_ON_AURA_APPLY                        = 5, // (event, creature, aura)
+        ALL_CREATURE_EVENT_ON_HEAL                              = 6, // (event, creature, target, gain) - Can return new heal amount
+        ALL_CREATURE_EVENT_ON_DAMAGE                            = 7, // (event, creature, target, damage) - Can return new damage amount
+        ALL_CREATURE_EVENT_ON_AURA_REMOVE                       = 8, // (event, creature, aura, remove_mode)
+        ALL_CREATURE_EVENT_ON_MODIFY_PERIODIC_DAMAGE_AURAS_TICK = 9, // (event, creature, target, damage, spellInfo) - Can return new damage amount - NOT YET WIRED
+        ALL_CREATURE_EVENT_ON_MODIFY_MELEE_DAMAGE               = 10, // (event, creature, target, damage) - Can return new damage amount
+        ALL_CREATURE_EVENT_ON_MODIFY_SPELL_DAMAGE_TAKEN         = 11, // (event, creature, target, damage, spellInfo) - Can return new damage amount
+        ALL_CREATURE_EVENT_ON_MODIFY_HEAL_RECEIVED              = 12, // (event, creature, target, heal, spellInfo) - Can return new heal amount
+        ALL_CREATURE_EVENT_ON_DEAL_DAMAGE                       = 13, // (event, creature, target, damage, damagetype) - Can return new damage amount
+        ALL_CREATURE_EVENT_COUNT
     };
 };
 

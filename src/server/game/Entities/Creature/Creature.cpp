@@ -308,6 +308,7 @@ void Creature::AddToWorld()
 
 #ifdef ELUNA
         sEluna->OnAddToWorld(this);
+        sEluna->OnAllCreatureAddToWorld(this);
 #endif
     }
 }
@@ -318,6 +319,7 @@ void Creature::RemoveFromWorld()
     {
 #ifdef ELUNA
         sEluna->OnRemoveFromWorld(this);
+        sEluna->OnAllCreatureRemoveFromWorld(this);
 #endif
         if (GetZoneScript())
             GetZoneScript()->OnCreatureRemove(this);
@@ -1546,7 +1548,13 @@ void Creature::SelectLevel()
     uint8 minlevel = std::min(cInfo->maxlevel, cInfo->minlevel);
     uint8 maxlevel = std::max(cInfo->maxlevel, cInfo->minlevel);
     uint8 level = minlevel == maxlevel ? minlevel : urand(minlevel, maxlevel);
+#ifdef ELUNA
+    sEluna->OnAllCreatureBeforeSelectLevel(cInfo, this, level);
+#endif
     SetLevel(level);
+#ifdef ELUNA
+    sEluna->OnAllCreatureSelectLevel(cInfo, this);
+#endif
 }
 
 void Creature::UpdateLevelDependantStats()

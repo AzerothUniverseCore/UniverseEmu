@@ -37,6 +37,7 @@
 #endif
 #include "Hooks.h"
 #include "ElunaUtility.h"
+#include "Unit.h" // needed for AuraRemoveMode / DamageEffectType (used by the new AllCreature hooks below)
 #include <mutex>
 #include <memory>
 
@@ -92,6 +93,9 @@ class Player;
 class Quest;
 class Spell;
 class SpellCastTargets;
+class Aura;
+class GmTicket;
+struct CreatureTemplate;
 #if defined(SYPHRENA) || AZEROTHCORE
 class TempSummon;
 #elif defined CMANGOS
@@ -264,6 +268,8 @@ public:
     BindingMap< EventKey<Hooks::GroupEvents> >*      GroupEventBindings;
     BindingMap< EventKey<Hooks::VehicleEvents> >*    VehicleEventBindings;
     BindingMap< EventKey<Hooks::BGEvents> >*         BGEventBindings;
+    BindingMap< EventKey<Hooks::TicketEvents> >*     TicketEventBindings;
+    BindingMap< EventKey<Hooks::AllCreatureEvents> >* AllCreatureEventBindings;
 
     BindingMap< EntryKey<Hooks::PacketEvents> >*     PacketEventBindings;
     BindingMap< EntryKey<Hooks::CreatureEvents> >*   CreatureEventBindings;
@@ -275,6 +281,7 @@ public:
     BindingMap< EntryKey<Hooks::GossipEvents> >*     PlayerGossipBindings;
     BindingMap< EntryKey<Hooks::InstanceEvents> >*   MapEventBindings;
     BindingMap< EntryKey<Hooks::InstanceEvents> >*   InstanceEventBindings;
+    BindingMap< EntryKey<Hooks::SpellEvents> >*      SpellEventBindings;
 
     BindingMap< UniqueObjectKey<Hooks::CreatureEvents> >*  CreatureUniqueBindings;
 
@@ -604,6 +611,32 @@ public:
 #endif
     void OnBGCreate(BattleGround* bg, BattleGroundTypeId bgId, uint32 instanceId);
     void OnBGDestroy(BattleGround* bg, BattleGroundTypeId bgId, uint32 instanceId);
+
+    /* Ticket */
+    void OnTicketCreate(GmTicket* ticket);
+    void OnTicketClose(GmTicket* ticket);
+    void OnTicketUpdateLastChange(GmTicket* ticket);
+    void OnTicketResolve(GmTicket* ticket);
+
+    /* Spell */
+    void OnSpellPrepare(Unit* caster, Spell* spell, SpellInfo const* spellInfo);
+    void OnSpellCast(Unit* caster, Spell* spell, SpellInfo const* spellInfo, bool skipCheck);
+    void OnSpellCastCancel(Unit* caster, Spell* spell, SpellInfo const* spellInfo, bool bySelf);
+
+    /* AllCreature */
+    void OnAllCreatureAddToWorld(Creature* creature);
+    void OnAllCreatureRemoveFromWorld(Creature* creature);
+    void OnAllCreatureSelectLevel(const CreatureTemplate* cinfo, Creature* creature);
+    void OnAllCreatureBeforeSelectLevel(const CreatureTemplate* cinfo, Creature* creature, uint8& level);
+    void OnAllCreatureAuraApply(Creature* me, Aura* aura);
+    void OnAllCreatureHeal(Creature* me, Unit* target, uint32& gain);
+    void OnAllCreatureDamage(Creature* me, Unit* target, uint32& damage);
+    void OnAllCreatureAuraRemove(Creature* me, Aura* aura, AuraRemoveMode mode);
+    void OnAllCreatureModifyPeriodicDamageAurasTick(Creature* me, Unit* target, uint32& damage, SpellInfo const* spellInfo);
+    void OnAllCreatureModifyMeleeDamage(Creature* me, Unit* target, uint32& damage);
+    void OnAllCreatureModifySpellDamageTaken(Creature* me, Unit* target, int32& damage, SpellInfo const* spellInfo);
+    void OnAllCreatureModifyHealReceived(Creature* me, Unit* target, uint32& heal, SpellInfo const* spellInfo);
+    uint32 OnAllCreatureDealDamage(Creature* me, Unit* target, uint32 damage, DamageEffectType damagetype);
 };
 template<> Unit* Eluna::CHECKOBJ<Unit>(lua_State* L, int narg, bool error);
 template<> Object* Eluna::CHECKOBJ<Object>(lua_State* L, int narg, bool error);

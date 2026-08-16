@@ -13,6 +13,7 @@
 #include "ElunaUtility.h"
 #include "ElunaCreatureAI.h"
 #include "ElunaInstanceAI.h"
+#include "TicketMgr.h" // for GmTicket, used by the new Ticket event hooks
 
 #if defined(SYPHRENA_PLATFORM) && defined(SYPHRENA_PLATFORM_WINDOWS)
 #if SYPHRENA_PLATFORM == SYPHRENA_PLATFORM_WINDOWS
@@ -167,6 +168,8 @@ GuildEventBindings(NULL),
 GroupEventBindings(NULL),
 VehicleEventBindings(NULL),
 BGEventBindings(NULL),
+TicketEventBindings(NULL),
+AllCreatureEventBindings(NULL),
 
 PacketEventBindings(NULL),
 CreatureEventBindings(NULL),
@@ -178,6 +181,7 @@ ItemGossipBindings(NULL),
 PlayerGossipBindings(NULL),
 MapEventBindings(NULL),
 InstanceEventBindings(NULL),
+SpellEventBindings(NULL),
 
 CreatureUniqueBindings(NULL)
 {
@@ -260,6 +264,8 @@ void Eluna::CreateBindStores()
     GroupEventBindings       = new BindingMap< EventKey<Hooks::GroupEvents> >(L);
     VehicleEventBindings     = new BindingMap< EventKey<Hooks::VehicleEvents> >(L);
     BGEventBindings          = new BindingMap< EventKey<Hooks::BGEvents> >(L);
+    TicketEventBindings      = new BindingMap< EventKey<Hooks::TicketEvents> >(L);
+    AllCreatureEventBindings = new BindingMap< EventKey<Hooks::AllCreatureEvents> >(L);
 
     PacketEventBindings      = new BindingMap< EntryKey<Hooks::PacketEvents> >(L);
     CreatureEventBindings    = new BindingMap< EntryKey<Hooks::CreatureEvents> >(L);
@@ -271,6 +277,7 @@ void Eluna::CreateBindStores()
     PlayerGossipBindings     = new BindingMap< EntryKey<Hooks::GossipEvents> >(L);
     MapEventBindings         = new BindingMap< EntryKey<Hooks::InstanceEvents> >(L);
     InstanceEventBindings    = new BindingMap< EntryKey<Hooks::InstanceEvents> >(L);
+    SpellEventBindings       = new BindingMap< EntryKey<Hooks::SpellEvents> >(L);
 
     CreatureUniqueBindings   = new BindingMap< UniqueObjectKey<Hooks::CreatureEvents> >(L);
 }
@@ -282,6 +289,8 @@ void Eluna::DestroyBindStores()
     delete GuildEventBindings;
     delete GroupEventBindings;
     delete VehicleEventBindings;
+    delete TicketEventBindings;
+    delete AllCreatureEventBindings;
 
     delete PacketEventBindings;
     delete CreatureEventBindings;
@@ -294,6 +303,7 @@ void Eluna::DestroyBindStores()
     delete BGEventBindings;
     delete MapEventBindings;
     delete InstanceEventBindings;
+    delete SpellEventBindings;
 
     delete CreatureUniqueBindings;
 
@@ -302,6 +312,8 @@ void Eluna::DestroyBindStores()
     GuildEventBindings = NULL;
     GroupEventBindings = NULL;
     VehicleEventBindings = NULL;
+    TicketEventBindings = NULL;
+    AllCreatureEventBindings = NULL;
 
     PacketEventBindings = NULL;
     CreatureEventBindings = NULL;
@@ -314,6 +326,7 @@ void Eluna::DestroyBindStores()
     BGEventBindings = NULL;
     MapEventBindings = NULL;
     InstanceEventBindings = NULL;
+    SpellEventBindings = NULL;
 
     CreatureUniqueBindings = NULL;
 }
@@ -1177,6 +1190,43 @@ int Eluna::Register(lua_State* L, uint8 regtype, uint32 entry, ObjectGuid guid, 
                 return 1; // Stack: callback
             }
             break;
+
+        case Hooks::REGTYPE_TICKET:
+            if (event_id < Hooks::TICKET_EVENT_COUNT)
+            {
+                auto key = EventKey<Hooks::TicketEvents>((Hooks::TicketEvents)event_id);
+                bindingID = TicketEventBindings->Insert(key, functionRef, shots);
+                createCancelCallback(L, bindingID, TicketEventBindings);
+                return 1; // Stack: callback
+            }
+            break;
+
+        case Hooks::REGTYPE_SPELL:
+            if (event_id < Hooks::SPELL_EVENT_COUNT)
+            {
+                if (!sSpellMgr->GetSpellInfo(entry))
+                {
+                    luaL_unref(L, LUA_REGISTRYINDEX, functionRef);
+                    luaL_error(L, "Couldn't find a spell with (ID: %d)!", entry);
+                    return 0; // Stack: (empty)
+                }
+
+                auto key = EntryKey<Hooks::SpellEvents>((Hooks::SpellEvents)event_id, entry);
+                bindingID = SpellEventBindings->Insert(key, functionRef, shots);
+                createCancelCallback(L, bindingID, SpellEventBindings);
+                return 1; // Stack: callback
+            }
+            break;
+
+        case Hooks::REGTYPE_ALL_CREATURE:
+            if (event_id < Hooks::ALL_CREATURE_EVENT_COUNT)
+            {
+                auto key = EventKey<Hooks::AllCreatureEvents>((Hooks::AllCreatureEvents)event_id);
+                bindingID = AllCreatureEventBindings->Insert(key, functionRef, shots);
+                createCancelCallback(L, bindingID, AllCreatureEventBindings);
+                return 1; // Stack: callback
+            }
+            break;
     }
     luaL_unref(L, LUA_REGISTRYINDEX, functionRef);
     std::ostringstream oss;
@@ -1354,4 +1404,410 @@ void Eluna::PushInstanceData(lua_State* L, ElunaInstanceAI* ai, bool incrementCo
 
     if (incrementCounter)
         ++push_counter;
+}
+
+
+/* -----------------------------------------------------------------------
+ * Ticket / Spell / AllCreature event hooks
+ * Backported from AzerothCore's mod-ale (https://github.com/azerothcore/mod-ale)
+ * Call sites: TicketMgr.cpp/GmTicket (Ticket), Spell.cpp (Spell),
+ * Creature.cpp + Unit.cpp (AllCreature). See Hooks.h for a note on
+ * ALL_CREATURE_EVENT_ON_MODIFY_PERIODIC_DAMAGE_AURAS_TICK, which is
+ * registered but has no call site wired yet.
+ * ----------------------------------------------------------------------- */
+
+void Eluna::OnTicketCreate(GmTicket* ticket)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::TicketEvents>(Hooks::TICKET_EVENT_ON_CREATE);
+    if (!TicketEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(ticket);
+    CallAllFunctions(TicketEventBindings, key);
+}
+
+void Eluna::OnTicketUpdateLastChange(GmTicket* ticket)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::TicketEvents>(Hooks::TICKET_EVENT_UPDATE_LAST_CHANGE);
+    if (!TicketEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(ticket);
+    CallAllFunctions(TicketEventBindings, key);
+}
+
+void Eluna::OnTicketClose(GmTicket* ticket)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::TicketEvents>(Hooks::TICKET_EVENT_ON_CLOSE);
+    if (!TicketEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(ticket);
+    CallAllFunctions(TicketEventBindings, key);
+}
+
+void Eluna::OnTicketResolve(GmTicket* ticket)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::TicketEvents>(Hooks::TICKET_EVENT_ON_RESOLVE);
+    if (!TicketEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(ticket);
+    CallAllFunctions(TicketEventBindings, key);
+}
+
+void Eluna::OnSpellPrepare(Unit* caster, Spell* spell, SpellInfo const* spellInfo)
+{
+    if (!IsEnabled() || !spellInfo)
+        return;
+    auto key = EntryKey<Hooks::SpellEvents>(Hooks::SPELL_EVENT_ON_PREPARE, spellInfo->Id);
+    if (!SpellEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(caster);
+    Push(spell);
+    CallAllFunctions(SpellEventBindings, key);
+}
+
+void Eluna::OnSpellCast(Unit* caster, Spell* spell, SpellInfo const* spellInfo, bool skipCheck)
+{
+    if (!IsEnabled() || !spellInfo)
+        return;
+    auto key = EntryKey<Hooks::SpellEvents>(Hooks::SPELL_EVENT_ON_CAST, spellInfo->Id);
+    if (!SpellEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(caster);
+    Push(spell);
+    Push(skipCheck);
+    CallAllFunctions(SpellEventBindings, key);
+}
+
+void Eluna::OnSpellCastCancel(Unit* caster, Spell* spell, SpellInfo const* spellInfo, bool bySelf)
+{
+    if (!IsEnabled() || !spellInfo)
+        return;
+    auto key = EntryKey<Hooks::SpellEvents>(Hooks::SPELL_EVENT_ON_CAST_CANCEL, spellInfo->Id);
+    if (!SpellEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(caster);
+    Push(spell);
+    Push(bySelf);
+    CallAllFunctions(SpellEventBindings, key);
+}
+
+void Eluna::OnAllCreatureAddToWorld(Creature* creature)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_ADD);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(creature);
+    CallAllFunctions(AllCreatureEventBindings, key);
+}
+
+void Eluna::OnAllCreatureRemoveFromWorld(Creature* creature)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_REMOVE);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(creature);
+    CallAllFunctions(AllCreatureEventBindings, key);
+}
+
+void Eluna::OnAllCreatureSelectLevel(const CreatureTemplate* cinfo, Creature* creature)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_SELECT_LEVEL);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(cinfo);
+    Push(creature);
+    CallAllFunctions(AllCreatureEventBindings, key);
+}
+
+void Eluna::OnAllCreatureBeforeSelectLevel(const CreatureTemplate* cinfo, Creature* creature, uint8& level)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_BEFORE_SELECT_LEVEL);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(cinfo);
+    Push(creature);
+    Push(level);
+    int levelIndex = lua_gettop(L);
+    int n = SetupStack(AllCreatureEventBindings, key, 3);
+
+    while (n > 0)
+    {
+        int r = CallOneFunction(n--, 3, 1);
+
+        if (lua_isnumber(L, r))
+        {
+            level = CHECKVAL<uint8>(L, r);
+            ReplaceArgument(level, levelIndex);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    CleanUpStack(3);
+}
+
+void Eluna::OnAllCreatureAuraApply(Creature* me, Aura* aura)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_AURA_APPLY);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(me);
+    Push(aura);
+    CallAllFunctions(AllCreatureEventBindings, key);
+}
+
+void Eluna::OnAllCreatureAuraRemove(Creature* me, Aura* aura, AuraRemoveMode mode)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_AURA_REMOVE);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(me);
+    Push(aura);
+    Push(mode);
+    CallAllFunctions(AllCreatureEventBindings, key);
+}
+
+void Eluna::OnAllCreatureHeal(Creature* me, Unit* target, uint32& gain)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_HEAL);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(me);
+    Push(target);
+    Push(gain);
+
+    int gainIndex = lua_gettop(L);
+    int n = SetupStack(AllCreatureEventBindings, key, 3);
+    while (n > 0)
+    {
+        int r = CallOneFunction(n--, 3, 1);
+        if (lua_isnumber(L, r))
+        {
+            gain = CHECKVAL<uint32>(L, r);
+            ReplaceArgument(gain, gainIndex);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    CleanUpStack(3);
+}
+
+void Eluna::OnAllCreatureDamage(Creature* me, Unit* target, uint32& damage)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_DAMAGE);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(me);
+    Push(target);
+    Push(damage);
+
+    int damageIndex = lua_gettop(L);
+    int n = SetupStack(AllCreatureEventBindings, key, 3);
+    while (n > 0)
+    {
+        int r = CallOneFunction(n--, 3, 1);
+        if (lua_isnumber(L, r))
+        {
+            damage = CHECKVAL<uint32>(L, r);
+            ReplaceArgument(damage, damageIndex);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    CleanUpStack(3);
+}
+
+void Eluna::OnAllCreatureModifyPeriodicDamageAurasTick(Creature* me, Unit* target, uint32& damage, SpellInfo const* spellInfo)
+{
+    // NOTE: not yet called from anywhere - no periodic aura tick call site has been wired.
+    // Left implemented so registering for ALL_CREATURE_EVENT_ON_MODIFY_PERIODIC_DAMAGE_AURAS_TICK
+    // doesn't error out; it will simply never fire until a call site is added.
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_MODIFY_PERIODIC_DAMAGE_AURAS_TICK);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(me);
+    Push(target);
+    Push(damage);
+    Push(spellInfo);
+
+    int damageIndex = lua_gettop(L) - 1;
+    int n = SetupStack(AllCreatureEventBindings, key, 4);
+    while (n > 0)
+    {
+        int r = CallOneFunction(n--, 4, 1);
+        if (lua_isnumber(L, r))
+        {
+            damage = CHECKVAL<uint32>(L, r);
+            ReplaceArgument(damage, damageIndex);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    CleanUpStack(4);
+}
+
+void Eluna::OnAllCreatureModifyMeleeDamage(Creature* me, Unit* target, uint32& damage)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_MODIFY_MELEE_DAMAGE);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(me);
+    Push(target);
+    Push(damage);
+
+    int damageIndex = lua_gettop(L);
+    int n = SetupStack(AllCreatureEventBindings, key, 3);
+    while (n > 0)
+    {
+        int r = CallOneFunction(n--, 3, 1);
+        if (lua_isnumber(L, r))
+        {
+            damage = CHECKVAL<uint32>(L, r);
+            ReplaceArgument(damage, damageIndex);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    CleanUpStack(3);
+}
+
+void Eluna::OnAllCreatureModifySpellDamageTaken(Creature* me, Unit* target, int32& damage, SpellInfo const* spellInfo)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_MODIFY_SPELL_DAMAGE_TAKEN);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(me);
+    Push(target);
+    Push(damage);
+    Push(spellInfo);
+
+    int damageIndex = lua_gettop(L) - 1;
+    int n = SetupStack(AllCreatureEventBindings, key, 4);
+    while (n > 0)
+    {
+        int r = CallOneFunction(n--, 4, 1);
+        if (lua_isnumber(L, r))
+        {
+            damage = CHECKVAL<int32>(L, r);
+            ReplaceArgument(damage, damageIndex);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    CleanUpStack(4);
+}
+
+void Eluna::OnAllCreatureModifyHealReceived(Creature* me, Unit* target, uint32& heal, SpellInfo const* spellInfo)
+{
+    if (!IsEnabled())
+        return;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_MODIFY_HEAL_RECEIVED);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return;
+    LOCK_ELUNA;
+    Push(me);
+    Push(target);
+    Push(heal);
+    Push(spellInfo);
+
+    int healIndex = lua_gettop(L) - 1;
+    int n = SetupStack(AllCreatureEventBindings, key, 4);
+    while (n > 0)
+    {
+        int r = CallOneFunction(n--, 4, 1);
+        if (lua_isnumber(L, r))
+        {
+            heal = CHECKVAL<uint32>(L, r);
+            ReplaceArgument(heal, healIndex);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    CleanUpStack(4);
+}
+
+uint32 Eluna::OnAllCreatureDealDamage(Creature* me, Unit* target, uint32 damage, DamageEffectType damagetype)
+{
+    if (!IsEnabled())
+        return damage;
+    auto key = EventKey<Hooks::AllCreatureEvents>(Hooks::ALL_CREATURE_EVENT_ON_DEAL_DAMAGE);
+    if (!AllCreatureEventBindings->HasBindingsFor(key))
+        return damage;
+    LOCK_ELUNA;
+    uint32 result = damage;
+    Push(me);
+    Push(target);
+    Push(damage);
+    Push(damagetype);
+    int damageIndex = lua_gettop(L) - 1;
+    int n = SetupStack(AllCreatureEventBindings, key, 4);
+
+    while (n > 0)
+    {
+        int r = CallOneFunction(n--, 4, 1);
+
+        if (lua_isnumber(L, r))
+        {
+            result = CHECKVAL<uint32>(L, r);
+            ReplaceArgument(result, damageIndex);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    CleanUpStack(4);
+    return result;
 }

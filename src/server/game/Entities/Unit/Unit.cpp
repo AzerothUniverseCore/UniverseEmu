@@ -762,6 +762,11 @@ bool Unit::HasBreakableByDamageCrowdControlAura(Unit* excludeCasterChannel) cons
 #ifdef ELUNA
     if (Player* damagingPlayer = attacker ? attacker->ToPlayer() : nullptr)
         sEluna->OnDealDamage(damagingPlayer, victim, damage);
+    if (Creature* damagingCreature = attacker ? attacker->ToCreature() : nullptr)
+    {
+        sEluna->OnAllCreatureDamage(damagingCreature, victim, damage);
+        damage = sEluna->OnAllCreatureDealDamage(damagingCreature, victim, damage, damagetype);
+    }
 #endif
 
     // Signal to pets that their owner was attacked - except when DOT.
@@ -1166,6 +1171,14 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 dama
 
     // Script Hook For CalculateSpellDamageTaken -- Allow scripts to change the Damage post class mitigation calculations
     sScriptMgr->ModifySpellDamageTaken(damageInfo->target, damageInfo->attacker, damage);
+#ifdef ELUNA
+    if (Creature* elunaCasterCreature = ToCreature())
+    {
+        int32 elunaDamage = damage;
+        sEluna->OnAllCreatureModifySpellDamageTaken(elunaCasterCreature, victim, elunaDamage, spellInfo);
+        damage = elunaDamage;
+    }
+#endif
 
     // Calculate absorb resist
     if (damage < 0)
@@ -1299,6 +1312,10 @@ void Unit::CalculateMeleeDamage(Unit* victim, CalcDamageInfo* damageInfo, Weapon
 
         // Script Hook For CalculateMeleeDamage -- Allow scripts to change the Damage pre class mitigation calculations
         sScriptMgr->ModifyMeleeDamage(damageInfo->Target, damageInfo->Attacker, damage);
+#ifdef ELUNA
+        if (Creature* elunaAttackerCreature = ToCreature())
+            sEluna->OnAllCreatureModifyMeleeDamage(elunaAttackerCreature, damageInfo->Target, damage);
+#endif
 
         //NpcBot mod: apply bot damage mods
         if (GetTypeId() == TYPEID_UNIT && ToCreature()->IsNPCBotOrPet())
@@ -3617,6 +3634,11 @@ void Unit::_ApplyAura(AuraApplication* aurApp, uint8 effMask)
             aurApp->_HandleEffect(i, true);
     }
 
+#ifdef ELUNA
+    if (Creature* elunaCreature = ToCreature())
+        sEluna->OnAllCreatureAuraApply(elunaCreature, aura);
+#endif
+
     if (Player* player = ToPlayer())
         if (sConditionMgr->IsSpellUsedInSpellClickConditions(aurApp->GetBase()->GetId()))
             player->UpdateVisibleGameobjectsOrSpellClicks();
@@ -3633,6 +3655,11 @@ void Unit::_UnapplyAura(AuraApplicationMap::iterator& i, AuraRemoveMode removeMo
     aurApp->SetRemoveMode(removeMode);
     Aura* aura = aurApp->GetBase();
     SC_LOG_DEBUG("spells", "Aura {} now is remove mode {}", aura->GetId(), removeMode);
+
+#ifdef ELUNA
+    if (Creature* elunaCreature = ToCreature())
+        sEluna->OnAllCreatureAuraRemove(elunaCreature, aura, removeMode);
+#endif
 
     // dead loop is killing the server probably
     ASSERT(m_removedAurasCount < 0xFFFFFFFF);
@@ -6441,6 +6468,14 @@ void Unit::SetCharm(Unit* charm, bool apply)
 
     // Hook for OnHeal Event
     sScriptMgr->OnHeal(healer, victim, (uint32&)gain);
+#ifdef ELUNA
+    if (Creature* elunaHealerCreature = healer ? healer->ToCreature() : nullptr)
+    {
+        uint32 elunaGain = uint32(gain > 0 ? gain : 0);
+        sEluna->OnAllCreatureHeal(elunaHealerCreature, victim, elunaGain);
+        gain = int32(elunaGain);
+    }
+#endif
 
     Unit* unit = healer;
     if (healer && healer->GetTypeId() == TYPEID_UNIT && healer->IsTotem())
@@ -6710,6 +6745,10 @@ int32 Unit::HealBySpell(HealInfo& healInfo, bool critical /*= false*/)
     Unit* victim = healInfo.GetTarget();
     uint32& addhealth = healInfo.GetHealForMod();
     sScriptMgr->ModifyHealRecieved(this, victim, addhealth);
+#ifdef ELUNA
+    if (Creature* elunaHealerCreature = ToCreature())
+        sEluna->OnAllCreatureModifyHealReceived(elunaHealerCreature, victim, addhealth, healInfo.GetSpellInfo());
+#endif
 
     // calculate heal absorb and reduce healing
     Unit::CalcHealAbsorb(healInfo);

@@ -17,6 +17,9 @@
 
 #include "TicketMgr.h"
 #include "CharacterCache.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "Chat.h"
 #include "Common.h"
 #include "DatabaseEnv.h"
@@ -218,6 +221,9 @@ void GmTicket::SetMessage(std::string const& message)
 {
     _message = message;
     _lastModifiedTime = uint64(GameTime::GetGameTime());
+#ifdef ELUNA
+    sEluna->OnTicketUpdateLastChange(this);
+#endif
 }
 
 void GmTicket::SetUnassigned()
@@ -376,6 +382,9 @@ void TicketMgr::AddTicket(GmTicket* ticket)
         ++_openTicketCount;
     CharacterDatabaseTransaction trans = CharacterDatabaseTransaction(nullptr);
     ticket->SaveToDB(trans);
+#ifdef ELUNA
+    sEluna->OnTicketCreate(ticket);
+#endif
 }
 
 void TicketMgr::CloseTicket(uint32 ticketId, ObjectGuid source)
@@ -387,6 +396,9 @@ void TicketMgr::CloseTicket(uint32 ticketId, ObjectGuid source)
         if (source)
             --_openTicketCount;
         ticket->SaveToDB(trans);
+#ifdef ELUNA
+        sEluna->OnTicketClose(ticket);
+#endif
     }
 }
 
@@ -400,6 +412,9 @@ void TicketMgr::ResolveAndCloseTicket(uint32 ticketId, ObjectGuid source)
         if (source)
             --_openTicketCount;
         ticket->SaveToDB(trans);
+#ifdef ELUNA
+        sEluna->OnTicketResolve(ticket);
+#endif
     }
 }
 
