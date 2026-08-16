@@ -1270,6 +1270,101 @@ namespace LuaCreature
         return 1;
     }
     
+    /**
+     * Returns the [Creature]'s Unit flags.
+     *
+     * These are used to control whether the NPC is attackable or not, among other things.
+     *
+     * @return [UnitFlags] unitFlags
+     */
+    int GetUnitFlags(lua_State* L, Creature* creature)
+    {
+        Eluna::Push(L, creature->GetUInt32Value(UNIT_FIELD_FLAGS));
+        return 1;
+    }
+
+    /**
+     * Returns the [Creature]'s Unit flags 2.
+     *
+     * @return [UnitFlags2] unitFlags2
+     */
+    int GetUnitFlagsTwo(lua_State* L, Creature* creature)
+    {
+        Eluna::Push(L, creature->GetUInt32Value(UNIT_FIELD_FLAGS_2));
+        return 1;
+    }
+
+    /**
+     * Returns the [Creature]'s rank.
+     *
+     * @return [Rank] rank
+     */
+    int GetRank(lua_State* L, Creature* creature)
+    {
+        Eluna::Push(L, creature->GetCreatureTemplate()->rank);
+        return 1;
+    }
+
+    /**
+     * Returns the [Creature]'s current ReactState.
+     *
+     * <pre>
+     * enum ReactState
+     * {
+     *     REACT_PASSIVE       = 0,
+     *     REACT_DEFENSIVE     = 1,
+     *     REACT_AGGRESSIVE    = 2
+     * };
+     * </pre>
+     *
+     * @return [ReactState] state
+     */
+    int GetReactState(lua_State* L, Creature* creature)
+    {
+        ReactStates state = creature->GetReactState();
+        lua_pushinteger(L, (int)state);
+        return 1;
+    }
+
+    /**
+     * Sets the [Creature]'s Unit flags to `flags`.
+     *
+     * @param [UnitFlags] flags
+     */
+    int SetUnitFlags(lua_State* L, Creature* creature)
+    {
+        uint32 flags = Eluna::CHECKVAL<uint32>(L, 2);
+
+        creature->SetUInt32Value(UNIT_FIELD_FLAGS, flags);
+        return 0;
+    }
+
+    /**
+     * Sets the [Creature]'s Unit flags2 to `flags`.
+     *
+     * @param [UnitFlags2] flags
+     */
+    int SetUnitFlagsTwo(lua_State* L, Creature* creature)
+    {
+        uint32 flags = Eluna::CHECKVAL<uint32>(L, 2);
+
+        creature->SetUInt32Value(UNIT_FIELD_FLAGS_2, flags);
+        return 0;
+    }
+
+    /**
+     * Sets the time it takes for the [Creature]'s corpse to despawn when killed.
+     *
+     * @param uint32 delay : the delay, in seconds
+     */
+    int SetCorpseDelay(lua_State* L, Creature* creature)
+    {
+        uint32 delay = Eluna::CHECKVAL<uint32>(L, 2);
+
+        creature->SetCorpseDelay(delay);
+        return 0;
+    }
+
     ElunaRegister<Creature> CreatureMethods[] =
     {
         // Getters
@@ -1294,6 +1389,10 @@ namespace LuaCreature
         { "GetLootRecipientGroup", &LuaCreature::GetLootRecipientGroup },
         { "GetNPCFlags", &LuaCreature::GetNPCFlags },
         { "GetExtraFlags", &LuaCreature::GetExtraFlags },
+        { "GetUnitFlags", &LuaCreature::GetUnitFlags },
+        { "GetUnitFlagsTwo", &LuaCreature::GetUnitFlagsTwo },
+        { "GetRank", &LuaCreature::GetRank },
+        { "GetReactState", &LuaCreature::GetReactState },
 #ifndef CATA
         { "GetShieldBlockValue", &LuaCreature::GetShieldBlockValue },
 #else
@@ -1319,6 +1418,9 @@ namespace LuaCreature
         { "SetLootMode", &LuaCreature::SetLootMode },
         { "SetNPCFlags", &LuaCreature::SetNPCFlags },
         { "SetReactState", &LuaCreature::SetReactState },
+        { "SetUnitFlags", &LuaCreature::SetUnitFlags },
+        { "SetUnitFlagsTwo", &LuaCreature::SetUnitFlagsTwo },
+        { "SetCorpseDelay", &LuaCreature::SetCorpseDelay },
         { "SetDeathState", &LuaCreature::SetDeathState },
         { "SetWalk", &LuaCreature::SetWalk },
         { "SetHomePosition", &LuaCreature::SetHomePosition },
