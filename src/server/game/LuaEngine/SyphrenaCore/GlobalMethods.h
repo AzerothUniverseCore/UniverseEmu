@@ -486,6 +486,97 @@ namespace LuaGlobalFunctions
         return 1;
     }
 
+    /**
+     * Returns the size, in bytes, of the packed version of a guid.
+     *
+     * @param uint64 guid : the guid to get the packed size of
+     * @return uint32 packedSize
+     */
+    int GetPackedGUIDSize(lua_State* L)
+    {
+        ObjectGuid guid = Eluna::CHECKVAL<ObjectGuid>(L, 1);
+        PackedGuid packedGuid(guid);
+        Eluna::Push(L, static_cast<uint32>(packedGuid.size()));
+        return 1;
+    }
+
+    /**
+     * Return the entrance position (x, y, z, o) of the specified dungeon map id.
+     *
+     * @param uint32 mapId
+     * @return float x
+     * @return float y
+     * @return float z
+     * @return float o
+     */
+    int GetMapEntrance(lua_State* L)
+    {
+        uint32 mapId = Eluna::CHECKVAL<uint32>(L, 1);
+        AreaTrigger const* at = eObjectMgr->GetMapEntranceTrigger(mapId);
+
+        if (!at)
+        {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        Eluna::Push(L, at->target_X);
+        Eluna::Push(L, at->target_Y);
+        Eluna::Push(L, at->target_Z);
+        Eluna::Push(L, at->target_Orientation);
+        return 4;
+    }
+
+    /**
+     * Gets the localized OptionText and BoxText for a specific gossip menu option.
+     *
+     * If the text for the specified locale is not found, it returns the default text.
+     *
+     * @param uint32 menuId : the ID of the gossip menu
+     * @param uint32 optionId : the ID of the gossip menu option
+     * @param uint8 locale : the locale to retrieve the text for, 0 represents the default locale
+     * @return string optionText
+     * @return string boxText
+     */
+    int GetGossipMenuOptionLocale(lua_State* L)
+    {
+        uint32 menuId = Eluna::CHECKVAL<uint32>(L, 1);
+        uint32 optionId = Eluna::CHECKVAL<uint32>(L, 2);
+        uint8 locale = Eluna::CHECKVAL<uint8>(L, 3);
+
+        std::string strOptionText;
+        std::string strBoxText;
+
+        if (locale != DEFAULT_LOCALE)
+        {
+            if (GossipMenuItemsLocale const* gossipMenuLocale = eObjectMgr->GetGossipMenuItemsLocale(menuId, optionId))
+            {
+                ObjectMgr::GetLocaleString(gossipMenuLocale->OptionText, LocaleConstant(locale), strOptionText);
+                ObjectMgr::GetLocaleString(gossipMenuLocale->BoxText, LocaleConstant(locale), strBoxText);
+            }
+        }
+
+        if (strOptionText.empty() || strBoxText.empty())
+        {
+            GossipMenuItemsMapBounds bounds = eObjectMgr->GetGossipMenuItemsMapBounds(menuId);
+            for (auto itr = bounds.first; itr != bounds.second; ++itr)
+            {
+                if (itr->second.OptionID == optionId)
+                {
+                    if (strOptionText.empty())
+                        strOptionText = itr->second.OptionText;
+                    if (strBoxText.empty())
+                        strBoxText = itr->second.BoxText;
+                    break;
+                }
+            }
+        }
+
+        Eluna::Push(L, strOptionText);
+        Eluna::Push(L, strBoxText);
+        return 2;
+    }
+
     static int RegisterEntryHelper(lua_State* L, int regtype)
     {
         uint32 id = Eluna::CHECKVAL<uint32>(L, 1);
@@ -2971,6 +3062,9 @@ namespace LuaGlobalFunctions
         { "GetGUIDType", &LuaGlobalFunctions::GetGUIDType },
         { "GetGUIDEntry", &LuaGlobalFunctions::GetGUIDEntry },
         { "GetAreaName", &LuaGlobalFunctions::GetAreaName },
+        { "GetPackedGUIDSize", &LuaGlobalFunctions::GetPackedGUIDSize },
+        { "GetMapEntrance", &LuaGlobalFunctions::GetMapEntrance },
+        { "GetGossipMenuOptionLocale", &LuaGlobalFunctions::GetGossipMenuOptionLocale },
         { "bit_not", &LuaGlobalFunctions::bit_not },
         { "bit_xor", &LuaGlobalFunctions::bit_xor },
         { "bit_rshift", &LuaGlobalFunctions::bit_rshift },
