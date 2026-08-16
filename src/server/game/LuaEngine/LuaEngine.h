@@ -37,7 +37,8 @@
 #endif
 #include "Hooks.h"
 #include "ElunaUtility.h"
-#include "Unit.h" // needed for AuraRemoveMode / DamageEffectType (used by the new AllCreature hooks below)
+#include "Unit.h"
+#include "QueryCallback.h"
 #include <mutex>
 #include <memory>
 
@@ -202,7 +203,6 @@ private:
     void DestroyBindStores();
     void CreateBindStores();
     void InvalidateObjects();
-    bool ExecuteCall(int params, int res);
 
     // Use ReloadEluna() to make eluna reload
     // This is called on world update to reload eluna
@@ -261,6 +261,7 @@ public:
 
     lua_State* L;
     EventMgr* eventMgr;
+    QueryCallbackProcessor queryProcessor;
 
     BindingMap< EventKey<Hooks::ServerEvents> >*     ServerEventBindings;
     BindingMap< EventKey<Hooks::PlayerEvents> >*     PlayerEventBindings;
@@ -358,6 +359,7 @@ public:
     bool HasLuaState() const { return L != NULL; }
     uint64 GetCallstackId() const { return callstackid; }
     int Register(lua_State* L, uint8 reg, uint32 entry, ObjectGuid guid, uint32 instanceId, uint32 event_id, int functionRef, uint32 shots);
+    bool ExecuteCall(int params, int res);
 
     // Checks
     template<typename T> static T CHECKVAL(lua_State* luastate, int narg);

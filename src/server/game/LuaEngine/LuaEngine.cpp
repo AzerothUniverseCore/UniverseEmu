@@ -162,6 +162,7 @@ enabled(false),
 
 L(NULL),
 eventMgr(NULL),
+queryProcessor(),
 
 ServerEventBindings(NULL),
 PlayerEventBindings(NULL),

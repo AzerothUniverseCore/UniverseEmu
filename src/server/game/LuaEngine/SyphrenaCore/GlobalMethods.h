@@ -1415,6 +1415,53 @@ namespace LuaGlobalFunctions
     }
 
     /**
+     * Executes an asynchronous SQL query on the world database and passes an [ElunaQuery] to a callback function.
+     *
+     * The query is executed asynchronously
+     *   (i.e. the server keeps running while the query is executed in parallel, and results are passed to a callback function).
+     * If you need to execute the query synchronously, use [Global:WorldDBQuery] instead.
+     *
+     *     WorldDBQueryAsync("SELECT entry, name FROM creature_template LIMIT 10", function(Q)
+     *         if Q then
+     *             repeat
+     *                 local entry, name = Q:GetUInt32(0), Q:GetString(1)
+     *                 print(entry, name)
+     *             until not Q:NextRow()
+     *         end
+     *     end)
+     *
+     * @param string sql : query to execute
+     * @param function callback : function that will be called when the results are available
+     */
+    int WorldDBQueryAsync(lua_State* L)
+    {
+        const char* query = Eluna::CHECKVAL<const char*>(L, 1);
+        luaL_checktype(L, 2, LUA_TFUNCTION);
+        lua_pushvalue(L, 2);
+        int funcRef = luaL_ref(L, LUA_REGISTRYINDEX);
+        if (funcRef == LUA_REFNIL || funcRef == LUA_NOREF)
+        {
+            luaL_argerror(L, 2, "unable to make a ref to function");
+            return 0;
+        }
+
+        Eluna::GetEluna(L)->queryProcessor.AddCallback(WorldDatabase.AsyncQuery(query).WithCallback([L, funcRef](QueryResult result)
+            {
+                ElunaQuery* eq = result ? new ElunaQuery(result) : nullptr;
+
+                LOCK_ELUNA;
+
+                lua_rawgeti(L, LUA_REGISTRYINDEX, funcRef);
+                Eluna::Push(L, eq);
+                Eluna::GetEluna(L)->ExecuteCall(1, 0);
+
+                luaL_unref(L, LUA_REGISTRYINDEX, funcRef);
+            }));
+
+        return 0;
+    }
+
+    /**
      * Executes a SQL query on the world database.
      *
      * The query may be executed *asynchronously* (at a later, unpredictable time).
@@ -1459,6 +1506,46 @@ namespace LuaGlobalFunctions
     }
 
     /**
+     * Executes an asynchronous SQL query on the character database and passes the results to a callback function.
+     *
+     * The query is executed asynchronously
+     *   (i.e. the server keeps running while the query is executed in parallel, and results are passed to a callback function).
+     * If you need to execute the query synchronously, use [Global:CharDBQuery] instead.
+     *
+     * For an example see [Global:WorldDBQueryAsync].
+     *
+     * @param string sql : query to execute
+     * @param function callback : function that will be called when the results are available
+     */
+    int CharDBQueryAsync(lua_State* L)
+    {
+        const char* query = Eluna::CHECKVAL<const char*>(L, 1);
+        luaL_checktype(L, 2, LUA_TFUNCTION);
+        lua_pushvalue(L, 2);
+        int funcRef = luaL_ref(L, LUA_REGISTRYINDEX);
+        if (funcRef == LUA_REFNIL || funcRef == LUA_NOREF)
+        {
+            luaL_argerror(L, 2, "unable to make a ref to function");
+            return 0;
+        }
+
+        Eluna::GetEluna(L)->queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(query).WithCallback([L, funcRef](QueryResult result)
+            {
+                QueryResult* eq = result ? new QueryResult(result) : nullptr;
+
+                LOCK_ELUNA;
+
+                lua_rawgeti(L, LUA_REGISTRYINDEX, funcRef);
+                Eluna::Push(L, eq);
+                Eluna::GetEluna(L)->ExecuteCall(1, 0);
+
+                luaL_unref(L, LUA_REGISTRYINDEX, funcRef);
+            }));
+
+        return 0;
+    }
+
+    /**
      * Executes a SQL query on the character database.
      *
      * The query may be executed *asynchronously* (at a later, unpredictable time).
@@ -1500,6 +1587,46 @@ namespace LuaGlobalFunctions
             Eluna::Push(L);
 
         return 1;
+    }
+
+    /**
+     * Executes an asynchronous SQL query on the login database and passes the results to a callback function.
+     *
+     * The query is executed asynchronously
+     *   (i.e. the server keeps running while the query is executed in parallel, and results are passed to a callback function).
+     * If you need to execute the query synchronously, use [Global:AuthDBQuery] instead.
+     *
+     * For an example see [Global:WorldDBQueryAsync].
+     *
+     * @param string sql : query to execute
+     * @param function callback : function that will be called when the results are available
+     */
+    int AuthDBQueryAsync(lua_State* L)
+    {
+        const char* query = Eluna::CHECKVAL<const char*>(L, 1);
+        luaL_checktype(L, 2, LUA_TFUNCTION);
+        lua_pushvalue(L, 2);
+        int funcRef = luaL_ref(L, LUA_REGISTRYINDEX);
+        if (funcRef == LUA_REFNIL || funcRef == LUA_NOREF)
+        {
+            luaL_argerror(L, 2, "unable to make a ref to function");
+            return 0;
+        }
+
+        Eluna::GetEluna(L)->queryProcessor.AddCallback(LoginDatabase.AsyncQuery(query).WithCallback([L, funcRef](QueryResult result)
+            {
+                QueryResult* eq = result ? new QueryResult(result) : nullptr;
+
+                LOCK_ELUNA;
+
+                lua_rawgeti(L, LUA_REGISTRYINDEX, funcRef);
+                Eluna::Push(L, eq);
+                Eluna::GetEluna(L)->ExecuteCall(1, 0);
+
+                luaL_unref(L, LUA_REGISTRYINDEX, funcRef);
+            }));
+
+        return 0;
     }
 
     /**
@@ -3264,10 +3391,13 @@ namespace LuaGlobalFunctions
         { "RunCommand", &LuaGlobalFunctions::RunCommand },
         { "SendWorldMessage", &LuaGlobalFunctions::SendWorldMessage },
         { "WorldDBQuery", &LuaGlobalFunctions::WorldDBQuery },
+        { "WorldDBQueryAsync", &LuaGlobalFunctions::WorldDBQueryAsync },
         { "WorldDBExecute", &LuaGlobalFunctions::WorldDBExecute },
         { "CharDBQuery", &LuaGlobalFunctions::CharDBQuery },
+        { "CharDBQueryAsync", &LuaGlobalFunctions::CharDBQueryAsync },
         { "CharDBExecute", &LuaGlobalFunctions::CharDBExecute },
         { "AuthDBQuery", &LuaGlobalFunctions::AuthDBQuery },
+        { "AuthDBQueryAsync", &LuaGlobalFunctions::AuthDBQueryAsync },
         { "AuthDBExecute", &LuaGlobalFunctions::AuthDBExecute },
         { "CreateLuaEvent", &LuaGlobalFunctions::CreateLuaEvent },
         { "RemoveEventById", &LuaGlobalFunctions::RemoveEventById },

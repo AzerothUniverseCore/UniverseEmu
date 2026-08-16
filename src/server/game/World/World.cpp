@@ -2608,6 +2608,13 @@ void World::Update(uint32 diff)
         sScriptMgr->OnWorldUpdate(diff);
     }
 
+#ifdef ELUNA
+    {
+        SC_METRIC_TIMER("world_update_time", SC_METRIC_TAG("type", "Process Eluna async DB query callbacks"));
+        sEluna->queryProcessor.ProcessReadyCallbacks();
+    }
+#endif
+
     {
         SC_METRIC_TIMER("world_update_time", SC_METRIC_TAG("type", "Update metrics"));
         // Stats logger update
