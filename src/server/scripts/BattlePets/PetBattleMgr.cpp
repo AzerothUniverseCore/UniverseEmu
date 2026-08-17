@@ -1890,8 +1890,6 @@ void PetBattleMgr::RemovePetFromTeam(
         return;
     }
 
-    uint32 entry = team[slotIndex].creatureEntry;
-
     SavePlayerTeamSlot(
         guidLow,
         slotIndex,
