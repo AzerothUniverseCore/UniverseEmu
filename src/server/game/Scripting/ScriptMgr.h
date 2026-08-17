@@ -763,6 +763,9 @@ class SC_GAME_API PlayerScript : public ScriptObject
 
         // Called when a player completes a movie
         virtual void OnMovieComplete(Player* player, uint32 movieId);
+
+        // Called when a player learns a spell (backported for mod-pet-battle)
+        virtual void OnPlayerLearnSpell(Player* player, uint32 spellId);
 };
 
 class SC_GAME_API AccountScript : public ScriptObject
@@ -1085,6 +1088,7 @@ class SC_GAME_API ScriptMgr
         void OnQuestStatusChange(Player* player, uint32 questId);
         void OnMovieComplete(Player* player, uint32 movieId);
         void OnPlayerRepop(Player* player);
+        void OnPlayerLearnSpell(Player* player, uint32 spellId);
 
     public: /* AccountScript */
 

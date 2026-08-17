@@ -2213,6 +2213,11 @@ void ScriptMgr::OnMovieComplete(Player* player, uint32 movieId)
     FOREACH_SCRIPT(PlayerScript)->OnMovieComplete(player, movieId);
 }
 
+void ScriptMgr::OnPlayerLearnSpell(Player* player, uint32 spellId)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnPlayerLearnSpell(player, spellId);
+}
+
 // Account
 void ScriptMgr::OnAccountLogin(uint32 accountId)
 {
@@ -3009,6 +3014,10 @@ void PlayerScript::OnPlayerRepop(Player* /*player*/)
 }
 
 void PlayerScript::OnMovieComplete(Player* /*player*/, uint32 /*movieId*/)
+{
+}
+
+void PlayerScript::OnPlayerLearnSpell(Player* /*player*/, uint32 /*spellId*/)
 {
 }
 

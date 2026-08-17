@@ -3664,6 +3664,7 @@ void Player::LearnSpell(uint32 spell_id, bool dependent, uint32 fromSkill /*= 0*
 #ifdef ELUNA
         sEluna->OnLearnSpell(this, spell_id);
 #endif
+        sScriptMgr->OnPlayerLearnSpell(this, spell_id);
     }
 
     // learn all disabled higher ranks and required spells (recursive)
