@@ -30,11 +30,11 @@ static uint32 GetCreatureTemplateModelId(CreatureTemplate const* tmpl, uint8 idx
 {
     switch (idx)
     {
-    case 0: return tmpl->Modelid1;
-    case 1: return tmpl->Modelid2;
-    case 2: return tmpl->Modelid3;
-    case 3: return tmpl->Modelid4;
-    default: return 0;
+        case 0: return tmpl->Modelid1;
+        case 1: return tmpl->Modelid2;
+        case 2: return tmpl->Modelid3;
+        case 3: return tmpl->Modelid4;
+        default: return 0;
     }
 }
 
@@ -1086,6 +1086,8 @@ void PetBattleMgr::ShowTeamMenu(
             "",
             0);
 
+    SendAddonMsg(player, "GOSSIPFLAG");
+
     player->PlayerTalkClass->SendGossipMenu(
         GOSSIP_TEXT_GENERICO,
         player->GetGUID());
@@ -1258,6 +1260,8 @@ void PetBattleMgr::HandleTeamGossipAction(
                     4000,
                     "",
                     0);
+
+            SendAddonMsg(player, "GOSSIPFLAG");
 
             player->PlayerTalkClass->SendGossipMenu(
                 GOSSIP_TEXT_GENERICO,
@@ -1474,7 +1478,7 @@ void PetBattleMgr::SendBattleInit(
 
 
         // ====================================================
-        // danoS
+        // danos
         // ====================================================
 
         std::to_string(
@@ -2932,6 +2936,8 @@ void PetBattleMgr::ShowDiceMenu(
             "",
             0);
 
+    SendAddonMsg(player, "GOSSIPFLAG");
+
     player->PlayerTalkClass->SendGossipMenu(
         GOSSIP_TEXT_GENERICO,
         player->GetGUID());
@@ -3191,6 +3197,8 @@ void PetBattleMgr::ShowAttackMenu(
     // ============================================================
     // Mostrar menú
     // ============================================================
+
+    SendAddonMsg(player, "GOSSIPFLAG");
 
     player->PlayerTalkClass->SendGossipMenu(
         GOSSIP_TEXT_GENERICO,
