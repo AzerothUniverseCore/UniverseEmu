@@ -116,6 +116,12 @@ struct ActivePetBattle
     ObjectGuid playerB;
     uint32 turnTimeoutToken = 0;
 
+    // Posicion de spawn de la mascota activa: se usa como punto de
+    // regreso exacto tras cada ataque, en vez de leerla de nuevo del
+    // Creature (que ya se habra movido para atacar).
+    Position spawnPosA;
+    Position spawnPosB;
+
     std::array<PetBattleStats, 3> teamA;
     std::array<PetBattleStats, 3> teamB;
 
