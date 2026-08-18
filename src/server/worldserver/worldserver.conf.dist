@@ -52,6 +52,7 @@
 #    AUTO RESTART WORLDSERVER
 # 	 NPCBOT CONFIGURATION
 #  	 WHO BOTS
+#    BATTLE PET SYSTEM
 #
 ###################################################################################################
 
@@ -5952,4 +5953,114 @@ NpcBot.HK.Rate.Honor = 1.0
 WhoBots.Enable = 1
 
 #
+###################################################################################################
+
+###################################################################################################
+# BATTLE PET SYSTEM
+###################################################################################################
+#
+#	Español
+#    PetBattle.Enable
+#        Descripcion: Activa o desactiva por completo el sistema de combate
+#                      de mascotas (comando /dp) en el servidor.
+#        Default:     1 (activado)
+#
+#	English
+#    PetBattle.Enable
+#        Description: Enables or disables the pet battle system
+#                     (/dp command) on the server.
+#        Default:     1 (enabled
+
+PetBattle.Enable = 1
+
+#
+#	Español
+#		Muestra efecto spell al invocar la mascotas
+#		VisualSpellId = que quieras
+#
+#	English
+#		Displays a spell effect when summoning the pet
+#		VisualSpellId = any spell ID you want
+
+PetBattle.SummonVisualSpellId = 47292
+
+#
+#	Español
+#		Muestra los mensajes [PETDMG] usados para depuracion/addons.
+#		0 = desactivado
+#		1 = activado
+#
+#	English
+#		Displays the [PETDMG] messages used for debugging/addons.
+#		0 = disabled
+#		1 = enabled
+
+PetBattle.DebugDamageMessages = 0
+
+#
+#	Español
+#		Tiempo limite en seg para que el jugador de respuesta
+#
+#	English
+#		Time limit in seconds for the player to respond
+
+PetBattle.TurnTimeoutSeconds = 15
+
+# Experiencia ganada vs criaturas
+PetBattle.XpPercentVsWild = 5
+
+# Experiencia ganada vs criaturas Jugadores
+PetBattle.XpPercentVsPvp = 15
+
+# Distancia limite para combatir
+PetBattle.ChallengeMaxDistance = 10
+
+# Cantidad de vida para activar instinto de supervivencia
+PetBattle.HealBelowPercent = 25
+
+# Probabilidad de que el ataque cambie a una cura
+PetBattle.HealChance = 15
+
+# Cura minima
+PetBattle.HealMin = 15
+
+# Cura maxima
+PetBattle.HealMax = 45
+
+#
+#	Español
+#		Efecto visual reproducido en la mascota que se cura a si misma
+#		(habilidad propia o auto-curacion por HP bajo).
+#		0 = usa el emote de ataque normal.
+#
+#	English
+#		Visual played on the pet that heals itself (its own ability
+#		or auto-heal when HP is low). 0 = uses the normal attack emote.
+
+PetBattle.HealVisualSpellId = 24209
+
+#
+#	Español
+#		Efecto visual reproducido en la mascota atacante cuando el daño
+#		esta POR DEBAJO del umbral fijo de 19 (ver PET_DAMAGE_VISUAL_THRESHOLD
+#		en el .cpp). 0 = usa el emote de ataque normal.
+#
+#	English
+#		Visual played on the attacking pet when the damage is BELOW the
+#		fixed threshold of 19 (see PET_DAMAGE_VISUAL_THRESHOLD in the .cpp).
+#		0 = uses the normal attack emote.
+
+PetBattle.DamageVisualSpellIdLow = 24209
+
+#
+#	Español
+#		Efecto visual reproducido en la mascota atacante cuando el daño
+#		es MAYOR O IGUAL al umbral. 0 = usa el emote de ataque normal.
+#
+#	English
+#		Visual played on the attacking pet when the damage is GREATER THAN
+#		OR EQUAL to the threshold. 0 = uses the normal attack emote.
+
+PetBattle.DamageVisualSpellIdHigh = 24209
+
 ###################################################################################################
