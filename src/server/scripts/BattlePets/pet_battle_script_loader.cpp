@@ -1,13 +1,18 @@
 /*
- * Este archivo es el punto de entrada que AzerothCore detecta
- * automaticamente al escanear la carpeta modules/ durante la
- * configuracion de CMake. SIN este archivo, las clases definidas
- * en mod_pet_battle.cpp (comando /dp y hooks de gossip) nunca se
- * registran en el servidor, aunque el modulo compile sin errores.
+ * This file is part of the SyphrenaCore Project. See AUTHORS file for Copyright information
  *
- * La funcion debe llamarse "Add" + <nombre_de_la_carpeta_del_modulo
- * con guiones reemplazados por guiones bajos> + "Scripts".
- * Carpeta: mod-pet-battle  ->  Addmod_pet_battleScripts
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 void AddSC_pet_battle();

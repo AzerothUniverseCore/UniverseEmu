@@ -1,3 +1,20 @@
+/*
+ * This file is part of the SyphrenaCore Project. See AUTHORS file for Copyright information
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "PetBattleMgr.h"
 #include "WorldSession.h"
 #include "DatabaseEnv.h"
@@ -784,7 +801,7 @@ bool PetBattleMgr::TryStartWildBattle(
         player->GetGUID()))
     {
         ChatHandler(player->GetSession()).PSendSysMessage(
-            "{}", GetText(player, PETTXT_ALREADY_BATTLE));
+            "%s", GetText(player, PETTXT_ALREADY_BATTLE).c_str());
 
         return true;
     }
@@ -801,7 +818,7 @@ bool PetBattleMgr::TryStartWildBattle(
     if (player->GetDistance(creature) > maxChallengeDistance)
     {
         ChatHandler(player->GetSession()).PSendSysMessage(
-            "{}", GetText(player, PETTXT_TOO_FAR));
+            "%s", GetText(player, PETTXT_TOO_FAR).c_str());
 
         return true;
     }
@@ -828,9 +845,9 @@ bool PetBattleMgr::TryStartWildBattle(
     if (!team[0].creatureEntry)
     {
         ChatHandler(player->GetSession()).PSendSysMessage(
-            "{}",
+            "%s",
             GetTextFmt(player, PETTXT_WILD_NEED_SLOT1,
-                { creature->GetName() }));
+                { creature->GetName() }).c_str());
 
         return true;
     }
@@ -917,9 +934,9 @@ bool PetBattleMgr::TryStartWildBattle(
         _activeBattles[key];
 
     ChatHandler(player->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(player, PETTXT_WILD_START,
-            { creature->GetName(), GetTipoName(player, wild.tipo) }));
+            { creature->GetName(), GetTipoName(player, wild.tipo) }).c_str());
 
     // ------------------------------------------------------------
     // Invocar ambas mascotas.
@@ -1186,8 +1203,8 @@ void PetBattleMgr::HandleTeamGossipAction(
             ClearPlayerTeam(guidLow);
 
             ChatHandler(player->GetSession()).PSendSysMessage(
-                "{}",
-                GetText(player, PETTXT_CLEAR_TEAM));
+                "%s",
+                GetText(player, PETTXT_CLEAR_TEAM).c_str());
 
             ShowTeamMenu(player);
             return;
@@ -1198,8 +1215,8 @@ void PetBattleMgr::HandleTeamGossipAction(
             player->PlayerTalkClass->SendCloseGossip();
 
             ChatHandler(player->GetSession()).PSendSysMessage(
-                "{}",
-                GetText(player, PETTXT_SAVE_TEAM));
+                "%s",
+                GetText(player, PETTXT_SAVE_TEAM).c_str());
 
             return;
         }
@@ -1389,8 +1406,8 @@ void PetBattleMgr::HandleTeamGossipAction(
                 {
                     ChatHandler(player->GetSession())
                         .PSendSysMessage(
-                            "{}",
-                            GetText(player, PETTXT_DUPLICATE_SLOT));
+                            "%s",
+                            GetText(player, PETTXT_DUPLICATE_SLOT).c_str());
 
                     ShowTeamMenu(player);
                     return;
@@ -1404,9 +1421,9 @@ void PetBattleMgr::HandleTeamGossipAction(
 
             ChatHandler(player->GetSession())
                 .PSendSysMessage(
-                    "{}",
+                    "%s",
                     GetTextFmt(player, PETTXT_PET_ASSIGNED,
-                        { std::to_string(slot + 1) }));
+                        { std::to_string(slot + 1) }).c_str());
 
             ShowTeamMenu(player);
             return;
@@ -1983,9 +2000,9 @@ void PetBattleMgr::RemovePetFromTeam(
         std::to_string(slotIndex + 1));
 
     ChatHandler(player->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(player, PETTXT_REMOVE_CHAT,
-            { GetCreatureName(player, team[slotIndex].creatureEntry) }));
+            { GetCreatureName(player, team[slotIndex].creatureEntry) }).c_str());
 }
 
 void PetBattleMgr::ForgetPet(
@@ -2085,9 +2102,9 @@ void PetBattleMgr::ForgetPet(
         std::to_string(slotIndex + 1));
 
     ChatHandler(player->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(player, PETTXT_FORGET_CHAT,
-            { GetCreatureName(player, team[slotIndex].creatureEntry) }));
+            { GetCreatureName(player, team[slotIndex].creatureEntry) }).c_str());
 }
 
 void PetBattleMgr::ConvertPetToItem(
@@ -2134,9 +2151,9 @@ void PetBattleMgr::ConvertPetToItem(
             player,
             "PET_ACTION_ERR:DETACH:" + GetText(player, PETTXT_DETACH_NO_DATA));
         ChatHandler(player->GetSession()).PSendSysMessage(
-            "{}",
+            "%s",
             GetTextFmt(player, PETTXT_DETACH_NO_SOURCE,
-                { GetCreatureName(player, team[slotIndex].creatureEntry) }));
+                { GetCreatureName(player, team[slotIndex].creatureEntry) }).c_str());
         return;
     }
 
@@ -2164,8 +2181,8 @@ void PetBattleMgr::ConvertPetToItem(
             player,
             "PET_ACTION_ERR:DETACH:" + GetText(player, PETTXT_DETACH_BAGS));
         ChatHandler(player->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(player, PETTXT_DETACH_BAG_CHAT));
+            "%s",
+            GetText(player, PETTXT_DETACH_BAG_CHAT).c_str());
         return;
     }
 
@@ -2232,9 +2249,9 @@ void PetBattleMgr::ConvertPetToItem(
         std::to_string(itemEntry));
 
     ChatHandler(player->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(player, PETTXT_DETACH_CHAT,
-            { GetCreatureName(player, team[slotIndex].creatureEntry), std::to_string(itemEntry) }));
+            { GetCreatureName(player, team[slotIndex].creatureEntry), std::to_string(itemEntry) }).c_str());
 }
 
 bool PetBattleMgr::StartDuelRequest(
@@ -2260,7 +2277,7 @@ bool PetBattleMgr::StartDuelRequest(
     if (challenger->GetDistance(target) > maxChallengeDistance)
     {
         ChatHandler(challenger->GetSession()).PSendSysMessage(
-            "{}", GetText(challenger, PETTXT_TOO_FAR));
+            "%s", GetText(challenger, PETTXT_TOO_FAR).c_str());
 
         return false;
     }
@@ -2269,8 +2286,8 @@ bool PetBattleMgr::StartDuelRequest(
         challenger->GetGUID()))
     {
         ChatHandler(challenger->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(challenger, PETTXT_DUEL_ALREADY));
+            "%s",
+            GetText(challenger, PETTXT_DUEL_ALREADY).c_str());
 
         return false;
     }
@@ -2279,8 +2296,8 @@ bool PetBattleMgr::StartDuelRequest(
         target->GetGUID()))
     {
         ChatHandler(challenger->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(challenger, PETTXT_TARGET_ALREADY));
+            "%s",
+            GetText(challenger, PETTXT_TARGET_ALREADY).c_str());
 
         return false;
     }
@@ -2295,8 +2312,8 @@ bool PetBattleMgr::StartDuelRequest(
     if (!teamChallenger[0].creatureEntry)
     {
         ChatHandler(challenger->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(challenger, PETTXT_CHALLENGER_NO_SLOT));
+            "%s",
+            GetText(challenger, PETTXT_CHALLENGER_NO_SLOT).c_str());
 
         return false;
     }
@@ -2312,9 +2329,9 @@ bool PetBattleMgr::StartDuelRequest(
     if (!teamTarget[0].creatureEntry)
     {
         ChatHandler(challenger->GetSession()).PSendSysMessage(
-            "{}",
+            "%s",
             GetTextFmt(challenger, PETTXT_TARGET_NO_SLOT,
-                { target->GetName() }));
+                { target->GetName() }).c_str());
 
         return false;
     }
@@ -2323,18 +2340,18 @@ bool PetBattleMgr::StartDuelRequest(
         challenger->GetGUID();
 
     ChatHandler(challenger->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(challenger, PETTXT_CHALLENGE_SENT,
-            { target->GetName() }));
+            { target->GetName() }).c_str());
 
     ShowDuelChallengeMenu(
         target,
         challenger);
 
     ChatHandler(target->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(target, PETTXT_CHALLENGE_RECEIVED,
-            { challenger->GetName() }));
+            { challenger->GetName() }).c_str());
 
     return true;
 }
@@ -2361,8 +2378,8 @@ void PetBattleMgr::HandleDuelAccept(
     if (it == _pendingChallenges.end())
     {
         ChatHandler(target->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(target, PETTXT_NO_PENDING));
+            "%s",
+            GetText(target, PETTXT_NO_PENDING).c_str());
 
         return;
     }
@@ -2379,8 +2396,8 @@ void PetBattleMgr::HandleDuelAccept(
     if (!challenger)
     {
         ChatHandler(target->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(target, PETTXT_CHALLENGER_GONE));
+            "%s",
+            GetText(target, PETTXT_CHALLENGER_GONE).c_str());
 
         return;
     }
@@ -2391,8 +2408,8 @@ void PetBattleMgr::HandleDuelAccept(
             target->GetGUID()))
     {
         ChatHandler(target->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(target, PETTXT_ALREADY_DUEL));
+            "%s",
+            GetText(target, PETTXT_ALREADY_DUEL).c_str());
 
         return;
     }
@@ -2421,12 +2438,12 @@ void PetBattleMgr::HandleDuelAccept(
         !teamB[0].creatureEntry)
     {
         ChatHandler(target->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(target, PETTXT_DUEL_CANCEL));
+            "%s",
+            GetText(target, PETTXT_DUEL_CANCEL).c_str());
 
         ChatHandler(challenger->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(challenger, PETTXT_DUEL_CANCEL));
+            "%s",
+            GetText(challenger, PETTXT_DUEL_CANCEL).c_str());
 
         return;
     }
@@ -2547,8 +2564,8 @@ void PetBattleMgr::HandleDuelAccept(
                     if (a)
                     {
                         ChatHandler(a->GetSession()).PSendSysMessage(
-                            "{}",
-                            GetText(a, PETTXT_DUEL_REJECTED));
+                            "%s",
+                            GetText(a, PETTXT_DUEL_REJECTED).c_str());
 
                         SendAddonMsg(
                             a,
@@ -2559,11 +2576,11 @@ void PetBattleMgr::HandleDuelAccept(
                     if (b)
                     {
                         ChatHandler(b->GetSession()).PSendSysMessage(
-                            "{}",
+                            "%s",
                             GetTextFmt(
                                 b,
                                 PETTXT_CHALLENGE_REJECTED,
-                                { a ? a->GetName() : std::string("the other player") }));
+                                { a ? a->GetName() : std::string("the other player") }).c_str());
 
                         SendAddonMsg(
                             b,
@@ -2579,8 +2596,8 @@ void PetBattleMgr::HandleDuelAccept(
                     if (b)
                     {
                         ChatHandler(b->GetSession()).PSendSysMessage(
-                            "{}",
-                            GetText(b, PETTXT_DUEL_REJECTED));
+                            "%s",
+                            GetText(b, PETTXT_DUEL_REJECTED).c_str());
 
                         SendAddonMsg(
                             b,
@@ -2591,11 +2608,11 @@ void PetBattleMgr::HandleDuelAccept(
                     if (a)
                     {
                         ChatHandler(a->GetSession()).PSendSysMessage(
-                            "{}",
+                            "%s",
                             GetTextFmt(
                                 a,
                                 PETTXT_CHALLENGE_REJECTED,
-                                { b ? b->GetName() : std::string("the other player") }));
+                                { b ? b->GetName() : std::string("the other player") }).c_str());
 
                         SendAddonMsg(
                             a,
@@ -2611,8 +2628,8 @@ void PetBattleMgr::HandleDuelAccept(
                     if (a)
                     {
                         ChatHandler(a->GetSession()).PSendSysMessage(
-                            "{}",
-                            GetText(a, PETTXT_DUEL_REJECTED));
+                            "%s",
+                            GetText(a, PETTXT_DUEL_REJECTED).c_str());
 
                         SendAddonMsg(
                             a,
@@ -2623,8 +2640,8 @@ void PetBattleMgr::HandleDuelAccept(
                     if (b)
                     {
                         ChatHandler(b->GetSession()).PSendSysMessage(
-                            "{}",
-                            GetText(b, PETTXT_DUEL_REJECTED));
+                            "%s",
+                            GetText(b, PETTXT_DUEL_REJECTED).c_str());
 
                         SendAddonMsg(
                             b,
@@ -2655,8 +2672,8 @@ void PetBattleMgr::HandleDuelDecline(
     if (it == _pendingChallenges.end())
     {
         ChatHandler(target->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(target, PETTXT_NO_PENDING));
+            "%s",
+            GetText(target, PETTXT_NO_PENDING).c_str());
 
         return;
     }
@@ -2671,14 +2688,14 @@ void PetBattleMgr::HandleDuelDecline(
             challengerGuid))
     {
         ChatHandler(challenger->GetSession()).PSendSysMessage(
-            "{}",
+            "%s",
             GetTextFmt(challenger, PETTXT_CHALLENGE_REJECTED,
-                { target->GetName() }));
+                { target->GetName() }).c_str());
     }
 
     ChatHandler(target->GetSession()).PSendSysMessage(
-        "{}",
-        GetText(target, PETTXT_DUEL_REJECTED));
+        "%s",
+        GetText(target, PETTXT_DUEL_REJECTED).c_str());
 }
 
 // ================================================================
@@ -2733,8 +2750,8 @@ void PetBattleMgr::HandleForfeit(Player* player)
         "BATTLEEND:" + GetText(player, PETTXT_FORFEIT_ADDON));
 
     ChatHandler(player->GetSession()).PSendSysMessage(
-        "{}",
-        GetText(player, PETTXT_FORFEIT_CHAT));
+        "%s",
+        GetText(player, PETTXT_FORFEIT_CHAT).c_str());
 
     player->HandleEmoteCommand(
         EMOTE_ONESHOT_CRY);
@@ -2814,8 +2831,8 @@ void PetBattleMgr::HandleTeamModifiedInBattle(
         "BATTLEEND:" + GetText(player, PETTXT_TEAM_MODIFIED_WILD_ADDON));
 
     ChatHandler(player->GetSession()).PSendSysMessage(
-        "{}",
-        GetText(player, PETTXT_TEAM_MODIFIED_WILD_CHAT));
+        "%s",
+        GetText(player, PETTXT_TEAM_MODIFIED_WILD_CHAT).c_str());
 
     player->HandleEmoteCommand(
         EMOTE_ONESHOT_CRY);
@@ -2946,8 +2963,8 @@ void PetBattleMgr::HandleTurnTimeout(
                 "BATTLEEND:" + GetText(slowPlayer, PETTXT_TIMEOUT_WILD_ADDON));
 
             ChatHandler(slowPlayer->GetSession()).PSendSysMessage(
-                "{}",
-                GetText(slowPlayer, PETTXT_TIMEOUT_WILD_CHAT));
+                "%s",
+                GetText(slowPlayer, PETTXT_TIMEOUT_WILD_CHAT).c_str());
 
             slowPlayer->HandleEmoteCommand(
                 EMOTE_ONESHOT_CRY);
@@ -3074,9 +3091,9 @@ void PetBattleMgr::HandleDiceRoll(
         battle.diceB = roll;
 
     ChatHandler(player->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(player, PETTXT_ROLL_RESULT,
-            { std::to_string(roll) }));
+            { std::to_string(roll) }).c_str());
 
     player->PlayerTalkClass->SendCloseGossip();
 
@@ -3359,9 +3376,9 @@ void PetBattleMgr::HandleAttack(
     if (attacker.GetCooldown(attackIndex) > 0)
     {
         ChatHandler(player->GetSession()).PSendSysMessage(
-            "{}",
+            "%s",
             GetTextFmt(player, PETTXT_COOLDOWN,
-                { std::to_string(attacker.GetCooldown(attackIndex)) }));
+                { std::to_string(attacker.GetCooldown(attackIndex)) }).c_str());
 
         ShowAttackMenu(
             player,
@@ -4072,14 +4089,14 @@ bool PetBattleMgr::ResolveAttackAndAdvance(
         if (missed)
         {
             ChatHandler(a->GetSession()).PSendSysMessage(
-                "{}",
+                "%s",
                 GetTextFmt(a, PETTXT_ATTACK_MISS,
-                    { atacanteNombre }));
+                    { atacanteNombre }).c_str());
 
             ChatHandler(b->GetSession()).PSendSysMessage(
-                "{}",
+                "%s",
                 GetTextFmt(b, PETTXT_ATTACK_MISS,
-                    { atacanteNombre }));
+                    { atacanteNombre }).c_str());
         }
         else if (curacionPropia)
         {
@@ -4092,16 +4109,16 @@ bool PetBattleMgr::ResolveAttackAndAdvance(
                 : PETTXT_ATTACK_HEAL;
 
             ChatHandler(a->GetSession()).PSendSysMessage(
-                "{}",
+                "%s",
                 GetTextFmt(a, healTextId,
                     { atacanteNombre, curado,
-                      std::to_string(afectada.vidaActual) }));
+                      std::to_string(afectada.vidaActual) }).c_str());
 
             ChatHandler(b->GetSession()).PSendSysMessage(
-                "{}",
+                "%s",
                 GetTextFmt(b, healTextId,
                     { atacanteNombre, curado,
-                      std::to_string(afectada.vidaActual) }));
+                      std::to_string(afectada.vidaActual) }).c_str());
         }
         else
         {
@@ -4111,16 +4128,16 @@ bool PetBattleMgr::ResolveAttackAndAdvance(
                 superEfectivo ? GetText(b, PETTXT_EFFECTIVE) : "";
 
             ChatHandler(a->GetSession()).PSendSysMessage(
-                "{}",
+                "%s",
                 GetTextFmt(a, PETTXT_ATTACK_HIT,
                     { atacanteNombre, std::to_string(dano), bonusA,
-                      std::to_string(afectada.vidaActual) }));
+                      std::to_string(afectada.vidaActual) }).c_str());
 
             ChatHandler(b->GetSession()).PSendSysMessage(
-                "{}",
+                "%s",
                 GetTextFmt(b, PETTXT_ATTACK_HIT,
                     { atacanteNombre, std::to_string(dano), bonusB,
-                      std::to_string(afectada.vidaActual) }));
+                      std::to_string(afectada.vidaActual) }).c_str());
         }
     }
     else if (a)
@@ -4151,8 +4168,8 @@ bool PetBattleMgr::ResolveAttackAndAdvance(
         }
 
         ChatHandler(a->GetSession()).PSendSysMessage(
-            "{}",
-            msg);
+            "%s",
+            msg.c_str());
     }
 
     ShowFloatingDamageNumber(
@@ -4251,8 +4268,8 @@ bool PetBattleMgr::ResolveAttackAndAdvance(
         else if (a)
         {
             ChatHandler(a->GetSession()).PSendSysMessage(
-                "{}",
-                GetText(a, PETTXT_PET_DEFEATED));
+                "%s",
+                GetText(a, PETTXT_PET_DEFEATED).c_str());
         }
 
         // La mascota nueva tiene otro nombre/tipo/vida maxima: se
@@ -4290,8 +4307,8 @@ void PetBattleMgr::EndBattle(
     if (winner)
     {
         ChatHandler(winner->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(winner, PETTXT_VICTORY));
+            "%s",
+            GetText(winner, PETTXT_VICTORY).c_str());
 
         SendAddonMsg(
             winner,
@@ -4316,8 +4333,8 @@ void PetBattleMgr::EndBattle(
     if (loser)
     {
         ChatHandler(loser->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(loser, PETTXT_DEFEAT));
+            "%s",
+            GetText(loser, PETTXT_DEFEAT).c_str());
 
         SendAddonMsg(
             loser,
@@ -4381,15 +4398,15 @@ void PetBattleMgr::SendPetChatFeedbackLocalized(
     if (p1)
     {
         ChatHandler(p1->GetSession()).PSendSysMessage(
-            "{}",
-            GetTextFmt(p1, textId, args));
+            "%s",
+            GetTextFmt(p1, textId, args).c_str());
     }
 
     if (p2)
     {
         ChatHandler(p2->GetSession()).PSendSysMessage(
-            "{}",
-            GetTextFmt(p2, textId, args));
+            "%s",
+            GetTextFmt(p2, textId, args).c_str());
     }
 }
 
@@ -4401,15 +4418,15 @@ void PetBattleMgr::SendPetChatFeedback(
     if (p1)
     {
         ChatHandler(p1->GetSession()).PSendSysMessage(
-            "{}",
-            msg);
+            "%s",
+            msg.c_str());
     }
 
     if (p2)
     {
         ChatHandler(p2->GetSession()).PSendSysMessage(
-            "{}",
-            msg);
+            "%s",
+            msg.c_str());
     }
 }
 
@@ -4464,9 +4481,9 @@ void PetBattleMgr::GrantBattleExperience(
         nullptr);
 
     ChatHandler(winner->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(winner, PETTXT_XP,
-            { std::to_string(xpGanada), std::to_string(porcentaje) }));
+            { std::to_string(xpGanada), std::to_string(porcentaje) }).c_str());
 }
 
 // ================================================================
@@ -4490,8 +4507,8 @@ void PetBattleMgr::GrantWildCaptureReward(
     if (!wildTemplate)
     {
         ChatHandler(winner->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(winner, PETTXT_CAPTURE_NO_CREATURE));
+            "%s",
+            GetText(winner, PETTXT_CAPTURE_NO_CREATURE).c_str());
 
         return;
     }
@@ -4529,8 +4546,8 @@ void PetBattleMgr::GrantWildCaptureReward(
     if (!hasWildModel)
     {
         ChatHandler(winner->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(winner, PETTXT_CAPTURE_NO_MODEL));
+            "%s",
+            GetText(winner, PETTXT_CAPTURE_NO_MODEL).c_str());
 
         return;
     }
@@ -4547,8 +4564,8 @@ void PetBattleMgr::GrantWildCaptureReward(
     if (!result)
     {
         ChatHandler(winner->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(winner, PETTXT_CAPTURE_NO_ITEMS));
+            "%s",
+            GetText(winner, PETTXT_CAPTURE_NO_ITEMS).c_str());
 
         return;
     }
@@ -4679,8 +4696,8 @@ void PetBattleMgr::GrantWildCaptureReward(
     if (!matchedItemEntry)
     {
         ChatHandler(winner->GetSession()).PSendSysMessage(
-            "{}",
-            GetText(winner, PETTXT_CAPTURE_NO_MATCH));
+            "%s",
+            GetText(winner, PETTXT_CAPTURE_NO_MATCH).c_str());
 
         return;
     }
@@ -4697,17 +4714,17 @@ void PetBattleMgr::GrantWildCaptureReward(
         1))
     {
         ChatHandler(winner->GetSession()).PSendSysMessage(
-            "{}",
+            "%s",
             GetTextFmt(winner, PETTXT_CAPTURE_NO_SPACE,
-                { itemTemplate->Name1 }));
+                { itemTemplate->Name1 }).c_str());
 
         return;
     }
 
     ChatHandler(winner->GetSession()).PSendSysMessage(
-        "{}",
+        "%s",
         GetTextFmt(winner, PETTXT_CAPTURE_SUCCESS,
-            { itemTemplate->Name1 }));
+            { itemTemplate->Name1 }).c_str());
 }
 
 // ================================================================
@@ -4746,16 +4763,16 @@ void PetBattleMgr::ShowFloatingDamageNumber(
     if (attacker)
     {
         ChatHandler(attacker->GetSession()).PSendSysMessage(
-            "{}",
-            linea);
+            "%s",
+            linea.c_str());
     }
 
     if (defenderOwner &&
         defenderOwner != attacker)
     {
         ChatHandler(defenderOwner->GetSession()).PSendSysMessage(
-            "{}",
-            linea);
+            "%s",
+            linea.c_str());
     }
 }
 
