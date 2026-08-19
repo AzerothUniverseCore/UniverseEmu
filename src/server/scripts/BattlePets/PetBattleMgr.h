@@ -355,6 +355,12 @@ public:
         ActivePetBattle& battle,
         uint8 attackIndex);
 
+    // Le joueur choisit de passer son tour (bouton "Passer" de
+    // l'addon) : le tour se termine immediatement, sans degats.
+    void HandlePass(
+        Player* player,
+        ActivePetBattle& battle);
+
     // Resuelve el dano de un ataque individual.
     bool ResolveAttackAndAdvance(
         ActivePetBattle& battle,

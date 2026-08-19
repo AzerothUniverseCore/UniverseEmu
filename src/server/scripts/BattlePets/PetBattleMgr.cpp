@@ -1819,6 +1819,18 @@ void PetBattleMgr::HandleAddonMessage(
         return;
     }
 
+    // Bouton "Passer" de l'addon : termine le tour immediatement,
+    // sans attaque ni degats.
+    if (cmd == "PASS")
+    {
+        if (ActivePetBattle* battle =
+            GetBattleByPlayer(player->GetGUID()))
+        {
+            HandlePass(player, *battle);
+        }
+        return;
+    }
+
     // El addon pide el equipo completo tal como esta guardado en el
     // servidor. Se envia al abrir la ventana de Companeros para que
     // los 3 slots siempre reflejen el equipo actual (nombre, tipo y
@@ -3573,6 +3585,132 @@ void PetBattleMgr::HandleAttack(
         attackIndex,
         player,
         autoHeal);
+}
+
+// ================================================================
+// Le joueur passe son tour (bouton "Passer" de l'addon)
+// ================================================================
+// Meme logique de transition de tour que ResolveAttackAndAdvance,
+// mais sans mouvement, sans animation et sans degats/soin. On
+// reutilise directement StartPetAttack pour la riposte de la
+// creature sauvage afin de garder un seul chemin de code teste
+// pour l'attaque adverse en combat sauvage.
+// ================================================================
+
+void PetBattleMgr::HandlePass(
+    Player* player,
+    ActivePetBattle& battle)
+{
+    if (!player ||
+        player->GetGUID() != battle.turnPlayer ||
+        battle.finished)
+    {
+        if (player)
+            player->PlayerTalkClass->SendCloseGossip();
+
+        return;
+    }
+
+    player->PlayerTalkClass->SendCloseGossip();
+
+    // Le joueur a agi a temps (il choisit de passer) : on invalide
+    // tout timeout de tour en attente, comme pour une attaque.
+    ++battle.turnTimeoutToken;
+
+    bool passerIsA =
+        player->GetGUID() == battle.playerA;
+
+    // ============================================================
+    // COMBAT SAUVAGE : seul le joueur (toujours "A") peut passer.
+    // On enchaine directement sur l'attaque de la creature sauvage,
+    // via le meme chemin que la fin d'un tour normal.
+    // ============================================================
+
+    if (battle.isWildBattle)
+    {
+        battle.teamB[battle.activeIndexB].TickCooldowns();
+
+        PetBattleStats const& wildAttacker =
+            battle.teamB[battle.activeIndexB];
+
+        uint8 wildAttackIndex =
+            SelectAvailableAttack(wildAttacker);
+
+        int32 wildDanoBase = 0;
+
+        switch (wildAttackIndex)
+        {
+        case 1:
+            wildDanoBase = wildAttacker.dano1;
+            break;
+
+        case 2:
+            wildDanoBase = wildAttacker.dano2;
+            break;
+
+        case 3:
+            wildDanoBase = wildAttacker.dano3;
+            break;
+
+        default:
+            return;
+        }
+
+        StartPetAttack(
+            battle,
+            false,
+            wildDanoBase,
+            wildAttackIndex,
+            nullptr);
+
+        return;
+    }
+
+    // ============================================================
+    // COMBAT PvP : on redonne simplement la main a l'adversaire.
+    // ============================================================
+
+    PetBattleStats& nextPet =
+        passerIsA
+        ? battle.teamB[battle.activeIndexB]
+        : battle.teamA[battle.activeIndexA];
+
+    nextPet.TickCooldowns();
+
+    battle.turnPlayer =
+        passerIsA
+        ? battle.playerB
+        : battle.playerA;
+
+    if (Player* nextPlayer =
+        ObjectAccessor::FindPlayer(battle.turnPlayer))
+    {
+        // Avertit le joueur qui recoit le tour.
+        SendAddonMsg(
+            nextPlayer,
+            "TURN:mine");
+
+        // Avertit celui qui vient de passer.
+        Player* otherPlayer =
+            ObjectAccessor::FindPlayer(
+                passerIsA
+                ? battle.playerA
+                : battle.playerB);
+
+        if (otherPlayer)
+        {
+            SendAddonMsg(
+                otherPlayer,
+                "TURN:enemy");
+        }
+
+        ShowAttackMenu(
+            nextPlayer,
+            battle);
+    }
+
+    ScheduleTurnTimeout(
+        battle);
 }
 
 // ================================================================
