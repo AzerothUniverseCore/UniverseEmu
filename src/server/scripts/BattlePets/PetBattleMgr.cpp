@@ -57,6 +57,11 @@ static int32 const PET_DAMAGE_MAX = 30;
 static int32 const PET_HEAL_MIN = -25;
 static int32 const PET_HEAL_MAX = -10;
 
+// Valeur par defaut si "PetBattle.UseGossipUI" n'est pas dans le .conf.
+// true  = comportement d'origine (menus gossip ouverts en plus de l'addon)
+// false = communication uniquement par SendAddonMsg, aucune fenetre gossip
+static bool const PET_USE_GOSSIP_UI_DEFAULT = false;
+
 // CreatureTemplate in ce fork n'a pas de GetModelByIdx()/CreatureModel :
 // juste 4 champs Modelid1-4 bruts. Petit helper pour garder la meme boucle
 // modelIndex 0..3 que le code d'origine (AzerothCore moderne).
@@ -473,6 +478,29 @@ void PetBattleMgr::ClearPlayerTeam(
         "slot2_creature_entry = 0, "
         "slot3_creature_entry = 0",
         guidLow);
+}
+
+// ================================================================
+// Mode de communication avec le client
+// ================================================================
+//
+// PetBattle.UseGossipUI = 1 : en plus des messages d'addon (toujours
+// envoyes, c'est l'etat reel du combat), le serveur ouvre des menus
+// gossip pour choisir l'equipe / lancer le de / attaquer.
+//
+// PetBattle.UseGossipUI = 0 (par defaut) : aucune fenetre gossip ne
+// s'ouvre. Toute l'interaction passe par l'addon (qui recoit deja tout
+// ce dont il a besoin via TEAMUPDATE/TEAMCLEAR, BATTLEINIT, ATKCD,
+// TURN:mine/enemy, HPUPDATE, BATTLEEND, etc.) et par le handler de
+// messages d'addon (HandleAddonMessage) pour les reponses (ATK,
+// COINCLICK, TEAM, SWAP, PETREMOVE...).
+// ================================================================
+
+bool PetBattleMgr::UseGossipUI() const
+{
+    return sConfigMgr->GetBoolDefault(
+        "PetBattle.UseGossipUI",
+        PET_USE_GOSSIP_UI_DEFAULT);
 }
 
 // ================================================================
@@ -1128,6 +1156,14 @@ bool PetBattleMgr::IsAttackerAtTypeDisadvantage(
 void PetBattleMgr::ShowTeamMenu(
     Player* player)
 {
+    if (!UseGossipUI())
+    {
+        // Sans gossip : l'addon construit sa propre UI d'equipe a
+        // partir de TEAMUPDATE/TEAMCLEAR, comme pour "TEAMGET".
+        SendFullTeamToClient(player);
+        return;
+    }
+
     player->PlayerTalkClass->ClearMenus();
 
     std::array<PetBattleTeamSlot, 3> team;
@@ -3035,6 +3071,9 @@ void PetBattleMgr::ShowDiceMenu(
     Player* player,
     ActivePetBattle& /*battle*/)
 {
+    if (!UseGossipUI())
+        return; // le lancer est deja gere a 100% via l'addon (COINCLICK)
+
     player->PlayerTalkClass->ClearMenus();
 
     player->PlayerTalkClass
@@ -3179,6 +3218,35 @@ void PetBattleMgr::HandleDiceRoll(
 }
 
 // ================================================================
+// Cooldowns -> addon
+// ================================================================
+//
+// Format : ATKCD:<cd1>:<cd2>:<cd3> (nom historique du message
+// deja gere cote addon dans Core.lua, jamais envoye jusqu'ici)
+//
+// Envoye depuis ShowAttackMenu pour que l'addon recoive toujours
+// l'etat de cooldown a jour, que le gossip soit active ou non. Tout
+// appelant de ShowAttackMenu (debut de tour sauvage, changement de
+// tour PvP, nouvelle tentative apres clic sur une attaque en
+// recharge) est donc couvert automatiquement.
+// ================================================================
+
+void PetBattleMgr::SendCooldownsToClient(
+    Player* player,
+    PetBattleStats const& pet)
+{
+    if (!player)
+        return;
+
+    SendAddonMsg(
+        player,
+        "ATKCD:" +
+        std::to_string(pet.cooldown1) + ":" +
+        std::to_string(pet.cooldown2) + ":" +
+        std::to_string(pet.cooldown3));
+}
+
+// ================================================================
 // Menu de ataque
 // ================================================================
 
@@ -3205,6 +3273,13 @@ void PetBattleMgr::ShowAttackMenu(
         isA
         ? battle.teamB[battle.activeIndexB]
         : battle.teamA[battle.activeIndexA];
+
+    // L'etat de cooldown est toujours envoye, gossip ou non : l'addon
+    // en a besoin pour sa propre UI dans les deux modes.
+    SendCooldownsToClient(player, myPet);
+
+    if (!UseGossipUI())
+        return; // sans gossip, l'addon a deja tout ce qu'il lui faut
 
     player->PlayerTalkClass->ClearMenus();
 

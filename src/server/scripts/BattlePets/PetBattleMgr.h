@@ -273,6 +273,8 @@ public:
     void SavePlayerTeamSlot(ObjectGuid::LowType guidLow, uint8 slotIndex /*0-2*/, uint32 creatureEntry);
     void ClearPlayerTeam(ObjectGuid::LowType guidLow);
 
+    bool UseGossipUI() const;
+
     // ---- Estadisticas de mascotas ----
     bool GetPetStats(ObjectGuid::LowType guidLow, uint32 creatureEntry, PetBattleStats& out);
 
@@ -339,6 +341,10 @@ public:
     void HandleDiceRoll(
         Player* player,
         ActivePetBattle& battle);
+
+    void SendCooldownsToClient(
+        Player* player,
+        PetBattleStats const& pet);
 
     void ShowAttackMenu(
         Player* player,
