@@ -248,7 +248,8 @@ enum PetBattleLocaleTextId : uint32
     PETTXT_WILD_NOT_CAPTUREABLE,
     PETTXT_TOO_FAR,
     PETTXT_ATTACK_HEAL,
-    PETTXT_AUTO_HEAL
+    PETTXT_AUTO_HEAL,
+    PETTXT_SWITCH_NONE_AVAILABLE
 };
 
 class PetBattleMgr
@@ -360,6 +361,19 @@ public:
     void HandlePass(
         Player* player,
         ActivePetBattle& battle);
+
+    // Le joueur change de mascotte active en plein combat (bouton
+    // "Changer de mascotte" de l'addon) : consomme le tour.
+    void HandleSwitchPet(
+        Player* player,
+        ActivePetBattle& battle);
+
+    // Logique de transition de tour partagee entre HandlePass et
+    // HandleSwitchPet (aucun degat/soin a resoudre, contrairement a
+    // HandleAttack qui gere sa propre transition apres l'animation).
+    void AdvanceTurnAfterAction(
+        ActivePetBattle& battle,
+        bool actorIsA);
 
     // Resuelve el dano de un ataque individual.
     bool ResolveAttackAndAdvance(

@@ -262,6 +262,7 @@ std::string PetBattleMgr::GetDefaultText(uint32 textId) const
     case PETTXT_TOO_FAR: return "You are too far from the opponent.";
     case PETTXT_ATTACK_HEAL: return "{0} has recovered {1} health points. Current HP: {2}";
     case PETTXT_AUTO_HEAL: return "{0} change opinion and has recovered {1} health points. Current HP: {2}";
+    case PETTXT_SWITCH_NONE_AVAILABLE: return "You have no other pet available to switch to.";
     default: return "[PetBattleText:{0}]";
     }
 }
@@ -1827,6 +1828,17 @@ void PetBattleMgr::HandleAddonMessage(
             GetBattleByPlayer(player->GetGUID()))
         {
             HandlePass(player, *battle);
+        }
+        return;
+    }
+
+    // Bouton "Changer de mascotte" de l'addon.
+    if (cmd == "SWITCHPET")
+    {
+        if (ActivePetBattle* battle =
+            GetBattleByPlayer(player->GetGUID()))
+        {
+            HandleSwitchPet(player, *battle);
         }
         return;
     }
@@ -3620,12 +3632,132 @@ void PetBattleMgr::HandlePass(
     bool passerIsA =
         player->GetGUID() == battle.playerA;
 
-    // ============================================================
-    // COMBAT SAUVAGE : seul le joueur (toujours "A") peut passer.
-    // On enchaine directement sur l'attaque de la creature sauvage,
-    // via le meme chemin que la fin d'un tour normal.
-    // ============================================================
+    AdvanceTurnAfterAction(
+        battle,
+        passerIsA);
+}
 
+// ================================================================
+// Le joueur change de mascotte active (bouton "Changer de mascotte")
+// ================================================================
+// On cherche la prochaine mascotte vivante de son equipe (en bouclant
+// sur les 3 emplacements, en sautant celle deja active), sans jamais
+// consommer le tour si aucune autre mascotte n'est disponible -- meme
+// logique de refus que le cooldown d'une attaque dans HandleAttack.
+
+void PetBattleMgr::HandleSwitchPet(
+    Player* player,
+    ActivePetBattle& battle)
+{
+    if (!player ||
+        player->GetGUID() != battle.turnPlayer ||
+        battle.finished)
+    {
+        if (player)
+            player->PlayerTalkClass->SendCloseGossip();
+
+        return;
+    }
+
+    bool switcherIsA =
+        player->GetGUID() == battle.playerA;
+
+    std::array<PetBattleStats, 3>& team =
+        switcherIsA
+        ? battle.teamA
+        : battle.teamB;
+
+    uint8 currentIndex =
+        switcherIsA
+        ? battle.activeIndexA
+        : battle.activeIndexB;
+
+    uint8 targetIndex = 3; // 3 = aucune trouvee
+
+    for (uint8 offset = 1; offset <= 2; ++offset)
+    {
+        uint8 candidate =
+            static_cast<uint8>((currentIndex + offset) % 3);
+
+        if (team[candidate].mascotaID != 0 &&
+            team[candidate].vidaActual > 0)
+        {
+            targetIndex = candidate;
+            break;
+        }
+    }
+
+    if (targetIndex == 3)
+    {
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "%s",
+            GetText(player, PETTXT_SWITCH_NONE_AVAILABLE).c_str());
+
+        ShowAttackMenu(
+            player,
+            battle);
+
+        return;
+    }
+
+    player->PlayerTalkClass->SendCloseGossip();
+
+    ++battle.turnTimeoutToken;
+
+    // ------------------------------------------------------------
+    // Faire disparaitre la mascotte actuelle et invoquer la nouvelle.
+    // ------------------------------------------------------------
+
+    DespawnActivePet(
+        battle,
+        switcherIsA);
+
+    if (switcherIsA)
+    {
+        battle.activeIndexA = targetIndex;
+    }
+    else
+    {
+        battle.activeIndexB = targetIndex;
+    }
+
+    SummonActivePet(
+        player,
+        battle,
+        switcherIsA);
+
+    // ------------------------------------------------------------
+    // Rafraichir l'affichage des DEUX joueurs (nom/type/vie de la
+    // nouvelle mascotte active). SendBattleInit() ne fait rien si
+    // le joueur vise (combat sauvage cote B) est introuvable.
+    // ------------------------------------------------------------
+
+    Player* a =
+        ObjectAccessor::FindPlayer(battle.playerA);
+
+    Player* b =
+        ObjectAccessor::FindPlayer(battle.playerB);
+
+    SendBattleInit(a, battle, true);
+    SendBattleInit(b, battle, false);
+
+    AdvanceTurnAfterAction(
+        battle,
+        switcherIsA);
+}
+
+// ================================================================
+// Transition de tour partagee (HandlePass / HandleSwitchPet)
+// ================================================================
+// Aucun degat/soin a resoudre ici : en combat sauvage on enchaine
+// directement sur l'attaque de la creature (meme chemin teste que
+// la fin normale d'un tour) ; en PvP on redonne simplement la main
+// a l'adversaire.
+
+void PetBattleMgr::AdvanceTurnAfterAction(
+    ActivePetBattle& battle,
+    bool actorIsA)
+{
     if (battle.isWildBattle)
     {
         battle.teamB[battle.activeIndexB].TickCooldowns();
@@ -3671,14 +3803,14 @@ void PetBattleMgr::HandlePass(
     // ============================================================
 
     PetBattleStats& nextPet =
-        passerIsA
+        actorIsA
         ? battle.teamB[battle.activeIndexB]
         : battle.teamA[battle.activeIndexA];
 
     nextPet.TickCooldowns();
 
     battle.turnPlayer =
-        passerIsA
+        actorIsA
         ? battle.playerB
         : battle.playerA;
 
@@ -3690,10 +3822,10 @@ void PetBattleMgr::HandlePass(
             nextPlayer,
             "TURN:mine");
 
-        // Avertit celui qui vient de passer.
+        // Avertit celui qui vient d'agir.
         Player* otherPlayer =
             ObjectAccessor::FindPlayer(
-                passerIsA
+                actorIsA
                 ? battle.playerA
                 : battle.playerB);
 
