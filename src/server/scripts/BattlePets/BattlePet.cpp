@@ -146,6 +146,22 @@ public:
 
         sPetBattleMgr->RegisterPetIfSummonSpell(player, spellID);
     }
+
+    void OnMapChanged(Player* player) override
+    {
+        if (!player)
+            return;
+
+        sPetBattleMgr->HandleForfeit(player);
+    }
+
+    void OnLogout(Player* player) override
+    {
+        if (!player)
+            return;
+
+        sPetBattleMgr->HandleForfeit(player);
+    }
     // ============================================================
     // Puente de addon messages (reemplaza los gossip)
     // ============================================================
