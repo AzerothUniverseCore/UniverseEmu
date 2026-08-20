@@ -78,31 +78,11 @@ public:
             }
         }
 
-        // /dp con un jugador seleccionado -> desafiar
-        Unit* target = player->GetSelectedUnit();
-        if (target && target->GetTypeId() == TYPEID_PLAYER && target != player)
-        {
-            sPetBattleMgr->StartDuelRequest(player, target->ToPlayer());
-            return true;
-        }
-
-        // /dp con una criatura del mundo seleccionada (npc "alimania" u otra
-        // criatura normal): primero verificamos si esa criatura es un
-        // companero capturable (existe un hechizo de mascota que invoca ese
-        // mismo entry). De ser asi, el duelo contra ella arranca solo.
-        if (target && target->GetTypeId() == TYPEID_UNIT && target->ToCreature())
-        {
-            if (sPetBattleMgr->TryStartWildBattle(player, target->ToCreature()))
-                return true;
-
-            handler->PSendSysMessage(
-                "%s",
-                sPetBattleMgr->GetText(player, PETTXT_WILD_NOT_CAPTUREABLE).c_str());
-            return true;
-        }
-
-        // /dp sin objetivo valido -> abrir menu de configuracion de equipo
-        sPetBattleMgr->ShowTeamMenu(player);
+        // /dp sin subcomando: regarde la cible actuelle du joueur et lance
+        // l'action adaptee (defi PvP, combat sauvage, ou menu d'equipe).
+        // Logique partagee avec le bouton "Duel de Mascotte" de l'addon
+        // (voir PetBattleMgr::StartBattleAgainstTarget).
+        sPetBattleMgr->StartBattleAgainstTarget(player);
         return true;
     }
 };

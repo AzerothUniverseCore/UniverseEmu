@@ -307,6 +307,12 @@ public:
     // ---- Menu de configuracion de equipo ----
     void ShowTeamMenu(Player* player);
 
+    // Logique partagee entre la commande .dp (sans argument) et le
+    // bouton "Duel de Mascotte" de l'addon (message STARTBATTLE) :
+    // regarde la cible actuelle du joueur et lance l'action adaptee
+    // (defi PvP, combat sauvage, ou menu d'equipe si rien de cible).
+    void StartBattleAgainstTarget(Player* player);
+
     void HandleTeamGossipAction(
         Player* player,
         uint32 sender,

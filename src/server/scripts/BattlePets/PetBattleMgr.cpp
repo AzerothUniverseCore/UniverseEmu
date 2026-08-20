@@ -1225,6 +1225,65 @@ void PetBattleMgr::ShowTeamMenu(
         player->GetGUID());
 }
 
+// ================================================================
+// Lancer un combat contre la cible actuelle (partage entre la
+// commande .dp sans argument et le bouton "Duel de Mascotte")
+// ================================================================
+
+void PetBattleMgr::StartBattleAgainstTarget(
+    Player* player)
+{
+    if (!player)
+        return;
+
+    if (!sConfigMgr->GetBoolDefault("PetBattle.Enable", true))
+    {
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "%s",
+            GetText(player, PETTXT_SYSTEM_DISABLED).c_str());
+
+        return;
+    }
+
+    Unit* target =
+        player->GetSelectedUnit();
+
+    // Joueur cible -> defi PvP.
+    if (target &&
+        target->GetTypeId() == TYPEID_PLAYER &&
+        target != player)
+    {
+        StartDuelRequest(
+            player,
+            target->ToPlayer());
+
+        return;
+    }
+
+    // Creature du monde ciblee : si c'est un compagnon capturable,
+    // le combat sauvage demarre directement.
+    if (target &&
+        target->GetTypeId() == TYPEID_UNIT &&
+        target->ToCreature())
+    {
+        if (TryStartWildBattle(
+            player,
+            target->ToCreature()))
+        {
+            return;
+        }
+
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "%s",
+            GetText(player, PETTXT_WILD_NOT_CAPTUREABLE).c_str());
+
+        return;
+    }
+
+    // Aucune cible valide -> menu de gestion d'equipe.
+    ShowTeamMenu(player);
+}
+
 void PetBattleMgr::HandleTeamGossipAction(
     Player* player,
     uint32 sender,
@@ -1840,6 +1899,14 @@ void PetBattleMgr::HandleAddonMessage(
         {
             HandleSwitchPet(player, *battle);
         }
+        return;
+    }
+
+    // Bouton "Duel de Mascotte" de l'addon (equivalent a .dp sans
+    // argument : regarde la cible actuelle du joueur).
+    if (cmd == "STARTBATTLE")
+    {
+        StartBattleAgainstTarget(player);
         return;
     }
 
