@@ -6016,4 +6016,7 @@ PetBattle.DamageVisualSpellIdLow = 24209
 # to the threshold. 0 = uses the normal attack emote.
 PetBattle.DamageVisualSpellIdHigh = 24209
 
+# Debug Chat Combat Log
+PetBattle.ChatCombatLog = 0
+
 ###################################################################################################

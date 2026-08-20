@@ -4496,92 +4496,146 @@ bool PetBattleMgr::ResolveAttackAndAdvance(
             ? GetCreatureName(a, attacker.mascotaID)
             : GetText(a, PETTXT_WILD_PET_NAME));
 
-    if (a && b)
+    // Journal de combat dans le chat : verbeux (un message par coup),
+    // desactive par defaut suite a un retour joueur -- les degats sont
+    // deja visibles via la barre de vie et le texte flottant ci-dessous.
+    bool const chatCombatLog =
+        sConfigMgr->GetBoolDefault(
+            "PetBattle.ChatCombatLog",
+            false);
+
+    if (chatCombatLog)
     {
-        if (missed)
+        if (a && b)
         {
-            ChatHandler(a->GetSession()).PSendSysMessage(
-                "%s",
-                GetTextFmt(a, PETTXT_ATTACK_MISS,
-                    { atacanteNombre }).c_str());
+            if (missed)
+            {
+                ChatHandler(a->GetSession()).PSendSysMessage(
+                    "%s",
+                    GetTextFmt(a, PETTXT_ATTACK_MISS,
+                        { atacanteNombre }).c_str());
 
-            ChatHandler(b->GetSession()).PSendSysMessage(
-                "%s",
-                GetTextFmt(b, PETTXT_ATTACK_MISS,
-                    { atacanteNombre }).c_str());
+                ChatHandler(b->GetSession()).PSendSysMessage(
+                    "%s",
+                    GetTextFmt(b, PETTXT_ATTACK_MISS,
+                        { atacanteNombre }).c_str());
+            }
+            else if (curacionPropia)
+            {
+                std::string curado =
+                    std::to_string(-dano);
+
+                uint32 healTextId =
+                    autoHeal
+                    ? PETTXT_AUTO_HEAL
+                    : PETTXT_ATTACK_HEAL;
+
+                ChatHandler(a->GetSession()).PSendSysMessage(
+                    "%s",
+                    GetTextFmt(a, healTextId,
+                        { atacanteNombre, curado,
+                          std::to_string(afectada.vidaActual) }).c_str());
+
+                ChatHandler(b->GetSession()).PSendSysMessage(
+                    "%s",
+                    GetTextFmt(b, healTextId,
+                        { atacanteNombre, curado,
+                          std::to_string(afectada.vidaActual) }).c_str());
+            }
+            else
+            {
+                std::string bonusA =
+                    superEfectivo ? GetText(a, PETTXT_EFFECTIVE) : "";
+                std::string bonusB =
+                    superEfectivo ? GetText(b, PETTXT_EFFECTIVE) : "";
+
+                ChatHandler(a->GetSession()).PSendSysMessage(
+                    "%s",
+                    GetTextFmt(a, PETTXT_ATTACK_HIT,
+                        { atacanteNombre, std::to_string(dano), bonusA,
+                          std::to_string(afectada.vidaActual) }).c_str());
+
+                ChatHandler(b->GetSession()).PSendSysMessage(
+                    "%s",
+                    GetTextFmt(b, PETTXT_ATTACK_HIT,
+                        { atacanteNombre, std::to_string(dano), bonusB,
+                          std::to_string(afectada.vidaActual) }).c_str());
+            }
         }
-        else if (curacionPropia)
+        else if (a)
         {
-            std::string curado =
-                std::to_string(-dano);
+            std::string msg;
 
-            uint32 healTextId =
-                autoHeal
-                ? PETTXT_AUTO_HEAL
-                : PETTXT_ATTACK_HEAL;
+            if (missed)
+            {
+                msg = GetTextFmt(a, PETTXT_ATTACK_MISS, { atacanteNombre });
+            }
+            else if (curacionPropia)
+            {
+                uint32 healTextId =
+                    autoHeal
+                    ? PETTXT_AUTO_HEAL
+                    : PETTXT_ATTACK_HEAL;
+
+                msg = GetTextFmt(a, healTextId,
+                    { atacanteNombre, std::to_string(-dano),
+                      std::to_string(afectada.vidaActual) });
+            }
+            else
+            {
+                msg = GetTextFmt(a, PETTXT_ATTACK_HIT,
+                    { atacanteNombre, std::to_string(dano),
+                      superEfectivo ? GetText(a, PETTXT_EFFECTIVE) : "",
+                      std::to_string(afectada.vidaActual) });
+            }
 
             ChatHandler(a->GetSession()).PSendSysMessage(
                 "%s",
-                GetTextFmt(a, healTextId,
-                    { atacanteNombre, curado,
-                      std::to_string(afectada.vidaActual) }).c_str());
-
-            ChatHandler(b->GetSession()).PSendSysMessage(
-                "%s",
-                GetTextFmt(b, healTextId,
-                    { atacanteNombre, curado,
-                      std::to_string(afectada.vidaActual) }).c_str());
-        }
-        else
-        {
-            std::string bonusA =
-                superEfectivo ? GetText(a, PETTXT_EFFECTIVE) : "";
-            std::string bonusB =
-                superEfectivo ? GetText(b, PETTXT_EFFECTIVE) : "";
-
-            ChatHandler(a->GetSession()).PSendSysMessage(
-                "%s",
-                GetTextFmt(a, PETTXT_ATTACK_HIT,
-                    { atacanteNombre, std::to_string(dano), bonusA,
-                      std::to_string(afectada.vidaActual) }).c_str());
-
-            ChatHandler(b->GetSession()).PSendSysMessage(
-                "%s",
-                GetTextFmt(b, PETTXT_ATTACK_HIT,
-                    { atacanteNombre, std::to_string(dano), bonusB,
-                      std::to_string(afectada.vidaActual) }).c_str());
+                msg.c_str());
         }
     }
-    else if (a)
+
+    // ============================================================
+    // Texte de degats/soin flottant cote client (au-dessus de la
+    // barre de vie concernee), independant du journal de chat.
+    // ============================================================
+
+    std::string dmgType =
+        missed
+        ? "miss"
+        : curacionPropia
+            ? "heal"
+            : (superEfectivo ? "crit" : "hit");
+
+    std::string dmgAmount =
+        missed
+        ? "0"
+        : (curacionPropia
+            ? std::to_string(-dano)
+            : std::to_string(dano));
+
+    if (a)
     {
-        std::string msg;
+        SendAddonMsg(
+            a,
+            "DMGTEXT:" +
+            std::string(afectadaEsA ? "mine" : "enemy") +
+            ":" +
+            dmgAmount +
+            ":" +
+            dmgType);
+    }
 
-        if (missed)
-        {
-            msg = GetTextFmt(a, PETTXT_ATTACK_MISS, { atacanteNombre });
-        }
-        else if (curacionPropia)
-        {
-            uint32 healTextId =
-                autoHeal
-                ? PETTXT_AUTO_HEAL
-                : PETTXT_ATTACK_HEAL;
-
-            msg = GetTextFmt(a, healTextId,
-                { atacanteNombre, std::to_string(-dano),
-                  std::to_string(afectada.vidaActual) });
-        }
-        else
-        {
-            msg = GetTextFmt(a, PETTXT_ATTACK_HIT,
-                { atacanteNombre, std::to_string(dano),
-                  superEfectivo ? GetText(a, PETTXT_EFFECTIVE) : "",
-                  std::to_string(afectada.vidaActual) });
-        }
-
-        ChatHandler(a->GetSession()).PSendSysMessage(
-            "%s",
-            msg.c_str());
+    if (b)
+    {
+        SendAddonMsg(
+            b,
+            "DMGTEXT:" +
+            std::string(afectadaEsA ? "enemy" : "mine") +
+            ":" +
+            dmgAmount +
+            ":" +
+            dmgType);
     }
 
     ShowFloatingDamageNumber(
