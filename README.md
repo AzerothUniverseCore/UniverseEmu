@@ -120,6 +120,7 @@ This project uses scripts, systems and resources publicly shared by various auth
 - **Rochet2** - Mods for World of Warcraft emulators
 - **Wow Modding** - Community
 - **Browller** - Lua/DB/Client
+- **Furioz** - Lua/DB/Client
 - **Kebful** - Author
 - **Zarkhan** - CPP/DB
 - **HappySan** - DB
