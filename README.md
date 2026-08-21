@@ -4,6 +4,7 @@
 * [Additionnal](#additionnal)
 * [Content](#content)
 * [Discord](#discord)
+* [Credits](#credits)
 
 ## Requirements
 
@@ -92,6 +93,7 @@
 - Multi Expansion Login Screen
 - Character Selection & Creation Custom
 - Mythic Tooltips
+- Chromie Time
 
 ### 🛠️ Engine
 - Eluna Lua Engine
@@ -105,3 +107,28 @@ And more...
 ## Discord
 
 + [AzerothUniverseCore](https://discord.gg/HJ6pDKjysa)
+
+## Credits
+
+This project uses scripts, systems and resources publicly shared by various authors across the WoW private server and modding community, along with the direct work of our own team. Credit and thanks to:
+
+- **TrinityCore** - the core server framework this project is forked from
+- **AzerothCore** - reference for various modules and systems
+- **Aurora** - project lead, development & systems integration
+- **iThorgrim** - Lua/DB/Client
+- **TaikiroIssei** - DB
+- **Rochet2** - Mods for World of Warcraft emulators
+- **Wow Modding** - Community
+- **Browller** - Lua/DB/Client
+- **Kebful** - Author
+- **Zarkhan** - CPP/DB
+- **HappySan** - DB
+- **Khyzerox** - Lua/DB/Client
+- **Ghost** - Lua/DB/SmartIA
+- **Zayone** - Noggit/DB/SmartIA
+- **Shaez** - Lua/DB
+- **Sephir** - Lua/DB
+- **Clotic** - Author
+- **Raverkai** - Lua/DB/CPP
+
+If we used your script or system and forgot to credit you here, please let us know [Discord](#discord) and we'll add you right away. If you'd rather not be listed here, let us know the same way and we'll remove you.
