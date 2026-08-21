@@ -6,13 +6,17 @@ This guide covers how to get your changes merged smoothly.
 
 ## Getting started
 
-1. Fork the repository.
-2. Clone your fork locally and add the upstream repo as a remote so you can keep your fork up to date:
+1. Fork the repository (the "Fork" button on GitHub creates a copy under your own account).
+2. Clone your fork locally:
+   ```
+   git clone https://github.com/YOUR-USERNAME/UniverseEmu.git
+   ```
+3. Add the original repo as a second remote so you can pull in updates later:
    ```
    git remote add upstream https://github.com/AzerothUniverseCore/UniverseEmu.git
    ```
-3. Create a feature branch off `main` for your work. Avoid committing directly to `main` on your fork if you plan to keep contributing over time it makes rebasing easier.
-4. Make your changes, commit, push to your fork, and open a pull request against `main`.
+4. Create a feature branch off `main` for your work. Avoid committing directly to `main` on your fork if you plan to keep contributing over time it makes rebasing easier.
+5. Make your changes, commit, push to your fork, and open a pull request against `main`.
 
 If you don't have write access to the main repo, this fork-and-PR workflow is the way to go. If you're contributing regularly, feel free to ask about becoming a collaborator.
 
