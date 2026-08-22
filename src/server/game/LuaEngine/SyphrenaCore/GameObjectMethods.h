@@ -157,6 +157,32 @@ namespace LuaGameObject
     }
 
     /**
+     * Returns the [GameObject]s current phase mask
+     *
+     * @return uint32 phaseMask
+     */
+    int GetPhaseMask(lua_State* L, GameObject* go)
+    {
+        Eluna::Push(L, go->GetPhaseMask());
+        return 1;
+    }
+
+    /**
+     * Sets the [GameObject]s phase mask, determining which phased players can see it
+     *
+     * @param uint32 phaseMask
+     * @param bool update = true : whether to immediately update visibility
+     */
+    int SetPhaseMask(lua_State* L, GameObject* go)
+    {
+        uint32 phaseMask = Eluna::CHECKVAL<uint32>(L, 2);
+        bool update = Eluna::CHECKVAL<bool>(L, 3, true);
+
+        go->SetPhaseMask(phaseMask, update);
+        return 0;
+    }
+
+    /**
      * Sets the state of a [GameObject]
      *
      * <pre>
@@ -321,11 +347,13 @@ namespace LuaGameObject
         { "GetLootRecipient", &LuaGameObject::GetLootRecipient },
         { "GetLootRecipientGroup", &LuaGameObject::GetLootRecipientGroup },
         { "GetDBTableGUIDLow", &LuaGameObject::GetDBTableGUIDLow },
+        { "GetPhaseMask", &LuaGameObject::GetPhaseMask },
 
         // Setters
         { "SetGoState", &LuaGameObject::SetGoState },
         { "SetLootState", &LuaGameObject::SetLootState },
         { "SetRespawnTime", &LuaGameObject::SetRespawnTime },
+        { "SetPhaseMask", &LuaGameObject::SetPhaseMask },
 
         // Boolean
         { "IsTransport", &LuaGameObject::IsTransport },
