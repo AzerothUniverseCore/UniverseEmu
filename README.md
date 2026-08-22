@@ -132,4 +132,18 @@ This project uses scripts, systems and resources publicly shared by various auth
 - **Clotic** - Author
 - **Raverkai** - Lua/DB/CPP
 
+### 3D Models & Client Assets
+
+- **Finsternis**
+- **Morfium**
+- **Atraxian**
+- **Kraulspine** - A lot of Ogres & other models
+- **TomKek** - A lot of mounts
+- **Epsilon team (Dragonmash)** - Onyxia & Nefarian
+- **Silverbabywolfz/Kass** - CrystalDryad & FrostNymph
+- **Ascension** - Necromancer
+- **Maribeth/OdysseyMods** - HD baked textures generator script (with fixes from Audia)
+- **valsan-azerty-boi** - Instigator of this repository/patch
+- All other anonymous contributors
+
 If we used your script or system and forgot to credit you here, please let us know [Discord](#discord) and we'll add you right away. If you'd rather not be listed here, let us know the same way and we'll remove you.
