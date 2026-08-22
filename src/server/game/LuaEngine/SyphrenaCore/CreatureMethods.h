@@ -620,6 +620,32 @@ namespace LuaCreature
         return 0;
     }
 
+    /**
+     * Returns the [Creature]s current phase mask
+     *
+     * @return uint32 phaseMask
+     */
+    int GetPhaseMask(lua_State* L, Creature* creature)
+    {
+        Eluna::Push(L, creature->GetPhaseMask());
+        return 1;
+    }
+
+    /**
+     * Sets the [Creature]s phase mask, determining which phased players can see it
+     *
+     * @param uint32 phaseMask
+     * @param bool update = true : whether to immediately update visibility
+     */
+    int SetPhaseMask(lua_State* L, Creature* creature)
+    {
+        uint32 phaseMask = Eluna::CHECKVAL<uint32>(L, 2);
+        bool update = Eluna::CHECKVAL<bool>(L, 3, true);
+
+        creature->SetPhaseMask(phaseMask, update);
+        return 0;
+    }
+
     enum SelectAggroTarget
     {
         SELECT_TARGET_RANDOM = 0,   // Just selects a random target
@@ -1372,6 +1398,7 @@ namespace LuaCreature
         { "GetAITargets", &LuaCreature::GetAITargets },
         { "GetAITargetsCount", &LuaCreature::GetAITargetsCount },
         { "GetHomePosition", &LuaCreature::GetHomePosition },
+        { "GetPhaseMask", &LuaCreature::GetPhaseMask },
         { "GetCorpseDelay", &LuaCreature::GetCorpseDelay },
         { "GetCreatureSpellCooldownDelay", &LuaCreature::GetCreatureSpellCooldownDelay },
         { "GetScriptId", &LuaCreature::GetScriptId },
@@ -1424,6 +1451,7 @@ namespace LuaCreature
         { "SetDeathState", &LuaCreature::SetDeathState },
         { "SetWalk", &LuaCreature::SetWalk },
         { "SetHomePosition", &LuaCreature::SetHomePosition },
+        { "SetPhaseMask", &LuaCreature::SetPhaseMask },
         { "SetEquipmentSlots", &LuaCreature::SetEquipmentSlots },
 
         // Boolean

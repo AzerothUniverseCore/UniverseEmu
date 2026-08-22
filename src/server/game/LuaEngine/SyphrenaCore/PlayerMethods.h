@@ -764,6 +764,32 @@ namespace LuaPlayer
 #endif
 
     /**
+     * Returns the [Player]s current phase mask
+     *
+     * @return uint32 phaseMask
+     */
+    int GetPhaseMask(lua_State* L, Player* player)
+    {
+        Eluna::Push(L, player->GetPhaseMask());
+        return 1;
+    }
+
+    /**
+     * Sets the [Player]s phase mask, determining what phased objects the [Player] can see
+     *
+     * @param uint32 phaseMask
+     * @param bool update = true : whether to immediately update visibility
+     */
+    int SetPhaseMask(lua_State* L, Player* player)
+    {
+        uint32 phaseMask = Eluna::CHECKVAL<uint32>(L, 2);
+        bool update = Eluna::CHECKVAL<bool>(L, 3, true);
+
+        player->SetPhaseMask(phaseMask, update);
+        return 0;
+    }
+
+    /**
      * Returns the [Player]s cooldown delay by specified [Spell] ID
      *
      * @param uint32 spellId
@@ -4106,6 +4132,8 @@ namespace LuaPlayer
 #else
         { "GetPhaseMaskForSpawn", nullptr },
 #endif
+        { "GetPhaseMask", &LuaPlayer::GetPhaseMask },
+        { "SetPhaseMask", &LuaPlayer::SetPhaseMask },
         { "GetReqKillOrCastCurrentCount", &LuaPlayer::GetReqKillOrCastCurrentCount },
         { "GetQuestStatus", &LuaPlayer::GetQuestStatus },
         { "GetInGameTime", &LuaPlayer::GetInGameTime },
