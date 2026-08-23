@@ -95,6 +95,10 @@ enum Misc
     ACTION_MAGUS_DEAD                = 1,
     DATA_SPLIT_PERSONALITY           = 2,
 
+    NPC_FIRE_MAGUS                   = 26928,
+    NPC_ARCANE_MAGUS                 = 26929,
+    NPC_FROST_MAGUS                  = 26930,
+
     GAME_EVENT_WINTER_VEIL           = 2
 };
 
@@ -112,6 +116,8 @@ struct boss_magus_telestra : public BossAI
             time[n] = 0;
 
         splitPersonality = 0;
+    _deadClones = 0;
+    _mergeScheduled = false;
     }
 
     void Reset() override
@@ -192,7 +198,32 @@ struct boss_magus_telestra : public BossAI
         if (spellInfo->Id == SPELL_TRIGGER_000)
             events.ScheduleEvent(EVENT_MERGE, 5s);
     }
+void SummonedCreatureDies(Creature* summon, Unit* /*killer*/) override
+{
+    switch (summon->GetEntry())
+    {
+        case NPC_FIRE_MAGUS:
+        case NPC_ARCANE_MAGUS:
+        case NPC_FROST_MAGUS:
+        {
+            if (!_splitted)
+                return;
 
+            ++_deadClones;
+
+            if (_deadClones >= 3 && !_mergeScheduled)
+            {
+                _mergeScheduled = true;
+                events.ScheduleEvent(EVENT_MERGE, 1s);
+            }
+
+            break;
+        }
+
+        default:
+            break;
+    }
+}
     void JustDied(Unit* /*killer*/) override
     {
         _JustDied();
@@ -265,6 +296,8 @@ struct boss_magus_telestra : public BossAI
                 // Split sequence, continues in OnSpellCast
                 case EVENT_SPLIT:
                     _splitted = true;
+                 _deadClones = 0;
+                 _mergeScheduled = false;
                     // Cancel combat spells
                     events.Reset();
                     Talk(SAY_SPLIT);
@@ -319,6 +352,10 @@ private:
     bool _split2;
     bool _unkillable;
     bool _splitted;
+    bool _mergeScheduled;
+
+    uint8 _deadClones;
+
     time_t time[3];
     uint8 splitPersonality;
 };
