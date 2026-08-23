@@ -39,6 +39,7 @@ void AddSC_instance_templeofthejadeserpent();
 void AddSC_instance_terraceofendlessspring();
 // WanderingIsland
 void AddSC_zone_the_wandering_isle();
+void AddSC_npc_aysa_tushui();
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
 void AddPandariaScripts()
@@ -66,4 +67,5 @@ void AddPandariaScripts()
     AddSC_instance_terraceofendlessspring();
 	// WanderingIsland
 	AddSC_zone_the_wandering_isle();
+	AddSC_npc_aysa_tushui();
 }
