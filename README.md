@@ -1,4 +1,4 @@
-# ![logo](AzerothUniverse.png) UniverseEmu 3.3.9a.49448
+# ![logo](AzerothUniverse.png) UniverseEmu 3.3.9a.49448 based on TrinityCore (3.3.5a.12340)
 
 * [Requirements](#requirements)
 * [Additionnal](#additionnal)
