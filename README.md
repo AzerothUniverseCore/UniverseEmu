@@ -122,6 +122,7 @@ This project uses scripts, systems and resources publicly shared by various auth
 - **Browller** - Lua/DB/Client
 - **Furioz** - Lua/DB/Client
 - **Kebful** - Author
+- **Noa** - Author
 - **Zarkhan** - CPP/DB
 - **HappySan** - DB
 - **Khyzerox** - Lua/DB/Client
