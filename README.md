@@ -123,7 +123,7 @@ This project uses scripts, systems and resources publicly shared by various auth
 - **Furioz** - Lua/DB/Client
 - **Kebful** - Author
 - **Zarkhan** - CPP/DB
-- **HappySan** - DB
+- **HapySan** - DB
 - **Khyzerox** - Lua/DB/Client
 - **Ghost** - Lua/DB/SmartIA
 - **Zayone** - Noggit/DB/SmartIA
