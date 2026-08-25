@@ -1,9 +1,11 @@
 # ![logo](AzerothUniverse.png) UniverseEmu 3.3.9a.49448 based on TrinityCore (3.3.5a.12340)
 
 * [Requirements](#requirements)
-* [Additionnal](#additionnal)
+* [Additional](#additional)
 * [Content](#content)
 * [Discord](#discord)
+* [Copyright](#copyright)
+* [Authors & Contributors](#authors--contributors)
 * [Credits](#credits)
 
 ## Requirements
@@ -12,7 +14,7 @@
 + Processor with SSE2 support
 + [Server software dependency](https://github.com/AzerothUniverseCore/UniverseEmu/releases/tag/UniverseSoftware)
 
-## Additionnal
+## Additional
 
 + [Universe Data](https://github.com/AzerothUniverseCore/UniverseEmu/releases/tag/UniverseData)
 + [Universe Sql](https://github.com/AzerothUniverseCore/UniverseEmu/tree/main/sql/base)
@@ -107,6 +109,16 @@ And more...
 ## Discord
 
 + [AzerothUniverseCore](https://discord.gg/HJ6pDKjysa)
+
+## Copyright
+
+License: GPL 2.0
+
+Read file [COPYING](COPYING.txt).
+
+## Authors & Contributors
+
+This project is built on top of TrinityCore (3.3.5a.12340). Read file [AUTHORS](AUTHORS.txt).
 
 ## Credits
 
