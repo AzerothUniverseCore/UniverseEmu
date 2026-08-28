@@ -41,6 +41,10 @@ void AddSC_custom_reload_commands();
 void AddSC_minelevationtrigger();
 /* ######################## > */
 
+/* ######### Event ######## > */
+void AddSC_custom_blood_arena();
+/* ######################## > */
+
 /* ######### Quest ######## > */
 // Quest Horde Start
 void AddSC_quest_horde_start();
@@ -82,6 +86,10 @@ void AddUniverseScripts()
 	AddSC_premium_account();
 	AddSC_custom_reload_commands();
 	AddSC_minelevationtrigger();
+/* ######################## > */
+
+/* ######### Event ######## > */
+	AddSC_custom_blood_arena();
 /* ######################## > */
 	
 /* ######### Quest ######## > */
