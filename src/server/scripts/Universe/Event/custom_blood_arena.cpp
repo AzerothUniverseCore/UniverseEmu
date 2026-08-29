@@ -24,6 +24,7 @@
 #include "TemporarySummon.h"
 #include "Group.h"
 #include "ObjectAccessor.h"
+#include "ObjectMgr.h"
 #include "Chat.h"
 #include "WorldSession.h"
 #include "Duration.h"
@@ -127,31 +128,32 @@ namespace BloodArena
         sizeof(PHASE_POOL) / sizeof(PHASE_POOL[0]);
 
     // -------------------------------------------------------------------------
-    // Créatures de test / pool actuel
+    // Pool SQL des créatures
     // -------------------------------------------------------------------------
 
-    static uint32 const TRASH_ENTRIES[] =
+    enum ArenaCreatureType : uint8
     {
-        3,      // Flesh Eater
-        30,     // Forest Spider
-        38,     // Defias Thug
-        46,     // Murloc Forager
-        48,     // Skeletal Warrior
-        92      // Rock Elemental
+        ARENA_CREATURE_TRASH = 1,
+        ARENA_CREATURE_BOSS  = 2
     };
 
-    static uint32 const TRASH_ENTRY_COUNT =
-        sizeof(TRASH_ENTRIES) / sizeof(TRASH_ENTRIES[0]);
+    // mode_mask dans blood_arena_creatures :
+    // 1 = Infini, 2 = Timer, 3 = les deux.
+    static uint8 const ARENA_MODE_MASK_INFINITE = 1;
+    static uint8 const ARENA_MODE_MASK_TIMER    = 2;
+    static uint8 const ARENA_MODE_MASK_BOTH     = 3;
 
-    static uint32 const BOSS_ENTRIES[] =
+    struct ArenaCreaturePoolEntry
     {
-        1720,   // Bruegal Ironknuckle
-        1841,   // Scarlet Executioner
-        1850    // Putridius
+        uint32 id = 0;
+        uint8 creatureType = ARENA_CREATURE_TRASH;
+        uint32 creatureEntry = 0;
+        uint8 modeMask = ARENA_MODE_MASK_BOTH;
+        uint32 minWave = 1;
+        uint32 maxWave = 0; // 0 = aucune limite
+        uint32 weight = 1;
+        uint32 sortOrder = 0;
     };
-
-    static uint32 const BOSS_ENTRY_COUNT =
-        sizeof(BOSS_ENTRIES) / sizeof(BOSS_ENTRIES[0]);
 
     // -------------------------------------------------------------------------
     // Récompenses
@@ -219,7 +221,10 @@ namespace BloodArena
         ACTION_LEADERBOARD_MENU     = 1100,
         ACTION_LEADERBOARD_INFINITE = 1101,
         ACTION_LEADERBOARD_TIMER    = 1102,
-        ACTION_BACK_MAIN            = 1199
+        ACTION_BACK_MAIN            = 1199,
+
+        ACTION_ADMIN_MENU             = 1200,
+        ACTION_ADMIN_RELOAD_CREATURES = 1201
     };
 
     // -------------------------------------------------------------------------
@@ -262,6 +267,7 @@ namespace BloodArena
         bool waitingNextWave = false;
         bool started = false;
         bool completed = false;
+        bool configurationError = false;
 
         // Point de retour commun : devant le Maître de l'Arène de sang
         // utilisé pour lancer CETTE session.
@@ -399,7 +405,122 @@ namespace BloodArena
                 "PRIMARY KEY (`season_key`,`account_id`)"
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8;");
 
+            // V1.6 : bestiaire administrable depuis HeidiSQL.
+            WorldDatabase.DirectExecute(
+                "CREATE TABLE IF NOT EXISTS `blood_arena_creatures` ("
+                "`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,"
+                "`creature_type` TINYINT UNSIGNED NOT NULL COMMENT '1=trash, 2=boss',"
+                "`creature_entry` INT UNSIGNED NOT NULL,"
+                "`mode_mask` TINYINT UNSIGNED NOT NULL DEFAULT 3 COMMENT '1=infini, 2=timer, 3=les deux',"
+                "`min_wave` INT UNSIGNED NOT NULL DEFAULT 1,"
+                "`max_wave` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '0=aucune limite',"
+                "`weight` INT UNSIGNED NOT NULL DEFAULT 1,"
+                "`enabled` TINYINT UNSIGNED NOT NULL DEFAULT 1,"
+                "`sort_order` INT UNSIGNED NOT NULL DEFAULT 0,"
+                "`note` VARCHAR(255) NOT NULL DEFAULT '',"
+                "PRIMARY KEY (`id`),"
+                "KEY `idx_ba_creature_load` (`enabled`,`creature_type`,`sort_order`),"
+                "KEY `idx_ba_creature_entry` (`creature_entry`)"
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8;");
+
+            SeedDefaultCreaturePoolIfEmpty();
+            ReloadCreaturePool();
+
             CheckMonthlyRollover();
+        }
+
+        bool ReloadCreaturePool()
+        {
+            std::vector<ArenaCreaturePoolEntry> newTrashPool;
+            std::vector<ArenaCreaturePoolEntry> newBossPool;
+
+            QueryResult result = WorldDatabase.Query(
+                "SELECT `id`,`creature_type`,`creature_entry`,`mode_mask`,"
+                "`min_wave`,`max_wave`,`weight`,`sort_order` "
+                "FROM `blood_arena_creatures` "
+                "WHERE `enabled`=1 "
+                "ORDER BY `creature_type`,`sort_order`,`id`");
+
+            if (result)
+            {
+                do
+                {
+                    Field* fields = result->Fetch();
+
+                    ArenaCreaturePoolEntry poolEntry;
+                    poolEntry.id = fields[0].GetUInt32();
+                    poolEntry.creatureType = fields[1].GetUInt8();
+                    poolEntry.creatureEntry = fields[2].GetUInt32();
+                    poolEntry.modeMask = fields[3].GetUInt8();
+                    poolEntry.minWave = fields[4].GetUInt32();
+                    poolEntry.maxWave = fields[5].GetUInt32();
+                    poolEntry.weight = fields[6].GetUInt32();
+                    poolEntry.sortOrder = fields[7].GetUInt32();
+
+                    if (poolEntry.creatureEntry == 0)
+                        continue;
+
+                    // Évite qu'une faute de frappe SQL provoque des vagues vides.
+                    if (!sObjectMgr->GetCreatureTemplate(poolEntry.creatureEntry))
+                    {
+                        SC_LOG_INFO(
+                            "server.worldserver",
+                            "[BloodArena] Pool ignore : creature_template {} inexistante (ligne {}).",
+                            poolEntry.creatureEntry,
+                            poolEntry.id);
+
+                        continue;
+                    }
+
+                    if (poolEntry.creatureType != ARENA_CREATURE_TRASH &&
+                        poolEntry.creatureType != ARENA_CREATURE_BOSS)
+                    {
+                        continue;
+                    }
+
+                    if (poolEntry.modeMask == 0)
+                        poolEntry.modeMask = ARENA_MODE_MASK_BOTH;
+
+                    if (poolEntry.weight == 0)
+                        poolEntry.weight = 1;
+
+                    if (poolEntry.minWave == 0)
+                        poolEntry.minWave = 1;
+
+                    if (poolEntry.maxWave > 0 &&
+                        poolEntry.maxWave < poolEntry.minWave)
+                    {
+                        continue;
+                    }
+
+                    if (poolEntry.creatureType == ARENA_CREATURE_BOSS)
+                        newBossPool.push_back(poolEntry);
+                    else
+                        newTrashPool.push_back(poolEntry);
+
+                } while (result->NextRow());
+            }
+
+            _trashPool.swap(newTrashPool);
+            _bossPool.swap(newBossPool);
+
+            SC_LOG_INFO(
+                "server.worldserver",
+                "[BloodArena] Pool recharge : {} trash(s), {} boss.",
+                uint32(_trashPool.size()),
+                uint32(_bossPool.size()));
+
+            return !_trashPool.empty() && !_bossPool.empty();
+        }
+
+        uint32 GetLoadedTrashCount() const
+        {
+            return static_cast<uint32>(_trashPool.size());
+        }
+
+        uint32 GetLoadedBossCount() const
+        {
+            return static_cast<uint32>(_bossPool.size());
         }
 
         void NotifyUnreadGmNotices(Player* player)
@@ -857,6 +978,16 @@ namespace BloodArena
                 // Session active
                 // -------------------------------------------------------------
 
+                if (session.configurationError)
+                {
+                    failures.push_back(
+                        std::make_pair(
+                            session.id,
+                            "Erreur de configuration : aucun monstre valide n'est disponible pour cette vague."));
+
+                    continue;
+                }
+
                 // Un joueur qui rejoint volontairement l'une des deux portes
                 // quitte l'évènement. Sa phase normale sera rétablie juste
                 // avant la porte afin qu'il puisse continuer à pied.
@@ -1156,6 +1287,104 @@ namespace BloodArena
 
         uint64 _nextSessionId;
         uint32 _monthlyCheckTimerMs;
+
+        std::vector<ArenaCreaturePoolEntry> _trashPool;
+        std::vector<ArenaCreaturePoolEntry> _bossPool;
+
+        // ---------------------------------------------------------------------
+        // Pool SQL des monstres / boss
+        // ---------------------------------------------------------------------
+
+        void SeedDefaultCreaturePoolIfEmpty()
+        {
+            QueryResult result = WorldDatabase.Query(
+                "SELECT `id` FROM `blood_arena_creatures` LIMIT 1");
+
+            if (result)
+                return;
+
+            // Pool de la V1.5 utilisé comme valeurs initiales.
+            WorldDatabase.DirectExecute(
+                "INSERT INTO `blood_arena_creatures` "
+                "(`creature_type`,`creature_entry`,`mode_mask`,`min_wave`,`max_wave`,`weight`,`enabled`,`sort_order`,`note`) "
+                "VALUES "
+                "(1,3,3,1,0,1,1,10,'Flesh Eater'),"
+                "(1,30,3,1,0,1,1,20,'Forest Spider'),"
+                "(1,38,3,1,0,1,1,30,'Defias Thug'),"
+                "(1,46,3,1,0,1,1,40,'Murloc Forager'),"
+                "(1,48,3,1,0,1,1,50,'Skeletal Warrior'),"
+                "(1,92,3,1,0,1,1,60,'Rock Elemental'),"
+                "(2,1720,3,1,0,1,1,10,'Bruegal Ironknuckle'),"
+                "(2,1841,3,1,0,1,1,20,'Scarlet Executioner'),"
+                "(2,1850,3,1,0,1,1,30,'Putridius')");
+        }
+
+        uint8 GetModeMask(ArenaMode mode) const
+        {
+            return
+                mode == MODE_INFINITE
+                    ? ARENA_MODE_MASK_INFINITE
+                    : ARENA_MODE_MASK_TIMER;
+        }
+
+        uint32 SelectCreatureFromPool(
+            std::vector<ArenaCreaturePoolEntry> const& pool,
+            ArenaMode mode,
+            uint32 wave,
+            uint32 selectionIndex) const
+        {
+            uint8 requiredModeMask = GetModeMask(mode);
+            uint64 totalWeight = 0;
+
+            for (ArenaCreaturePoolEntry const& poolEntry : pool)
+            {
+                if ((poolEntry.modeMask & requiredModeMask) == 0)
+                    continue;
+
+                if (wave < poolEntry.minWave)
+                    continue;
+
+                if (poolEntry.maxWave > 0 &&
+                    wave > poolEntry.maxWave)
+                {
+                    continue;
+                }
+
+                totalWeight += poolEntry.weight;
+            }
+
+            if (totalWeight == 0)
+                return 0;
+
+            // Sélection pondérée déterministe :
+            // le poids fonctionne sans dépendre d'un générateur aléatoire,
+            // et l'ordre reste stable après un reload SQL.
+            uint64 ticket =
+                static_cast<uint64>(selectionIndex) %
+                totalWeight;
+
+            for (ArenaCreaturePoolEntry const& poolEntry : pool)
+            {
+                if ((poolEntry.modeMask & requiredModeMask) == 0)
+                    continue;
+
+                if (wave < poolEntry.minWave)
+                    continue;
+
+                if (poolEntry.maxWave > 0 &&
+                    wave > poolEntry.maxWave)
+                {
+                    continue;
+                }
+
+                if (ticket < poolEntry.weight)
+                    return poolEntry.creatureEntry;
+
+                ticket -= poolEntry.weight;
+            }
+
+            return 0;
+        }
 
         // ---------------------------------------------------------------------
         // Classement mensuel / base de données
@@ -2349,25 +2578,19 @@ namespace BloodArena
             Session const& session,
             uint32 index) const
         {
-            if (TRASH_ENTRY_COUNT == 0)
-                return 0;
-
-            return
-                TRASH_ENTRIES[
-                    (session.wave + index) %
-                    TRASH_ENTRY_COUNT];
+            return SelectCreatureFromPool(
+                _trashPool,
+                session.mode,
+                session.wave,
+                session.wave + index);
         }
 
         uint32 GetBossEntry(
             Session const& session) const
         {
-            if (BOSS_ENTRY_COUNT == 0)
-                return 0;
+            uint32 bossNumber = 1;
 
-            uint32 bossNumber = 0;
-
-            if (session.mode ==
-                MODE_INFINITE)
+            if (session.mode == MODE_INFINITE)
             {
                 bossNumber =
                     session.wave /
@@ -2380,13 +2603,14 @@ namespace BloodArena
                     TIMER_BOSS_EVERY;
             }
 
-            if (bossNumber > 0)
-                --bossNumber;
+            if (bossNumber == 0)
+                bossNumber = 1;
 
-            return
-                BOSS_ENTRIES[
-                    bossNumber %
-                    BOSS_ENTRY_COUNT];
+            return SelectCreatureFromPool(
+                _bossPool,
+                session.mode,
+                session.wave,
+                bossNumber - 1);
         }
 
         // ---------------------------------------------------------------------
@@ -2719,6 +2943,18 @@ namespace BloodArena
             session.waveSpawnCount[
                 session.wave] =
                 successfulSpawns;
+
+            if (spawnCount > 0 &&
+                successfulSpawns == 0)
+            {
+                session.configurationError = true;
+
+                Broadcast(
+                    session.id,
+                    "|cffff0000[Blood Arena]|r ERREUR : aucun creature_entry valide dans le pool SQL pour cette vague.");
+
+                return;
+            }
 
             if (spawnCount == 0)
             {
@@ -3098,6 +3334,17 @@ namespace BloodArena
                     GOSSIP_SENDER_MAIN,
                     ACTION_LEADERBOARD_MENU);
 
+                if (player->GetSession() &&
+                    player->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+                {
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        "|cffff8000Administration Blood Arena|r",
+                        GOSSIP_SENDER_MAIN,
+                        ACTION_ADMIN_MENU);
+                }
+
                 SendGossipMenuFor(
                     player,
                     68,
@@ -3127,6 +3374,101 @@ namespace BloodArena
 
                 if (action == ACTION_BACK_MAIN)
                     return OnGossipHello(player);
+
+                if (action == ACTION_ADMIN_MENU)
+                {
+                    if (!player->GetSession() ||
+                        player->GetSession()->GetSecurity() < SEC_GAMEMASTER)
+                    {
+                        return OnGossipHello(player);
+                    }
+
+                    ClearGossipMenuFor(player);
+
+                    std::ostringstream trashInfo;
+                    trashInfo
+                        << "Trash charges : "
+                        << ArenaManager::Instance().
+                            GetLoadedTrashCount();
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        trashInfo.str(),
+                        GOSSIP_SENDER_MAIN,
+                        ACTION_ADMIN_MENU);
+
+                    std::ostringstream bossInfo;
+                    bossInfo
+                        << "Boss charges : "
+                        << ArenaManager::Instance().
+                            GetLoadedBossCount();
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        bossInfo.str(),
+                        GOSSIP_SENDER_MAIN,
+                        ACTION_ADMIN_MENU);
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        "Recharger les monstres depuis la base SQL",
+                        GOSSIP_SENDER_MAIN,
+                        ACTION_ADMIN_RELOAD_CREATURES);
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        "< Retour",
+                        GOSSIP_SENDER_MAIN,
+                        ACTION_BACK_MAIN);
+
+                    SendGossipMenuFor(
+                        player,
+                        68,
+                        me->GetGUID());
+
+                    return true;
+                }
+
+                if (action == ACTION_ADMIN_RELOAD_CREATURES)
+                {
+                    if (!player->GetSession() ||
+                        player->GetSession()->GetSecurity() < SEC_GAMEMASTER)
+                    {
+                        return OnGossipHello(player);
+                    }
+
+                    bool valid =
+                        ArenaManager::Instance().
+                            ReloadCreaturePool();
+
+                    std::ostringstream message;
+
+                    message
+                        << "|cff00ffff[Blood Arena]|r Pool SQL recharge : "
+                        << ArenaManager::Instance().
+                            GetLoadedTrashCount()
+                        << " trash(s), "
+                        << ArenaManager::Instance().
+                            GetLoadedBossCount()
+                        << " boss.";
+
+                    if (!valid)
+                    {
+                        message
+                            << " |cffff0000ATTENTION : le pool doit contenir au moins un trash et un boss valides.|r";
+                    }
+
+                    ChatHandler(
+                        player->GetSession()).
+                        SendSysMessage(
+                            message.str().c_str());
+
+                    return OnGossipHello(player);
+                }
 
                 if (action == ACTION_LEADERBOARD_MENU)
                 {
@@ -3366,7 +3708,7 @@ void AddSC_custom_blood_arena()
 {
     SC_LOG_INFO(
         "server.loading",
-        "[BloodArena] Chargement du script Blood Arena V1.5.");
+        "[BloodArena] Chargement du script Blood Arena V1.6.");
 
     new BloodArena::
         npc_blood_arena_master();
