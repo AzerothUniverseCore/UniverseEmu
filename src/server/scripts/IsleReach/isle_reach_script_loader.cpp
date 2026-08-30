@@ -25,6 +25,9 @@ void AddSC_instance_mystic_forest();
 void AddSC_instance_time_temple();
  // Forgotten Reach
 void AddSC_instance_forgotten_reach();
+ // TheNorthSea
+void AddSC_npc_grunt_throg();
+void AddSC_npc_soldat_cole();
 /* ######################## > */
 
 // The name of this function should match:
@@ -40,5 +43,8 @@ void AddIsleReachScripts()
 	AddSC_instance_time_temple();
 	// Forgotten Reach
 	AddSC_instance_forgotten_reach();
+	// TheNorthSea
+	AddSC_npc_grunt_throg();
+	AddSC_npc_soldat_cole();
 /* ######################## > */
 }
