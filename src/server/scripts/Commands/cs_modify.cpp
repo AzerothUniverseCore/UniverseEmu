@@ -565,14 +565,14 @@ public:
         }
         else
         {
-            handler->PSendSysMessage(LANG_YOU_GIVE_MONEY, moneyToAdd, handler->GetNameLink(target).c_str());
-            if (handler->needReportToTarget(target))
-                ChatHandler(target->GetSession()).PSendSysMessage(LANG_YOURS_MONEY_GIVEN, handler->GetNameLink().c_str(), moneyToAdd);
-
-            if (targetMoney >= MAX_MONEY_AMOUNT - moneyToAdd)
-                moneyToAdd -= targetMoney;
-
-            target->ModifyMoney(moneyToAdd);
+            if (target->ModifyMoney(moneyToAdd))
+            {
+                handler->PSendSysMessage(LANG_YOU_GIVE_MONEY, moneyToAdd, handler->GetNameLink(target).c_str());
+                if (handler->needReportToTarget(target))
+                    ChatHandler(target->GetSession()).PSendSysMessage(LANG_YOURS_MONEY_GIVEN, handler->GetNameLink().c_str(), moneyToAdd);
+            }
+            else
+                handler->SendSysMessage("Plafond d'or atteint : le montant n'a pas été ajouté (ModifyMoney a déjà prévenu le joueur).");
         }
 
         SC_LOG_DEBUG("misc", "{}", handler->PGetParseString(LANG_NEW_MONEY, targetMoney, moneyToAdd, target->GetMoney()));

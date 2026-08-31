@@ -211,7 +211,7 @@ uint32 const MasterySpells[MAX_CLASSES] =
     87492,  // Chaos Ravager
 };
 
-uint64 const MAX_MONEY_AMOUNT = 4294967294ULL; // UINT32_MAX - 1 -- double du plafond vanilla, confirmé par Aurora
+uint64 const MAX_MONEY_AMOUNT = 4294967294ULL;
 
 Player::Player(WorldSession* session) : Unit(true)
 {
