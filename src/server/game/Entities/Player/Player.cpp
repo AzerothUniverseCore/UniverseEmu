@@ -211,7 +211,7 @@ uint32 const MasterySpells[MAX_CLASSES] =
     87492,  // Chaos Ravager
 };
 
-uint64 const MAX_MONEY_AMOUNT = 9999999999ULL;
+uint64 const MAX_MONEY_AMOUNT = 4294967294ULL; // UINT32_MAX - 1 -- double du plafond vanilla, confirmé par Aurora
 
 Player::Player(WorldSession* session) : Unit(true)
 {
@@ -22905,8 +22905,9 @@ bool Player::ModifyMoney(int64 amount, bool sendError /*= true*/)
 
 void Player::SetMoney(uint64 value)
 {
-    SetUInt64Value(PLAYER_FIELD_COINAGE, value);
-    MoneyChanged(value);
+    uint32 clampedValue = uint32(std::min<uint64>(value, MAX_MONEY_AMOUNT));
+    SetUInt32Value(PLAYER_FIELD_COINAGE, clampedValue);
+    MoneyChanged(clampedValue);
     UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_GOLD_VALUE_OWNED);
 }
 
