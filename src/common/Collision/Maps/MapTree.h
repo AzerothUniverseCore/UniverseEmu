@@ -20,6 +20,7 @@
 
 #include "Define.h"
 #include "BoundingIntervalHierarchy.h"
+#include <shared_mutex>
 #include <unordered_map>
 
 namespace VMAP
@@ -57,6 +58,8 @@ namespace VMAP
             // stores <tree_index, reference_count> to invalidate tree values, unload map, and to be able to report errors
             loadedSpawnMap iLoadedSpawns;
             std::string iBasePath;
+
+            mutable std::shared_mutex iLock;
 
         private:
             bool getIntersectionTime(const G3D::Ray& pRay, float &pMaxDist, bool pStopAtFirstHit, ModelIgnoreFlags ignoreFlags) const;

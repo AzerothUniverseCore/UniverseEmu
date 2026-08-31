@@ -98,6 +98,7 @@ namespace VMAP
 
     bool StaticMapTree::getAreaInfo(Vector3 &pos, uint32 &flags, int32 &adtId, int32 &rootId, int32 &groupId) const
     {
+        std::shared_lock<std::shared_mutex> lock(iLock);
         AreaInfoCallback intersectionCallBack(iTreeValues);
         iTree.intersectPoint(pos, intersectionCallBack);
         if (intersectionCallBack.aInfo.result)
@@ -114,6 +115,7 @@ namespace VMAP
 
     bool StaticMapTree::GetLocationInfo(Vector3 const& pos, LocationInfo &info) const
     {
+        std::shared_lock<std::shared_mutex> lock(iLock);
         LocationInfoCallback intersectionCallBack(iTreeValues, info);
         iTree.intersectPoint(pos, intersectionCallBack);
         return intersectionCallBack.result;
@@ -143,6 +145,7 @@ namespace VMAP
     */
     bool StaticMapTree::getIntersectionTime(const G3D::Ray& pRay, float &pMaxDist, bool pStopAtFirstHit, ModelIgnoreFlags ignoreFlags) const
     {
+        std::shared_lock<std::shared_mutex> lock(iLock);
         float distance = pMaxDist;
         MapRayCallback intersectionCallBack(iTreeValues, ignoreFlags);
         iTree.intersectRay(pRay, intersectionCallBack, distance, pStopAtFirstHit);
@@ -277,6 +280,7 @@ namespace VMAP
 
     bool StaticMapTree::InitMap(const std::string &fname, VMapManager2* vm)
     {
+        std::unique_lock<std::shared_mutex> lock(iLock);
         SC_LOG_DEBUG("maps", "StaticMapTree::InitMap() : initializing StaticMapTree '{}'", fname);
         bool success = false;
         std::string fullname = iBasePath + fname;
@@ -328,6 +332,7 @@ namespace VMAP
 
     void StaticMapTree::UnloadMap(VMapManager2* vm)
     {
+        std::unique_lock<std::shared_mutex> lock(iLock);
         for (std::pair<uint32 const, uint32>& iLoadedSpawn : iLoadedSpawns)
         {
             iTreeValues[iLoadedSpawn.first].setUnloaded();
@@ -342,6 +347,7 @@ namespace VMAP
 
     bool StaticMapTree::LoadMapTile(uint32 tileX, uint32 tileY, VMapManager2* vm)
     {
+        std::unique_lock<std::shared_mutex> lock(iLock);
         if (!iIsTiled)
         {
             // currently, core creates grids for all maps, whether it has terrain tiles or not
@@ -424,6 +430,7 @@ namespace VMAP
 
     void StaticMapTree::UnloadMapTile(uint32 tileX, uint32 tileY, VMapManager2* vm)
     {
+        std::unique_lock<std::shared_mutex> lock(iLock);
         uint32 tileID = packTileID(tileX, tileY);
         loadedTileMap::iterator tile = iLoadedTiles.find(tileID);
         if (tile == iLoadedTiles.end())
