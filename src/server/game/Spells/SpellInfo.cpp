@@ -421,10 +421,98 @@ SpellEffectInfo::SpellEffectInfo(SpellEntry const* spellEntry, SpellInfo const* 
     _immunityInfo = nullptr;
 }
 
-SpellEffectInfo::SpellEffectInfo(SpellEffectInfo const&) = default;
-SpellEffectInfo::SpellEffectInfo(SpellEffectInfo&&) noexcept = default;
-SpellEffectInfo& SpellEffectInfo::operator=(SpellEffectInfo const&) = default;
-SpellEffectInfo& SpellEffectInfo::operator=(SpellEffectInfo&&) noexcept = default;
+SpellEffectInfo::SpellEffectInfo(SpellEffectInfo const& other) :
+_spellInfo(other._spellInfo), EffectIndex(other.EffectIndex), Effect(other.Effect), ApplyAuraName(other.ApplyAuraName),
+Amplitude(other.Amplitude), DieSides(other.DieSides), RealPointsPerLevel(other.RealPointsPerLevel), BasePoints(other.BasePoints),
+PointsPerComboPoint(other.PointsPerComboPoint), ValueMultiplier(other.ValueMultiplier), DamageMultiplier(other.DamageMultiplier),
+BonusMultiplier(other.BonusMultiplier), MiscValue(other.MiscValue), MiscValueB(other.MiscValueB), Mechanic(other.Mechanic),
+TargetA(other.TargetA), TargetB(other.TargetB), RadiusEntry(other.RadiusEntry), ChainTarget(other.ChainTarget), ItemType(other.ItemType),
+TriggerSpell(other.TriggerSpell), SpellClassMask(other.SpellClassMask), ImplicitTargetConditions(nullptr), _immunityInfo(nullptr)
+{
+}
+
+SpellEffectInfo::SpellEffectInfo(SpellEffectInfo&& other) noexcept :
+_spellInfo(other._spellInfo), EffectIndex(other.EffectIndex), Effect(other.Effect), ApplyAuraName(other.ApplyAuraName),
+Amplitude(other.Amplitude), DieSides(other.DieSides), RealPointsPerLevel(other.RealPointsPerLevel), BasePoints(other.BasePoints),
+PointsPerComboPoint(other.PointsPerComboPoint), ValueMultiplier(other.ValueMultiplier), DamageMultiplier(other.DamageMultiplier),
+BonusMultiplier(other.BonusMultiplier), MiscValue(other.MiscValue), MiscValueB(other.MiscValueB), Mechanic(other.Mechanic),
+TargetA(other.TargetA), TargetB(other.TargetB), RadiusEntry(other.RadiusEntry), ChainTarget(other.ChainTarget), ItemType(other.ItemType),
+TriggerSpell(other.TriggerSpell), SpellClassMask(other.SpellClassMask),
+ImplicitTargetConditions(other.ImplicitTargetConditions), _immunityInfo(other._immunityInfo)
+{
+    other.ImplicitTargetConditions = nullptr;
+    other._immunityInfo = nullptr;
+}
+
+SpellEffectInfo& SpellEffectInfo::operator=(SpellEffectInfo const& other)
+{
+    if (this == &other)
+        return *this;
+
+    _spellInfo = other._spellInfo;
+    EffectIndex = other.EffectIndex;
+    Effect = other.Effect;
+    ApplyAuraName = other.ApplyAuraName;
+    Amplitude = other.Amplitude;
+    DieSides = other.DieSides;
+    RealPointsPerLevel = other.RealPointsPerLevel;
+    BasePoints = other.BasePoints;
+    PointsPerComboPoint = other.PointsPerComboPoint;
+    ValueMultiplier = other.ValueMultiplier;
+    DamageMultiplier = other.DamageMultiplier;
+    BonusMultiplier = other.BonusMultiplier;
+    MiscValue = other.MiscValue;
+    MiscValueB = other.MiscValueB;
+    Mechanic = other.Mechanic;
+    TargetA = other.TargetA;
+    TargetB = other.TargetB;
+    RadiusEntry = other.RadiusEntry;
+    ChainTarget = other.ChainTarget;
+    ItemType = other.ItemType;
+    TriggerSpell = other.TriggerSpell;
+    SpellClassMask = other.SpellClassMask;
+
+    ImplicitTargetConditions = nullptr;
+    _immunityInfo = nullptr;
+
+    return *this;
+}
+
+SpellEffectInfo& SpellEffectInfo::operator=(SpellEffectInfo&& other) noexcept
+{
+    if (this == &other)
+        return *this;
+
+    _spellInfo = other._spellInfo;
+    EffectIndex = other.EffectIndex;
+    Effect = other.Effect;
+    ApplyAuraName = other.ApplyAuraName;
+    Amplitude = other.Amplitude;
+    DieSides = other.DieSides;
+    RealPointsPerLevel = other.RealPointsPerLevel;
+    BasePoints = other.BasePoints;
+    PointsPerComboPoint = other.PointsPerComboPoint;
+    ValueMultiplier = other.ValueMultiplier;
+    DamageMultiplier = other.DamageMultiplier;
+    BonusMultiplier = other.BonusMultiplier;
+    MiscValue = other.MiscValue;
+    MiscValueB = other.MiscValueB;
+    Mechanic = other.Mechanic;
+    TargetA = other.TargetA;
+    TargetB = other.TargetB;
+    RadiusEntry = other.RadiusEntry;
+    ChainTarget = other.ChainTarget;
+    ItemType = other.ItemType;
+    TriggerSpell = other.TriggerSpell;
+    SpellClassMask = other.SpellClassMask;
+
+    ImplicitTargetConditions = other.ImplicitTargetConditions;
+    _immunityInfo = other._immunityInfo;
+    other.ImplicitTargetConditions = nullptr;
+    other._immunityInfo = nullptr;
+
+    return *this;
+}
 
 SpellEffectInfo::~SpellEffectInfo()
 {
