@@ -354,7 +354,9 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
             {
                 if (sWorld->getBoolConfig(CONFIG_WHO_BOTS_ENABLE))
                 {
-                    QueryResult result = CharacterDatabase.PQuery("SELECT guid FROM characters_bots WHERE name = '{}' AND online > 0", to.c_str());
+                    std::string escapedTo = to;
+                    CharacterDatabase.EscapeString(escapedTo);
+                    QueryResult result = CharacterDatabase.PQuery("SELECT guid FROM characters_bots WHERE name = '{}' AND online > 0", escapedTo.c_str());
                     if (result)
                     {
                         ChatHandler(this).SendSysMessage(LANG_PLAYER_AFK_DEFAULT);

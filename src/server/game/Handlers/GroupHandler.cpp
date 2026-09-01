@@ -92,7 +92,9 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recvData)
     {
         if (sWorld->getBoolConfig(CONFIG_WHO_BOTS_ENABLE))
         {
-            QueryResult result = CharacterDatabase.PQuery("SELECT guid FROM characters_bots WHERE name = '{}' AND online > 0", membername.c_str());
+            std::string escapedMembername = membername;
+            CharacterDatabase.EscapeString(escapedMembername);
+            QueryResult result = CharacterDatabase.PQuery("SELECT guid FROM characters_bots WHERE name = '{}' AND online > 0", escapedMembername.c_str());
             if (result)
             {
                 SendPartyResult(PARTY_OP_INVITE, membername, ERR_ALREADY_IN_GROUP_S);
