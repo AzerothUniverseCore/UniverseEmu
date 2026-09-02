@@ -1025,8 +1025,13 @@ void ExtractDBCFiles(int locale, bool basicLocale)
     uint32 count = 0;
     for (std::set<std::string>::iterator iter = dbcfiles.begin(); iter != dbcfiles.end(); ++iter)
     {
-        std::string filename = path;
-        filename += (iter->c_str() + strlen("DBFilesClient\\"));
+        std::string entry = *iter;
+        std::string plainName = entry;
+        size_t lastSlash = entry.find_last_of('\\');
+        if (lastSlash != std::string::npos)
+            plainName = entry.substr(lastSlash + 1);
+
+        std::string filename = path + plainName;
 
         if (boost::filesystem::exists(filename))
             continue;
@@ -1093,14 +1098,25 @@ void LoadLocaleMPQFiles(int const locale)
 
     new MPQArchive(fileName.c_str());
 
-    for(int i = 1; i < 5; ++i)
+    for(int i = 1; i <= 9; ++i)
     {
         std::string ext;
         if (i > 1)
             ext = Syphrena::StringFormat("-{}", i);
 
         fileName = Syphrena::StringFormat("{}/Data/{}/patch-{}{}.MPQ", input_path, langs[locale], langs[locale], ext);
-        if (boost::filesystem::exists(fileName))
+        if (boost::filesystem::is_regular_file(fileName))
+            new MPQArchive(fileName.c_str());
+    }
+
+    static char const* const letterSuffixes[] = {
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+    };
+    for (char const* suffix : letterSuffixes)
+    {
+        fileName = Syphrena::StringFormat("{}/Data/{}/patch-{}-{}.MPQ", input_path, langs[locale], langs[locale], suffix);
+        if (boost::filesystem::is_regular_file(fileName))
             new MPQArchive(fileName.c_str());
     }
 }

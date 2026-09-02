@@ -260,6 +260,21 @@ bool scan_patches(char const* scanmatch, std::vector<std::string>& pArchiveNames
         }
     }
 
+    static char const* const letterSuffixes[] = { "A", "B", "C", "D", "E", "Y", "ZA" };
+    for (char const* suffix : letterSuffixes)
+    {
+        sprintf(path, "%s-%s.MPQ", scanmatch, suffix);
+#ifdef __linux__
+        if (FILE* h = fopen64(path, "rb"))
+#else
+        if (FILE* h = fopen(path, "rb"))
+#endif
+        {
+            fclose(h);
+            pArchiveNames.push_back(path);
+        }
+    }
+
     return(true);
 }
 

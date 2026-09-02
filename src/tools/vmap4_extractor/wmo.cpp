@@ -60,7 +60,15 @@ bool WMORoot::open()
 
         size_t nextpos = f.getPos() + size;
 
-        if (!strcmp(fourcc,"MOHD")) // header
+        size_t remainingInFile = (f.getPos() <= f.getSize()) ? (f.getSize() - f.getPos()) : 0;
+        bool chunkSizeSane = (size_t)size <= remainingInFile;
+
+        if (!chunkSizeSane)
+        {
+            printf("WMORoot::open: chunk '%s' de '%s' annonce une taille (%u) plus grande que ce qu'il reste dans le fichier (%zu) - fichier probablement corrompu/tronque, on arrete la lecture de ce fichier (WMO ignore).\n", fourcc, filename.c_str(), size, remainingInFile);
+            break;
+        }
+        else if (!strcmp(fourcc,"MOHD")) // header
         {
             f.read(&nTextures, 4);
             f.read(&nGroups, 4);
@@ -193,7 +201,15 @@ bool WMOGroup::open(WMORoot* rootWMO)
         LiquEx_size = 0;
         liquflags = 0;
 
-        if (!strcmp(fourcc,"MOGP"))//header
+        size_t remainingInFile = (f.getPos() <= f.getSize()) ? (f.getSize() - f.getPos()) : 0;
+        bool chunkSizeSane = (size_t)size <= remainingInFile;
+
+        if (!chunkSizeSane)
+        {
+            printf("WMOGroup::open: chunk '%s' de '%s' annonce une taille (%u) plus grande que ce qu'il reste dans le fichier (%zu) - fichier probablement corrompu/tronque, on arrete la lecture de ce fichier (groupe ignore).\n", fourcc, filename.c_str(), size, remainingInFile);
+            break;
+        }
+        else if (!strcmp(fourcc,"MOGP"))//header
         {
             f.read(&groupName, 4);
             f.read(&descGroupName, 4);
@@ -257,10 +273,30 @@ bool WMOGroup::open(WMORoot* rootWMO)
         }
         else if (!strcmp(fourcc,"MLIQ"))
         {
+            if (size < sizeof(WMOLiquidHeader))
+            {
+                printf("WMOGroup::open: chunk MLIQ de '%s' trop petit pour contenir son en-tete - fichier probablement corrompu/tronque, chunk ignore.\n", filename.c_str());
+                f.seek((int)nextpos);
+                continue;
+            }
+
+            WMOLiquidHeader liquidHeader;
+            f.read(&liquidHeader, sizeof(WMOLiquidHeader));
+
+            size_t declaredLiquExSize = sizeof(WMOLiquidVert) * (size_t)liquidHeader.xverts * (size_t)liquidHeader.yverts;
+            size_t declaredLiquBytes = (size_t)liquidHeader.xtiles * (size_t)liquidHeader.ytiles;
+            size_t availableForData = size - sizeof(WMOLiquidHeader);
+
+            if (declaredLiquExSize + declaredLiquBytes > availableForData)
+            {
+                printf("WMOGroup::open: chunk MLIQ de '%s' annonce des dimensions liquides (%d x %d sommets, %d x %d cases) incoherentes avec sa taille declaree - fichier probablement corrompu/tronque, chunk ignore.\n", filename.c_str(), liquidHeader.xverts, liquidHeader.yverts, liquidHeader.xtiles, liquidHeader.ytiles);
+                f.seek((int)nextpos);
+                continue;
+            }
+
             liquflags |= 1;
-            hlq = new WMOLiquidHeader();
-            f.read(hlq, sizeof(WMOLiquidHeader));
-            LiquEx_size = sizeof(WMOLiquidVert) * hlq->xverts * hlq->yverts;
+            hlq = new WMOLiquidHeader(liquidHeader);
+            LiquEx_size = declaredLiquExSize;
             LiquEx = new WMOLiquidVert[hlq->xverts * hlq->yverts];
             f.read(LiquEx, LiquEx_size);
             int nLiquBytes = hlq->xtiles * hlq->ytiles;

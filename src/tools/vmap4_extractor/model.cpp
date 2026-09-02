@@ -43,11 +43,26 @@ bool Model::open()
         return false;
     }
 
+    if (f.getSize() < sizeof(ModelHeader))
+    {
+        f.close();
+        return false;
+    }
+
     _unload();
 
     memcpy(&header, f.getBuffer(), sizeof(ModelHeader));
     if(header.nBoundingTriangles > 0)
     {
+        size_t fileSize = f.getSize();
+        bool verticesCountSane = (size_t)header.nBoundingVertices <= (fileSize / sizeof(Vec3D));
+        bool trianglesCountSane = (size_t)header.nBoundingTriangles <= (fileSize / sizeof(uint16));
+        if (!verticesCountSane || !trianglesCountSane)
+        {
+            f.close();
+            return false;
+        }
+
         f.seek(0);
         f.seekRelative(header.ofsBoundingVertices);
         vertices = new Vec3D[header.nBoundingVertices];

@@ -109,20 +109,30 @@ size_t MPQFile::read(void* dest, size_t bytes)
 
     memcpy(dest, &(buffer[pointer]), bytes);
 
-    pointer = rpos;
+    pointer += bytes;
 
     return bytes;
 }
 
 void MPQFile::seek(int offset)
 {
-    pointer = offset;
+    libmpq__off_t newPointer = offset;
+    if (newPointer < 0)
+        newPointer = 0;
+    if (newPointer > size)
+        newPointer = size;
+    pointer = newPointer;
     eof = (pointer >= size);
 }
 
 void MPQFile::seekRelative(int offset)
 {
-    pointer += offset;
+    libmpq__off_t newPointer = pointer + offset;
+    if (newPointer < 0)
+        newPointer = 0;
+    if (newPointer > size)
+        newPointer = size;
+    pointer = newPointer;
     eof = (pointer >= size);
 }
 
