@@ -1753,10 +1753,13 @@ void Group::CountTheRoll(Rolls::iterator rollI, Map* allowedMap)
                     InventoryResult msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, roll->itemid, item->count);
                     if (msg == EQUIP_ERR_OK)
                     {
+                        int32 randomPropertyId = item->randomPropertyId;
+                        GuidSet allowedLooters = item->GetAllowedLooters();
+
                         item->is_looted = true;
                         roll->getLoot()->NotifyItemRemoved(roll->itemSlot);
                         roll->getLoot()->unlootedCount--;
-                        player->StoreNewItem(dest, roll->itemid, true, item->randomPropertyId, item->GetAllowedLooters());
+                        player->StoreNewItem(dest, roll->itemid, true, randomPropertyId, allowedLooters);
                     }
                     else
                     {
@@ -1820,10 +1823,13 @@ void Group::CountTheRoll(Rolls::iterator rollI, Map* allowedMap)
                         InventoryResult msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, roll->itemid, item->count);
                         if (msg == EQUIP_ERR_OK)
                         {
+                            int32 randomPropertyId = item->randomPropertyId;
+                            GuidSet allowedLooters = item->GetAllowedLooters();
+
                             item->is_looted = true;
                             roll->getLoot()->NotifyItemRemoved(roll->itemSlot);
                             roll->getLoot()->unlootedCount--;
-                            player->StoreNewItem(dest, roll->itemid, true, item->randomPropertyId, item->GetAllowedLooters());
+                            player->StoreNewItem(dest, roll->itemid, true, randomPropertyId, allowedLooters);
                         }
                         else
                         {
