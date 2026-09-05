@@ -1709,6 +1709,17 @@ void Group::CountTheRoll(Rolls::iterator rollI, Map* allowedMap)
         return;
     }
 
+    Loot* rollLoot = roll->getLoot();
+    uint32 totalRollableSlots = uint32(rollLoot->items.size()) + uint32(rollLoot->quest_items.size());
+    if (roll->itemSlot >= totalRollableSlots)
+    {
+        SC_LOG_ERROR("misc", "Group::CountTheRoll: roll for item {} has itemSlot {} but the loot only has {} slots ({} items + {} quest items) - discarding this roll instead of crashing.",
+            roll->itemid, roll->itemSlot, totalRollableSlots, rollLoot->items.size(), rollLoot->quest_items.size());
+        RollId.erase(rollI);
+        delete roll;
+        return;
+    }
+
     //end of the roll
     if (roll->totalNeed > 0)
     {
