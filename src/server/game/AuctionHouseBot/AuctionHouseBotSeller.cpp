@@ -534,7 +534,7 @@ uint32 AuctionBotSeller::SetStat(SellerConfiguration& config)
         if (item)
         {
             ItemTemplate const* prototype = item->GetTemplate();
-            if (prototype)
+            if (prototype && prototype->Quality < MAX_AUCTION_QUALITY)
                 if (!auctionEntry->owner || sAuctionBotConfig->IsBotChar(auctionEntry->owner)) // Add only ahbot items
                     ++itemsSaved[prototype->Quality][prototype->Class];
         }
