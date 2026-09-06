@@ -53,6 +53,7 @@
 # 	 NPCBOT CONFIGURATION
 #  	 WHO BOTS
 #    BATTLE PET SYSTEM
+#    STARTING PET
 #
 ###################################################################################################
 
@@ -6019,4 +6020,53 @@ PetBattle.DamageVisualSpellIdHigh = 24209
 # Debug Chat Combat Log
 PetBattle.ChatCombatLog = 0
 
+###################################################################################################
+
+###################################################################################################
+# STARTING PET
+###################################################################################################
+#    StartingPet.Enable
+#        Description: Active le module Starting Pet.
+#        Default:     1 (active)
+#                     0 (desactive)
+
+StartingPet.Enable = 1
+
+#    StartingPet.Announce
+#        Description: Annonce le module au premier login du joueur.
+#        Default:     1 (active)
+#                     0 (desactive)
+
+StartingPet.Announce = 1
+
+#    StartingPet.HunterPet
+#        Description: Donne un familier de depart aleatoire aux chasseurs.
+#        Default:     1 (active)
+#                     0 (desactive)
+
+StartingPet.HunterPet = 1
+
+#    StartingPet.RandName
+#        Description: Genere un nom aleatoire pour le familier de depart du chasseur.
+#        Default:     1 (active)
+#                     0 (desactive)
+
+StartingPet.RandName = 1
+
+#    StartingPet.WarlockMinion
+#        Description: Familiers de depart possibles pour les demonistes, et apprentissage
+#                     automatique du sort correspondant. Masque de bits (cumulable) :
+#                         1  - Diablotin
+#                         2  - Marcheur du Vide
+#                         4  - Succube
+#                         8  - Chasseur de demons
+#                         16 - Garde-diable (uniquement comme familier de depart, sans sort)
+#                         32 - Drain d'ame (apprend le sort, necessaire pour les eclats d'ame)
+#        Exemple:     41 - Diablotin, Chasseur de demons, Drain d'ame
+#                      0 - desactive
+#        Default:     47
+
+StartingPet.WarlockMinion = 47
+
+#
 ###################################################################################################

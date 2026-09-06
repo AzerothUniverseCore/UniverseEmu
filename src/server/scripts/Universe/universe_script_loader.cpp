@@ -21,6 +21,7 @@
 //void AddSC_Buff_Zone();
 void AddSC_SpellRegulator();
 void AddStartGuildScripts();
+void AddSC_starting_pet();
 void AddSC_syphrena_recycling();
 void AddSC_syphrena_first_aid();
 void AddSC_azgath_gift_mount();
@@ -68,6 +69,7 @@ void AddUniverseScripts()
 	//AddSC_Buff_Zone();
 	AddSC_SpellRegulator();
 	AddStartGuildScripts();
+	AddSC_starting_pet();
 	AddSC_syphrena_recycling();
 	AddSC_syphrena_first_aid();
 	AddSC_azgath_gift_mount();
