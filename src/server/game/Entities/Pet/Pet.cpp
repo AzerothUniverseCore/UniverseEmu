@@ -796,7 +796,13 @@ bool Pet::CreateBaseAtCreature(Creature* creature)
     if (!CreateBaseAtTamed(creature->GetCreatureTemplate(), creature->GetMap(), creature->GetPhaseMask()))
         return false;
 
-    Relocate(creature->GetPositionX(), creature->GetPositionY(), creature->GetPositionZ(), creature->GetOrientation());
+    float x = creature->GetPositionX();
+    float y = creature->GetPositionY();
+    float z = creature->GetPositionZ();
+
+    UpdateAllowedPositionZ(x, y, z);
+
+    Relocate(x, y, z, creature->GetOrientation());
 
     if (!IsPositionValid())
     {
@@ -830,7 +836,13 @@ bool Pet::CreateBaseAtCreatureInfo(CreatureTemplate const* cinfo, Unit* owner)
     if (CreatureFamilyEntry const* cFamily = sCreatureFamilyStore.LookupEntry(cinfo->family))
         SetName(cFamily->Name[sWorld->GetDefaultDbcLocale()]);
 
-    Relocate(owner->GetPositionX(), owner->GetPositionY(), owner->GetPositionZ(), owner->GetOrientation());
+    float x = owner->GetPositionX();
+    float y = owner->GetPositionY();
+    float z = owner->GetPositionZ();
+
+    UpdateAllowedPositionZ(x, y, z);
+
+    Relocate(x, y, z, owner->GetOrientation());
 
     return true;
 }
