@@ -78,6 +78,14 @@ WheatyExceptionReport::WheatyExceptionReport()             // Constructor
     m_previousCrtHandler = _set_invalid_parameter_handler(WheatyCrtHandler);
     m_hProcess = GetCurrentProcess();
     alreadyCrashed = false;
+
+    // Reserve extra stack space (as a guaranteed-available guard region) for
+    // this thread, so that if it later overflows its stack, there is still
+    // enough room left to run WheatyUnhandledExceptionFilter's fast path
+    // below instead of double-faulting and taking the whole process down
+    // with absolutely no crash report at all (the previous behaviour).
+    ULONG stackGuaranteeBytes = 64 * 1024;
+    SetThreadStackGuarantee(&stackGuaranteeBytes);
     RtlGetVersion = (pRtlGetVersion)GetProcAddress(GetModuleHandle(_T("ntdll.dll")), "RtlGetVersion");
     if (!IsDebuggerPresent())
     {
@@ -112,6 +120,19 @@ PEXCEPTION_POINTERS pExceptionInfo)
         return EXCEPTION_EXECUTE_HANDLER;
 
     alreadyCrashed = true;
+
+    // A genuine stack overflow leaves almost no usable stack behind: the
+    // full text report below (GenerateExceptionReport) walks every frame of
+    // every thread and enumerates symbols, which itself needs a fair amount
+    // of stack and local buffers -- easily enough to re-fault (a "double
+    // fault") while already handling the first one. When that happens the
+    // OS just kills the process outright, with no dump, no report, and
+    // nothing printed anywhere: exactly the "crashes but nothing is ever
+    // logged" symptom this class exists to prevent. For this one exception
+    // code, skip straight to a minidump (a handful of WinAPI calls, far
+    // cheaper than the full symbol walk) and a short fixed-size note
+    // instead of the heavy report.
+    bool const isStackOverflow = (pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW);
 
     TCHAR module_folder_name[MAX_PATH];
     GetModuleFileName(nullptr, module_folder_name, MAX_PATH);
@@ -175,7 +196,12 @@ PEXCEPTION_POINTERS pExceptionInfo)
 
     if (m_hReportFile)
     {
-        GenerateExceptionReport(pExceptionInfo);
+        if (isStackOverflow)
+            _ftprintf(m_hReportFile, _T("Stack overflow detected.\nMinidump was captured (see the .dmp file next to this report); ")
+                _T("the full symbol/stack report is skipped here because generating it needs more stack ")
+                _T("than is left after an overflow. Load the .dmp in the debugger to see the actual call stack.\n"));
+        else
+            GenerateExceptionReport(pExceptionInfo);
 
         fclose(m_hReportFile);
         m_hReportFile = nullptr;

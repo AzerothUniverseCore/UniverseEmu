@@ -123,9 +123,9 @@ LogsDir = "../logs"
 #    The SSL option will enable TLS when connecting to the specified database. If not provided or
 #    any value other than 'ssl' is set, TLS will not be used.
 
-LoginDatabaseInfo     = "127.0.0.1;3306;root;root;auc_auth"
-WorldDatabaseInfo     = "127.0.0.1;3306;root;root;auc_world"
-CharacterDatabaseInfo = "127.0.0.1;3306;root;root;auc_chars"
+LoginDatabaseInfo     = "127.0.0.1;3309;root;root;auc_auth"
+WorldDatabaseInfo     = "127.0.0.1;3309;root;root;auc_world"
+CharacterDatabaseInfo = "127.0.0.1;3309;root;root;auc_chars"
 
 #
 #    LoginDatabase.WorkerThreads
@@ -477,7 +477,7 @@ LogDB.Opt.ClearTime = 1209600
 #        Default:     60 - (Enabled, Recommended 10+)
 #                      0 - (Disabled)
 
-MaxCoreStuckTime = 0
+MaxCoreStuckTime = 60
 
 #
 #    AddonChannel
