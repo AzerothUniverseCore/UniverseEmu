@@ -46,6 +46,7 @@
 #    ACCOUNT ACHIEVEMENTS
 #    PREMIUMACCOUNT
 #    AUTOBALANCE
+#    CONTINENT LEVEL SCALING
 #    DOUBLE XP WEEKEND
 #	 ACCOUNT ACHIEVEMENTS
 #    START GUILD
@@ -5323,6 +5324,69 @@ AutoBalance.ForcedID2  = ""
 #
 
 AutoBalance.DisabledID = ""
+
+#
+###################################################################################################
+
+###################################################################################################
+#   CONTINENT LEVEL SCALING
+###################################################################################################
+#
+#     ContinentLevelScaling.Enable
+#        Open-world creature level scaling on the continent maps listed in
+#        ContinentLevelScaling.MapIds. An eligible creature takes the level of the
+#        highest-level player currently in the same zone (bidirectional: it can push a
+#        creature's level up as well as down), clamped to
+#        [ContinentLevelScaling.MinLevel, ContinentLevelScaling.MaxLevel]. A zone with no
+#        player in it reverts its creatures to their natural template level.
+#        Default:     0 (disabled)
+
+ContinentLevelScaling.Enable = 1
+
+#
+#     ContinentLevelScaling.MapIds
+#        Comma-separated list of map IDs to scale.
+#        Default:     "0,1,530,571" (Azeroth, Kalimdor, Outland, Northrend)
+
+ContinentLevelScaling.MapIds = "0,1,530,571,754,725,732,736,751,764,750,734,737,763,791,794,779,735,775,776,778,795,796,797,807,811,819,821,814,815,820"
+
+#
+#     ContinentLevelScaling.MinLevel / ContinentLevelScaling.MaxLevel
+#        Clamp range applied to the scaled level, whichever direction it moves.
+#        Default:     1 / 90
+
+ContinentLevelScaling.MinLevel = 1
+ContinentLevelScaling.MaxLevel = 90
+
+#
+#     ContinentLevelScaling.UpdateInterval
+#        Minimum time (ms) between two level re-evaluations of the same creature.
+#        Default:     3000
+
+ContinentLevelScaling.UpdateInterval = 3000
+
+#
+#     ContinentLevelScaling.SkipInCombat
+#        Never rescale a creature that is currently in combat, so its level (and max HP)
+#        cannot shift under the player fighting it.
+#        Default:     1
+
+ContinentLevelScaling.SkipInCombat = 1
+
+#
+#     ContinentLevelScaling.SkipCivilian
+#        Skip creatures flagged CREATURE_FLAG_EXTRA_CIVILIAN (quest givers, vendors,
+#        trainers, etc.).
+#        Default:     1
+
+ContinentLevelScaling.SkipCivilian = 1
+
+#
+#     ContinentLevelScaling.SkipWorldBoss
+#        Skip creatures ranked CREATURE_ELITE_WORLDBOSS.
+#        Default:     1
+
+ContinentLevelScaling.SkipWorldBoss = 1
 
 #
 ###################################################################################################

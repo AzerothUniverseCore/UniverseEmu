@@ -329,6 +329,10 @@ class SC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         CreatureCustomData CustomData;
 
+        uint32 ContinentScalingTimer = 0;
+        uint8 ContinentScalingBaseLevel = 0;
+        bool ContinentScalingBaselineCaptured = false;
+
         uint32 GetOriginalEntry() const { return m_originalEntry; }
         void SetOriginalEntry(uint32 entry) { m_originalEntry = entry; }
 

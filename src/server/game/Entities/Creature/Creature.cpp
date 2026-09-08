@@ -23,6 +23,7 @@
 #include "CreatureAI.h"
 #include "CreatureAISelector.h"
 #include "CreatureGroups.h"
+#include "ContinentLevelScaling.h"
 #include "DatabaseEnv.h"
 #include "Formulas.h"
 #include "GameEventMgr.h"
@@ -842,6 +843,8 @@ void Creature::Update(uint32 diff)
             //end npcbot
             if (!IsAlive())
                 break;
+
+            ContinentLevelScaling::OnCreatureUpdate(this, diff);
 
             GetThreatManager().Update(diff);
             if (_spellFocusInfo.Delay)
