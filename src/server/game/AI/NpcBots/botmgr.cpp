@@ -413,7 +413,7 @@ void BotMgr::LoadConfig(bool reload)
     _targetBGPlayersPerTeamCount_IC = sConfigMgr->GetIntDefault("NpcBot.WanderingBots.BG.TargetTeamPlayersCount.IC", 0);
     _targetBGPlayersPerTeamCount_BFG = sConfigMgr->GetIntDefault("NpcBot.WanderingBots.BG.TargetTeamPlayersCount.BFG", 9);
     _targetBGPlayersPerTeamCount_TP = sConfigMgr->GetIntDefault("NpcBot.WanderingBots.BG.TargetTeamPlayersCount.TP", 9);
-    _targetBGPlayersPerTeamCount_TP = sConfigMgr->GetIntDefault("NpcBot.WanderingBots.BG.TargetTeamPlayersCount.VOP", 9);
+    _targetBGPlayersPerTeamCount_VOP = sConfigMgr->GetIntDefault("NpcBot.WanderingBots.BG.TargetTeamPlayersCount.VOP", 9);
     _bothk_enable                   = sConfigMgr->GetBoolDefault("NpcBot.HK.Enable", true);
     _bothk_message_enable           = sConfigMgr->GetBoolDefault("NpcBot.HK.Message.Enable", false);
     _bothk_achievements_enable      = sConfigMgr->GetBoolDefault("NpcBot.HK.Achievements.Enable", false);
