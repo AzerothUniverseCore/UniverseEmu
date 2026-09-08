@@ -5778,7 +5778,7 @@ NpcBot.Stats.Limits.Crit  = 95.0
 #        Default:     -1  - (use default limit set by TC devs)
 #                     500 - (500 bots in one spot won't get you kicked)
 
-NpcBot.InfoPacketsLimit = -1
+NpcBot.InfoPacketsLimit = 500
 
 #
 #    NpcBot.OwnershipExpireTime
