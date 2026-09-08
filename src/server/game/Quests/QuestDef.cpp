@@ -36,7 +36,12 @@ Quest::Quest(Field* questRecord)
     _type = questRecord[5].GetUInt16();
     _suggestedPlayers = questRecord[6].GetUInt8();
     _timeAllowed = questRecord[7].GetUInt32();
-    _allowableRaces = questRecord[8].GetUInt16();
+    //By leewheel 2026-09-08
+    // Fix: AllowableRaces column is INT UNSIGNED (32-bit) and _allowableRaces is uint32.
+    // Reading with GetUInt16 truncated extended-race masks (e.g. RACEMASK_ALLIANCE/HORDE
+    // with Worgen/Dracthyr bits) and tripped the FieldValueConverter truncation assert.
+    // Correctif: lecture sur 32 bits pour supporter les masques de races etendus.
+    _allowableRaces = questRecord[8].GetUInt32();
     _requiredFactionId1 = questRecord[9].GetUInt16();
     _requiredFactionId2 = questRecord[10].GetUInt16();
     _requiredFactionValue1 = questRecord[11].GetInt32();
