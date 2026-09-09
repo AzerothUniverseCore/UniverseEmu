@@ -5348,7 +5348,7 @@ ContinentLevelScaling.Enable = 1
 #        Comma-separated list of map IDs to scale.
 #        Default:     "0,1,530,571" (Azeroth, Kalimdor, Outland, Northrend)
 
-ContinentLevelScaling.MapIds = "0,1,530,571,754,725,732,736,751,764,750,734,737,763,791,794,779,735,775,776,778,795,796,797,807,811,819,821,814,815,820"
+ContinentLevelScaling.MapIds = "0,1,530,571,754,725,732,736,751,764,765,750,734,737,763,791,794,779,735,775,776,778,795,796,797,807,811,819,821,814,815,820"
 
 #
 #     ContinentLevelScaling.MinLevel / ContinentLevelScaling.MaxLevel

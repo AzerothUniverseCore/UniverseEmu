@@ -58,7 +58,7 @@ namespace
     void LoadContinentLevelScalingConfig(bool /*reload*/)
     {
         s_enabled = sConfigMgr->GetBoolDefault("ContinentLevelScaling.Enable", false);
-        LoadMapIdsFromString(sConfigMgr->GetStringDefault("ContinentLevelScaling.MapIds", "0,1,530,571,754,725,732,736,751,764,750,734,737,763,791,794,779,735,775,776,778,795,796,797,807,811,819,821,814,815,820"));
+        LoadMapIdsFromString(sConfigMgr->GetStringDefault("ContinentLevelScaling.MapIds", "0,1,530,571,754,725,732,736,751,764,765,750,734,737,763,791,794,779,735,775,776,778,795,796,797,807,811,819,821,814,815,820"));
 
         s_minLevel = uint8(sConfigMgr->GetIntDefault("ContinentLevelScaling.MinLevel", 1));
         s_maxLevel = uint8(sConfigMgr->GetIntDefault("ContinentLevelScaling.MaxLevel", 90));
