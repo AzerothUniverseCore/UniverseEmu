@@ -596,17 +596,20 @@ void BotDataMgr::Update(uint32 diff)
     {
         SC_LOG_DEBUG("npcbots", "Bots to despawn: {}", uint32(_botsWanderCreaturesToDespawn.size()));
 
-        while (!_botsWanderCreaturesToDespawn.empty())
+        for (auto it = _botsWanderCreaturesToDespawn.begin(); it != _botsWanderCreaturesToDespawn.end();)
         {
-            uint32 bot_despawn_id = *_botsWanderCreaturesToDespawn.begin();
+            uint32 bot_despawn_id = *it;
 
             Creature* bot = const_cast<Creature*>(FindBot(bot_despawn_id));
             ASSERT(bot);
 
             if (!bot->IsInWorld())
-                break;
+            {
+                ++it;
+                continue;
+            }
 
-            _botsWanderCreaturesToDespawn.erase(bot_despawn_id);
+            it = _botsWanderCreaturesToDespawn.erase(it);
 
             uint32 origEntry = _botsWanderCreatureTemplates.at(bot_despawn_id).KillCredit[0];
             std::string botName = bot->GetName();
@@ -1426,6 +1429,10 @@ bool BotDataMgr::GenerateBattlegroundBots(Player const* groupLeader, [[maybe_unu
 
     uint32 spare_bots_a = sBotGen->GetSpareBotsCount(TEAM_ALLIANCE);
     uint32 spare_bots_h = sBotGen->GetSpareBotsCount(TEAM_HORDE);
+
+    SC_LOG_INFO("npcbots", "[BG bot debug] BG {}: tarteamplayers={} minteamplayers={} maxteamplayers={} queued_a={} queued_h={} spare_a={} spare_h={} totalSpare={}",
+        uint32(bgTypeId), tarteamplayers, minteamplayers, maxteamplayers, queued_players_a, queued_players_h,
+        spare_bots_a, spare_bots_h, sBotGen->GetSpareBotsCount());
 
     if (queued_players_a + spare_bots_a < minteamplayers)
     {

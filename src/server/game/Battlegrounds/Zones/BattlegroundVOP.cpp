@@ -24,6 +24,9 @@
 #include "Language.h"
 #include "Object.h"
 #include "Player.h"
+//npcbot
+#include "botdatamgr.h"
+//end npcbot
 
 void BattlegroundVOPScore::BuildObjectivesBlock(WorldPacket& data)
 {
@@ -86,6 +89,26 @@ void BattlegroundVOP::PostUpdateImpl(uint32 diff)
                         }
                     }
                 }
+
+                //npcbot
+                for (BattlegroundBotMap::const_iterator bitr = GetBots().begin(); bitr != GetBots().end(); ++bitr)
+                {
+                    if (GetBotTeamId(bitr->first) != team)
+                        continue;
+
+                    if (Creature const* bot = BotDataMgr::FindBot(bitr->first.GetEntry()))
+                    {
+                        if (bot->HasAura(BG_VOP_SPELL_ORB_PICKED_UP_1) ||
+                            bot->HasAura(BG_VOP_SPELL_ORB_PICKED_UP_2) ||
+                            bot->HasAura(BG_VOP_SPELL_ORB_PICKED_UP_3) ||
+                            bot->HasAura(BG_VOP_SPELL_ORB_PICKED_UP_4))
+                        {
+                            m_TeamScores[team] += BG_VOP_TickPoints[points];
+                            UpdateBotScore(bot, SCORE_ORB_SCORE, BG_VOP_TickPoints[points]);
+                        }
+                    }
+                }
+                //end npcbot
 
                 if (m_HonorScoreTics[team] >= m_HonorTics)
                 {
@@ -204,6 +227,56 @@ void BattlegroundVOP::EventPlayerClickedOnFlag(Player* player, GameObject* targe
     UpdatePlayerScore(player, SCORE_ORB_CONTROL, 1);
 }
 
+//npcbot
+void BattlegroundVOP::EventBotClickedOnFlag(Creature* bot, GameObject* target_obj)
+{
+    if (GetStatus() != STATUS_IN_PROGRESS)
+        return;
+
+    if (bot->HasAura(BG_VOP_SPELL_ORB_PICKED_UP_1) ||
+        bot->HasAura(BG_VOP_SPELL_ORB_PICKED_UP_2) ||
+        bot->HasAura(BG_VOP_SPELL_ORB_PICKED_UP_3) ||
+        bot->HasAura(BG_VOP_SPELL_ORB_PICKED_UP_4))
+        return;
+
+    switch (target_obj->GetEntry())
+    {
+        case BG_VOP_OBJECT_ORB_1_ENTRY:
+        {
+            bot->CastSpell(bot, BG_VOP_SPELL_ORB_PICKED_UP_3);
+            SpawnBGObject(BG_VOP_OBJECT_ORB_1, RESPAWN_ONE_DAY);
+            m_FlagKeeper[0] = bot->GetGUID();
+            break;
+        }
+        case BG_VOP_OBJECT_ORB_2_ENTRY:
+        {
+            bot->CastSpell(bot, BG_VOP_SPELL_ORB_PICKED_UP_2);
+            SpawnBGObject(BG_VOP_OBJECT_ORB_2, RESPAWN_ONE_DAY);
+            m_FlagKeeper[1] = bot->GetGUID();
+            break;
+        }
+        case BG_VOP_OBJECT_ORB_3_ENTRY:
+        {
+            bot->CastSpell(bot, BG_VOP_SPELL_ORB_PICKED_UP_4);
+            SpawnBGObject(BG_VOP_OBJECT_ORB_3, RESPAWN_ONE_DAY);
+            m_FlagKeeper[2] = bot->GetGUID();
+            break;
+        }
+        case BG_VOP_OBJECT_ORB_4_ENTRY:
+        {
+            bot->CastSpell(bot, BG_VOP_SPELL_ORB_PICKED_UP_1);
+            SpawnBGObject(BG_VOP_OBJECT_ORB_4, RESPAWN_ONE_DAY);
+            m_FlagKeeper[3] = bot->GetGUID();
+            break;
+        }
+        default:
+            return;
+    }
+
+    UpdateBotScore(bot, SCORE_ORB_CONTROL, 1);
+}
+//end npcbot
+
 bool BattlegroundVOP::SetupBattleground()
 {
     // Doors
@@ -245,7 +318,7 @@ bool BattlegroundVOP::SetupBattleground()
         return false;
     }
 
-    Position triggerPos = { 1716.78f, 1416.64f, 13.5709f, 1.57239f }; // Définition de la position
+    Position triggerPos = { 1716.78f, 1416.64f, 13.5709f, 1.57239f };
 
     if (Creature* trigger3 = AddCreature(WORLD_TRIGGER, BG_VOP_CREATURE_ORB_AURA_3, triggerPos, TEAM_NEUTRAL, RESPAWN_IMMEDIATELY))
     {
@@ -258,7 +331,7 @@ bool BattlegroundVOP::SetupBattleground()
         return false;
     }
 
-    Position triggerPos2 = { 1850.26f, 1416.77f, 13.5709f, 1.56061f }; // Définition de la position
+    Position triggerPos2 = { 1850.26f, 1416.77f, 13.5709f, 1.56061f };
 
     if (Creature* trigger2 = AddCreature(WORLD_TRIGGER, BG_VOP_CREATURE_ORB_AURA_2, triggerPos2, TEAM_NEUTRAL, RESPAWN_IMMEDIATELY))
     {
@@ -271,7 +344,7 @@ bool BattlegroundVOP::SetupBattleground()
         return false;
     }
 
-    Position triggerPos4 = { 1850.29f, 1250.31f, 13.5708f, 4.70848f }; // Définition de la position
+    Position triggerPos4 = { 1850.29f, 1250.31f, 13.5708f, 4.70848f };
 
     if (Creature* trigger4 = AddCreature(WORLD_TRIGGER, BG_VOP_CREATURE_ORB_AURA_4, triggerPos4, TEAM_NEUTRAL, RESPAWN_IMMEDIATELY))
     {
@@ -284,7 +357,7 @@ bool BattlegroundVOP::SetupBattleground()
         return false;
     }
 
-    Position triggerPos1 = { 1716.83f, 1249.93f, 13.5706f, 4.71397f }; // Définition de la position
+    Position triggerPos1 = { 1716.83f, 1249.93f, 13.5706f, 4.71397f };
 
     if (Creature* trigger1 = AddCreature(WORLD_TRIGGER, BG_VOP_CREATURE_ORB_AURA_1, triggerPos1, TEAM_NEUTRAL, RESPAWN_IMMEDIATELY))
     {
@@ -334,31 +407,58 @@ void BattlegroundVOP::AddPlayer(Player* player)
     PlayerScores[player->GetGUID()] = sc;
 }
 
+//npcbot
+void BattlegroundVOP::AddBot(Creature* bot)
+{
+    bool const isInBattleground = IsPlayerInBattleground(bot->GetGUID());
+    Battleground::AddBot(bot);
+    if (!isInBattleground)
+        BotScores[bot->GetEntry()] = new BattlegroundVOPScore(bot->GetGUID());
+}
+
+void BattlegroundVOP::RemoveBot(ObjectGuid guid)
+{
+    // A bot leaving/disconnecting/despawning while carrying an orb must return it, same as a
+    // player leaving would need to (RemovePlayer is currently a no-op stub in this file, a
+    // pre-existing gap on the player side too, left untouched here since it's out of bot-support scope).
+    ReturnOrbIfCarrying(guid);
+}
+//end npcbot
+
+//npcbot
+void BattlegroundVOP::ReturnOrbIfCarrying(ObjectGuid guid)
+{
+    if (m_FlagKeeper[0] == guid)
+    {
+        SpawnBGObject(BG_VOP_OBJECT_ORB_1, RESPAWN_IMMEDIATELY);
+        m_FlagKeeper[0] = 0;
+    }
+    if (m_FlagKeeper[1] == guid)
+    {
+        SpawnBGObject(BG_VOP_OBJECT_ORB_2, RESPAWN_IMMEDIATELY);
+        m_FlagKeeper[1] = 0;
+    }
+    if (m_FlagKeeper[2] == guid)
+    {
+        SpawnBGObject(BG_VOP_OBJECT_ORB_3, RESPAWN_IMMEDIATELY);
+        m_FlagKeeper[2] = 0;
+    }
+    if (m_FlagKeeper[3] == guid)
+    {
+        SpawnBGObject(BG_VOP_OBJECT_ORB_4, RESPAWN_IMMEDIATELY);
+        m_FlagKeeper[3] = 0;
+    }
+}
+//end npcbot
+
 void BattlegroundVOP::HandleKillPlayer(Player* player, Player* killer)
 {
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
-    if (m_FlagKeeper[0] == player->GetGUID())
-    {
-        SpawnBGObject(BG_VOP_OBJECT_ORB_1, RESPAWN_IMMEDIATELY);
-        m_FlagKeeper[0] = 0;
-    }
-    if (m_FlagKeeper[1] == player->GetGUID())
-    {
-        SpawnBGObject(BG_VOP_OBJECT_ORB_2, RESPAWN_IMMEDIATELY);
-        m_FlagKeeper[1] = 0;
-    }
-    if (m_FlagKeeper[2] == player->GetGUID())
-    {
-        SpawnBGObject(BG_VOP_OBJECT_ORB_3, RESPAWN_IMMEDIATELY);
-        m_FlagKeeper[2] = 0;
-    }
-    if (m_FlagKeeper[3] == player->GetGUID())
-    {
-        SpawnBGObject(BG_VOP_OBJECT_ORB_4, RESPAWN_IMMEDIATELY);
-        m_FlagKeeper[3] = 0;
-    }
+    //npcbot
+    ReturnOrbIfCarrying(player->GetGUID());
+    //end npcbot
 
     if (killer->GetBGTeam() == ALLIANCE)
     {
@@ -374,6 +474,76 @@ void BattlegroundVOP::HandleKillPlayer(Player* player, Player* killer)
 
     Battleground::HandleKillPlayer(player, killer);
 }
+
+//npcbot
+void BattlegroundVOP::HandleBotKillPlayer(Creature* killer, Player* victim)
+{
+    if (GetStatus() != STATUS_IN_PROGRESS)
+        return;
+
+    ReturnOrbIfCarrying(victim->GetGUID());
+
+    uint32 team = GetBotTeam(killer->GetGUID());
+    if (team == ALLIANCE)
+    {
+        m_TeamScores[TEAM_ALLIANCE] += BG_VOP_PK_VP;
+        UpdateWorldState(BG_VOP_OP_RESOURCES_A, m_TeamScores[TEAM_ALLIANCE]);
+    }
+    else if (team == HORDE)
+    {
+        m_TeamScores[TEAM_HORDE] += BG_VOP_PK_VP;
+        UpdateWorldState(BG_VOP_OP_RESOURCES_H, m_TeamScores[TEAM_HORDE]);
+    }
+    UpdateBotScore(killer, SCORE_ORB_SCORE, BG_VOP_PK_VP);
+
+    Battleground::HandleBotKillPlayer(killer, victim);
+}
+
+void BattlegroundVOP::HandleBotKillBot(Creature* killer, Creature* victim)
+{
+    if (GetStatus() != STATUS_IN_PROGRESS)
+        return;
+
+    ReturnOrbIfCarrying(victim->GetGUID());
+
+    uint32 team = GetBotTeam(killer->GetGUID());
+    if (team == ALLIANCE)
+    {
+        m_TeamScores[TEAM_ALLIANCE] += BG_VOP_PK_VP;
+        UpdateWorldState(BG_VOP_OP_RESOURCES_A, m_TeamScores[TEAM_ALLIANCE]);
+    }
+    else if (team == HORDE)
+    {
+        m_TeamScores[TEAM_HORDE] += BG_VOP_PK_VP;
+        UpdateWorldState(BG_VOP_OP_RESOURCES_H, m_TeamScores[TEAM_HORDE]);
+    }
+    UpdateBotScore(killer, SCORE_ORB_SCORE, BG_VOP_PK_VP);
+
+    Battleground::HandleBotKillBot(killer, victim);
+}
+
+void BattlegroundVOP::HandlePlayerKillBot(Creature* victim, Player* killer)
+{
+    if (GetStatus() != STATUS_IN_PROGRESS)
+        return;
+
+    ReturnOrbIfCarrying(victim->GetGUID());
+
+    if (killer->GetBGTeam() == ALLIANCE)
+    {
+        m_TeamScores[TEAM_ALLIANCE] += BG_VOP_PK_VP;
+        UpdateWorldState(BG_VOP_OP_RESOURCES_A, m_TeamScores[TEAM_ALLIANCE]);
+    }
+    else if (killer->GetBGTeam() == HORDE)
+    {
+        m_TeamScores[TEAM_HORDE] += BG_VOP_PK_VP;
+        UpdateWorldState(BG_VOP_OP_RESOURCES_H, m_TeamScores[TEAM_HORDE]);
+    }
+    UpdatePlayerScore(killer, SCORE_ORB_SCORE, BG_VOP_PK_VP);
+
+    Battleground::HandlePlayerKillBot(victim, killer);
+}
+//end npcbot
 
 bool BattlegroundVOP::UpdatePlayerScore(Player* player, uint32 type, uint32 value, bool doAddHonor)
 {
@@ -396,7 +566,7 @@ bool BattlegroundVOP::UpdatePlayerScore(Player* player, uint32 type, uint32 valu
     return true;
 }
 
-WorldSafeLocsEntry const* BattlegroundVOP::GetClosestGraveYard(Player* player)
+WorldSafeLocsEntry const* BattlegroundVOP::GetClosestGraveyard(Player* player)
 {
     if (!player)
         return nullptr;
@@ -404,51 +574,51 @@ WorldSafeLocsEntry const* BattlegroundVOP::GetClosestGraveYard(Player* player)
     uint8 team = player->GetTeamId();
     uint32 graveyardID = 0;
 
-    // Si le statut du champ de bataille n'est pas "en cours", envoie le joueur au cimetière de la salle de drapeau
+    // Si le statut du champ de bataille n'est pas "en cours", envoie le joueur au cimetiere de la salle de drapeau
     if (GetStatus() != STATUS_IN_PROGRESS)
     {
         if (team == TEAM_ALLIANCE)
-            graveyardID = BG_VOP_GRAVEYARD_RECTANGLEA2; // Cimetière pour l'Alliance pendant la préparation
+            graveyardID = BG_VOP_GRAVEYARD_RECTANGLEA2; // Cimetiere pour l'Alliance pendant la preparation
         else
-            graveyardID = BG_VOP_GRAVEYARD_RECTANGLEH2; // Cimetière pour la Horde pendant la préparation
+            graveyardID = BG_VOP_GRAVEYARD_RECTANGLEH2; // Cimetiere pour la Horde pendant la preparation
     }
     else
     {
-        // Si le champ de bataille est en cours, vérifie si le joueur est plus proche d'un cimetière de l'ennemi ou d'un cimetière central
+        // Si le champ de bataille est en cours, verifie si le joueur est plus proche d'un cimetiere de l'ennemi ou d'un cimetiere central
         WorldSafeLocsEntry const* graveyard_enemy_base = nullptr;
         WorldSafeLocsEntry const* graveyard_enemy_middle = nullptr;
 
-        // Définir les cimetières ennemis pour l'Alliance et la Horde
+        // Definir les cimetieres ennemis pour l'Alliance et la Horde
         if (team == TEAM_ALLIANCE)
         {
-            graveyard_enemy_base = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEH1); // Cimetière de la Horde
-            graveyard_enemy_middle = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEH2); // Autre cimetière de la Horde
+            graveyard_enemy_base = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEH1); // Cimetiere de la Horde
+            graveyard_enemy_middle = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEH2); // Autre cimetiere de la Horde
         }
         else if (team == TEAM_HORDE)
         {
-            graveyard_enemy_base = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEA1); // Cimetière de l'Alliance
-            graveyard_enemy_middle = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEA2); // Autre cimetière de l'Alliance
+            graveyard_enemy_base = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEA1); // Cimetiere de l'Alliance
+            graveyard_enemy_middle = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEA2); // Autre cimetiere de l'Alliance
         }
 
-        // Si les cimetières ennemis existent, comparez les distances
+        // Si les cimetieres ennemis existent, comparez les distances
         if (graveyard_enemy_base && graveyard_enemy_middle)
         {
-            // Vérifier la distance 2D entre le joueur et les cimetières ennemis
+            // Vï¿½rifier la distance 2D entre le joueur et les cimetieres ennemis
             if (player->GetDistance2d(graveyard_enemy_base->Loc.X, graveyard_enemy_base->Loc.Y) <
                 player->GetDistance2d(graveyard_enemy_middle->Loc.X, graveyard_enemy_middle->Loc.Y))
             {
-                // Retourne le cimetière du début pour l'équipe en cours
+                // Retourne le cimetiere du debut pour l'equipe en cours
                 graveyardID = (team == TEAM_ALLIANCE) ? BG_VOP_GRAVEYARD_RECTANGLEA1 : BG_VOP_GRAVEYARD_RECTANGLEH1;
             }
             else
             {
-                // Retourne le cimetière central pour l'équipe en cours
+                // Retourne le cimetiere central pour l'equipe en cours
                 graveyardID = (team == TEAM_ALLIANCE) ? BG_VOP_GRAVEYARD_RECTANGLEA2 : BG_VOP_GRAVEYARD_RECTANGLEH2;
             }
         }
     }
 
-    // Recherche le cimetière à l'ID déterminé
+    // Recherche le cimetiere de l'ID determine
     WorldSafeLocsEntry const* entry = sWorldSafeLocsStore.LookupEntry(graveyardID);
 
     if (!entry)
@@ -460,40 +630,53 @@ WorldSafeLocsEntry const* BattlegroundVOP::GetClosestGraveYard(Player* player)
     return entry;
 }
 
-/*
 //npcbot
 WorldSafeLocsEntry const* BattlegroundVOP::GetClosestGraveyardForBot(WorldLocation const& curPos, uint32 team) const
 {
-    TeamId teamIndex = GetTeamIndexByTeamId(team);
+    uint32 graveyardID = 0;
 
-    WorldSafeLocsEntry const* good_entry = nullptr;
-
-    float plr_x = curPos.GetPositionX();
-    float plr_y = curPos.GetPositionY();
-
-    float mindist = 999999.0f;
-    for (uint8 i = VOP_GRAVEYARD_START_ALLIANCE + teamIndex; i < VOP_MAX_GRAVEYARDS; i += 2)
+    if (GetStatus() != STATUS_IN_PROGRESS)
     {
-        WorldSafeLocsEntry const* entry = sWorldSafeLocsStore.LookupEntry(BG_VOP_GraveyardIds[i]);
+        graveyardID = (team == ALLIANCE) ? BG_VOP_GRAVEYARD_RECTANGLEA2 : BG_VOP_GRAVEYARD_RECTANGLEH2;
+    }
+    else
+    {
+        WorldSafeLocsEntry const* graveyard_enemy_base = nullptr;
+        WorldSafeLocsEntry const* graveyard_enemy_middle = nullptr;
 
-        if (!entry)
-            continue;
-
-        float dist = (entry->Loc.X - plr_x) * (entry->Loc.X - plr_x) + (entry->Loc.Y - plr_y) * (entry->Loc.Y - plr_y);
-        if (mindist > dist)
+        if (team == ALLIANCE)
         {
-            mindist = dist;
-            good_entry = entry;
+            graveyard_enemy_base = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEH1);
+            graveyard_enemy_middle = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEH2);
+        }
+        else if (team == HORDE)
+        {
+            graveyard_enemy_base = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEA1);
+            graveyard_enemy_middle = sWorldSafeLocsStore.LookupEntry(BG_VOP_GRAVEYARD_RECTANGLEA2);
+        }
+
+        if (graveyard_enemy_base && graveyard_enemy_middle)
+        {
+            float dx1 = graveyard_enemy_base->Loc.X - curPos.GetPositionX();
+            float dy1 = graveyard_enemy_base->Loc.Y - curPos.GetPositionY();
+            float dx2 = graveyard_enemy_middle->Loc.X - curPos.GetPositionX();
+            float dy2 = graveyard_enemy_middle->Loc.Y - curPos.GetPositionY();
+
+            if (dx1 * dx1 + dy1 * dy1 < dx2 * dx2 + dy2 * dy2)
+                graveyardID = (team == ALLIANCE) ? BG_VOP_GRAVEYARD_RECTANGLEA1 : BG_VOP_GRAVEYARD_RECTANGLEH1;
+            else
+                graveyardID = (team == ALLIANCE) ? BG_VOP_GRAVEYARD_RECTANGLEA2 : BG_VOP_GRAVEYARD_RECTANGLEH2;
         }
     }
 
-    if (!good_entry)
-        good_entry = sWorldSafeLocsStore.LookupEntry(BG_VOP_GraveyardIds[teamIndex + 2]);
+    WorldSafeLocsEntry const* entry = sWorldSafeLocsStore.LookupEntry(graveyardID);
 
-    return good_entry;
+    if (!entry)
+        SC_LOG_ERROR("bg.battleground", "BattlegroundVOP: GetClosestGraveyardForBot - graveyard not found (team {})", team);
+
+    return entry;
 }
 //end npcbot
-*/
 
 uint32 BattlegroundVOP::GetPrematureWinner()
 {

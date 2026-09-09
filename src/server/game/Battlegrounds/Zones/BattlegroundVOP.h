@@ -142,7 +142,7 @@ public:
     void EventPlayerClickedOnFlag(Player* Source, GameObject* target_obj) override;
     void RemovePlayer(Player* player, ObjectGuid guid, uint32 team) override;
     void HandleKillPlayer(Player* player, Player* killer) override;
-    WorldSafeLocsEntry const* GetClosestGraveYard(Player* player);
+    WorldSafeLocsEntry const* GetClosestGraveyard(Player* player) override;
     bool SetupBattleground() override;
     void Reset() override;
     void UpdateTeamScore(uint32 Team);
@@ -151,7 +151,23 @@ public:
     uint32 GetPrematureWinner() override;
     void PostUpdateImpl(uint32 diff) override;
 
+    //npcbot
+    void AddBot(Creature* bot) override;
+    void RemoveBot(ObjectGuid guid) override;
+    void EventBotClickedOnFlag(Creature* bot, GameObject* target_obj) override;
+    void HandleBotKillPlayer(Creature* killer, Player* victim) override;
+    void HandleBotKillBot(Creature* killer, Creature* victim) override;
+    void HandlePlayerKillBot(Creature* victim, Player* killer) override;
+    WorldSafeLocsEntry const* GetClosestGraveyardForBot(WorldLocation const& curPos, uint32 team) const override;
+    //end npcbot
+
 private:
+    //npcbot
+    // Shared by HandleKillPlayer / HandleBotKillPlayer / HandleBotKillBot / HandlePlayerKillBot / RemoveBot:
+    // if guid is currently holding one of the 4 orbs, respawn that orb at its pad immediately.
+    void ReturnOrbIfCarrying(ObjectGuid guid);
+    //end npcbot
+
     uint64 m_FlagKeeper[4] = { };
     uint32 m_HonorScoreTics[PVP_TEAMS_COUNT] = { };
     uint32 m_HonorTics; 

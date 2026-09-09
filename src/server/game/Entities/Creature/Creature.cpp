@@ -23,6 +23,7 @@
 #include "CreatureAI.h"
 #include "CreatureAISelector.h"
 #include "CreatureGroups.h"
+#include "ContinentLevelScaling.h"
 #include "DatabaseEnv.h"
 #include "Formulas.h"
 #include "GameEventMgr.h"
@@ -3450,6 +3451,8 @@ void Creature::AtEngage(Unit* target)
         }
     }
 
+    ContinentLevelScaling::OnCreatureEngage(this, target);
+
     if (CreatureAI* ai = AI())
         ai->JustEngagedWith(target);
     if (CreatureGroup* formation = GetFormation())
@@ -3470,6 +3473,8 @@ void Creature::AtDisengage()
         UpdateSpeed(MOVE_SWIM);
         UpdateSpeed(MOVE_FLIGHT);
     }
+
+    ContinentLevelScaling::OnCreatureDisengage(this);
 }
 
 bool Creature::IsEscorted() const

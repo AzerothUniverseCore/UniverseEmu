@@ -37,6 +37,7 @@
 #include "ChatCommand.h"
 #include "ChatPackets.h"
 #include "Config.h"
+#include "ContinentLevelScaling.h"
 #include "CreatureAIRegistry.h"
 #include "CreatureGroups.h"
 #include "CreatureTextMgr.h"
@@ -2104,6 +2105,9 @@ void World::SetInitialWorldSettings()
 
     ///- Initialize AutoBalance
     InitAutoBalanceSystem();
+
+    ///- Initialize Continent Level Scaling
+    InitContinentLevelScalingSystem();
 
     sScriptMgr->OnConfigLoad(false);                                // must be done after the ScriptMgr has been properly initialized
 

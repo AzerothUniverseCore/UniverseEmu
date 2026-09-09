@@ -19,6 +19,8 @@
 #include "Log.h"
 #include "Creature.h"
 
+#include <atomic>
+#include <chrono>
 #include <sstream>
 
 namespace Movement{
@@ -201,7 +203,13 @@ bool MoveSplineInitArgs::Validate(Unit* unit) const
     if (!(exp))\
     {\
         if (unit)\
-            SC_LOG_ERROR("misc.movesplineinitargs", "MoveSplineInitArgs::Validate: expression '{}' failed for {}", #exp, unit->GetDebugInfo());\
+        {\
+            static std::atomic<int64_t> s_lastLogMs{0};\
+            int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();\
+            int64_t lastMs = s_lastLogMs.load(std::memory_order_relaxed);\
+            if (nowMs - lastMs >= 5000 && s_lastLogMs.compare_exchange_strong(lastMs, nowMs, std::memory_order_relaxed))\
+                SC_LOG_ERROR("misc.movesplineinitargs", "MoveSplineInitArgs::Validate: expression '{}' failed for {}", #exp, unit->GetDebugInfo());\
+        }\
         else\
             SC_LOG_ERROR("misc.movesplineinitargs", "MoveSplineInitArgs::Validate: expression '{}' failed for cyclic spline continuation", #exp); \
         return false;\

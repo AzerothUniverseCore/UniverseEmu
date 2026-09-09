@@ -46,6 +46,7 @@
 #    ACCOUNT ACHIEVEMENTS
 #    PREMIUMACCOUNT
 #    AUTOBALANCE
+#    CONTINENT LEVEL SCALING
 #    DOUBLE XP WEEKEND
 #	 ACCOUNT ACHIEVEMENTS
 #    START GUILD
@@ -123,9 +124,9 @@ LogsDir = "../logs"
 #    The SSL option will enable TLS when connecting to the specified database. If not provided or
 #    any value other than 'ssl' is set, TLS will not be used.
 
-LoginDatabaseInfo     = "127.0.0.1;3306;root;root;auc_auth"
-WorldDatabaseInfo     = "127.0.0.1;3306;root;root;auc_world"
-CharacterDatabaseInfo = "127.0.0.1;3306;root;root;auc_chars"
+LoginDatabaseInfo     = "127.0.0.1;3309;root;root;auc_auth"
+WorldDatabaseInfo     = "127.0.0.1;3309;root;root;auc_world"
+CharacterDatabaseInfo = "127.0.0.1;3309;root;root;auc_chars"
 
 #
 #    LoginDatabase.WorkerThreads
@@ -477,7 +478,7 @@ LogDB.Opt.ClearTime = 1209600
 #        Default:     60 - (Enabled, Recommended 10+)
 #                      0 - (Disabled)
 
-MaxCoreStuckTime = 0
+MaxCoreStuckTime = 60
 
 #
 #    AddonChannel
@@ -4095,7 +4096,7 @@ Logger.npcbots=2,NpcBots Server
 #Logger.movement.flightpath=3,Console Server
 #Logger.movement.motionmaster=3,Console Server
 #Logger.movement.splinechain=3,Console Server
-#Logger.network=3,Console Server
+Logger.network=4,Console Server
 #Logger.network.kick=3,Console Server
 #Logger.network.opcode=3,Console Server
 #Logger.network.soap=3,Console Server
@@ -5328,6 +5329,59 @@ AutoBalance.DisabledID = ""
 ###################################################################################################
 
 ###################################################################################################
+#   CONTINENT LEVEL SCALING
+###################################################################################################
+#
+#     ContinentLevelScaling.Enable
+#        Open-world creature level scaling on the continent maps listed in
+#        ContinentLevelScaling.MapIds. Triggered by AGGRO, not by zone presence: the
+#        moment an eligible creature is engaged in combat, it takes the level of
+#        whoever is fighting it (highest level among its attackers if several, e.g. a
+#        group opening together; a pet/totem/guardian resolves to its owner),
+#        bidirectional, clamped to [ContinentLevelScaling.MinLevel,
+#        ContinentLevelScaling.MaxLevel]. It reverts to its natural template level the
+#        moment combat ends. A creature that is never engaged is never touched — two
+#        characters at very different levels can be in the same zone at once without
+#        affecting each other's creatures.
+#        Default:     0 (disabled)
+
+ContinentLevelScaling.Enable = 1
+
+#
+#     ContinentLevelScaling.MapIds
+#        Comma-separated list of map IDs to scale.
+#        Default:     "0,1,530,571" (Azeroth, Kalimdor, Outland, Northrend)
+
+ContinentLevelScaling.MapIds = "0,1,530,571,754,725,732,736,751,764,765,750,734,737,763,791,794,779,735,775,776,778,795,796,797,807,811,819,821,814,815,820"
+
+#
+#     ContinentLevelScaling.MinLevel / ContinentLevelScaling.MaxLevel
+#        Clamp range applied to the scaled level, whichever direction it moves.
+#        Default:     1 / 90
+
+ContinentLevelScaling.MinLevel = 1
+ContinentLevelScaling.MaxLevel = 90
+
+#
+#     ContinentLevelScaling.SkipCivilian
+#        Skip creatures flagged CREATURE_FLAG_EXTRA_CIVILIAN (quest givers, vendors,
+#        trainers, etc.) — these should normally never reach combat anyway, this is
+#        kept as a safety net.
+#        Default:     1
+
+ContinentLevelScaling.SkipCivilian = 1
+
+#
+#     ContinentLevelScaling.SkipWorldBoss
+#        Skip creatures ranked CREATURE_ELITE_WORLDBOSS.
+#        Default:     1
+
+ContinentLevelScaling.SkipWorldBoss = 1
+
+#
+###################################################################################################
+
+###################################################################################################
 #
 # START GUILD
 #
@@ -5778,7 +5832,7 @@ NpcBot.Stats.Limits.Crit  = 95.0
 #        Default:     -1  - (use default limit set by TC devs)
 #                     500 - (500 bots in one spot won't get you kicked)
 
-NpcBot.InfoPacketsLimit = -1
+NpcBot.InfoPacketsLimit = 500
 
 #
 #    NpcBot.OwnershipExpireTime

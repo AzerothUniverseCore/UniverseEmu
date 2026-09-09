@@ -16429,7 +16429,7 @@ CREATE TABLE `characters_npcbot_transmog` (
 DROP TABLE IF EXISTS `corpse`;
 
 CREATE TABLE `corpse` (
-  `corpseGuid` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Global Unique Identifier',
+  `corpseGuid` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Global Unique Identifier',
   `guid` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Character Global Unique Identifier',
   `posX` float NOT NULL DEFAULT 0,
   `posY` float NOT NULL DEFAULT 0,

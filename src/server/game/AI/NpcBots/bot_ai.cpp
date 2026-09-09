@@ -18401,6 +18401,12 @@ WanderNode const* bot_ai::GetNextBGTravelNode() const
 
             break;
         }
+        //npcbot
+        case BATTLEGROUND_VOP:
+            if (bg->GetStatus() != STATUS_IN_PROGRESS)
+                return _travel_node_cur;
+            break;
+        //end npcbot
         case BATTLEGROUND_WS:
         case BATTLEGROUND_AB:
         case BATTLEGROUND_BFG:
@@ -18655,6 +18661,26 @@ void bot_ai::OnWanderNodeReached()
                     }
                     break;
                 }
+                //npcbot
+                case BATTLEGROUND_VOP:
+                {
+                    static const uint32 orbObjectTypes[4] = { BG_VOP_OBJECT_ORB_1, BG_VOP_OBJECT_ORB_2, BG_VOP_OBJECT_ORB_3, BG_VOP_OBJECT_ORB_4 };
+                    for (uint32 objType : orbObjectTypes)
+                    {
+                        if (GameObject* go = bg->GetBGObject(objType, true))
+                        {
+                            if (me->IsWithinDistInMap(go, 10.0f))
+                            {
+                                if (me->IsMounted())
+                                    DismountBot();
+                                bg->EventBotClickedOnFlag(me, go);
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+                //end npcbot
                 default:
                     break;
             }
@@ -19681,6 +19707,12 @@ bool bot_ai::IsFlagCarrier(Unit const* unit, BattlegroundTypeId bgTypeId)
                     case 23335: // Silverwing Flag (WSG)
                     case 88333: // Twin Peaks Horde Flag (TP)
                     case 88335: // Twin Peaks Alliance Flag (TP)
+                    //npcbot
+                    case 121164: // VOP Orb Picked Up 1
+                    case 121175: // VOP Orb Picked Up 2
+                    case 121176: // VOP Orb Picked Up 3
+                    case 121177: // VOP Orb Picked Up 4
+                    //end npcbot
                         return true;
                     default:
                         break;
@@ -19708,8 +19740,20 @@ bool bot_ai::IsFlagCarrier(Unit const* unit, BattlegroundTypeId bgTypeId)
                         break;
                 }
                 break;
+            //npcbot
             case BATTLEGROUND_VOP:
+                switch (spellId)
+                {
+                    case 121164: // VOP Orb Picked Up 1
+                    case 121175: // VOP Orb Picked Up 2
+                    case 121176: // VOP Orb Picked Up 3
+                    case 121177: // VOP Orb Picked Up 4
+                        return true;
+                    default:
+                        break;
+                }
                 break;
+            //end npcbot
             case BATTLEGROUND_AB:
             case BATTLEGROUND_EY:
             case BATTLEGROUND_SA:
