@@ -1,0 +1,32 @@
+-- ============================================================================
+-- UniverseEmu 3.3.9a - 2026_09_08_07_exile_55879_boar_immune_flag_fix.sql
+-- ----------------------------------------------------------------------------
+-- Fix the UNIT_FLAG of the Alliance quest charger 167150 "Giant Boar"
+-- (55879 "Ride of the Scientifically Enhanced Boar", map 859).
+--
+-- Problem (found while auditing the 15:10 crash of worldserver 93044):
+--   update 05 wrote unit_flags = 2048 (0x800) believing it was
+--   IMMUNE_TO_NPC, but in this fork 0x800 is UNIT_FLAG_PET_IN_COMBAT and is
+--   part of UNIT_FLAG_DISALLOWED. ObjectMgr removed the flag at load time
+--   ("disallowed `unit_flags` 2048, removing incorrect flag", DBErrors.log),
+--   so the boar was NOT immune and the whole undead army could kill it.
+--
+-- Real value in this fork (UnitDefines.h):
+--   UNIT_FLAG_IMMUNE_TO_NPC = 0x00000200 (= 512), NOT in DISALLOWED.
+--
+-- Fix: replace 2048 by 512. Additive data correction, no template change.
+--
+-- 中文：修正联盟任务坐骑 167150「巨型野猪」(任务 55879「科学强化野猪骑行」，
+--   地图 859) 的 unit_flags。更新 05 误把 2048(0x800) 当作 IMMUNE_TO_NPC，
+--   但本分支中 0x800 是 UNIT_FLAG_PET_IN_COMBAT，属于 UNIT_FLAG_DISALLOWED，
+--   ObjectMgr 载入时会被静默剔除（DBErrors.log 记录 "disallowed unit_flags
+--   2048, removing incorrect flag"），导致野猪并非免疫，被亡灵大军打死。
+--   本分支正确取值为 0x200(512) = UNIT_FLAG_IMMUNE_TO_NPC，不在禁用列表内。
+--   此为纯数据订正，属于叠加修正，不删改既有模板结构。
+--
+-- (FR) Correction du drapeau UNIT_FLAG du chargeur alliance 167150 : 0x800
+-- (PET_IN_COMBAT, interdit) -> 0x200 (IMMUNE_TO_NPC, autorise) afin que le
+-- sanglier ne soit plus tue par l'armee des morts-vivants pendant 55879.
+-- ============================================================================
+
+UPDATE `creature_template` SET `unit_flags` = 512 WHERE `entry` = 167150;

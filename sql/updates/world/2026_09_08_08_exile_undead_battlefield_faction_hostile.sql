@@ -1,0 +1,49 @@
+-- ============================================================================
+-- UniverseEmu 3.3.9a - 2026_09_08_08_exile_undead_battlefield_faction_hostile.sql
+-- ----------------------------------------------------------------------------
+-- Make the undead battlefield targets attackable by vehicle quest riders.
+--
+-- Problem (reported by the boss while testing 55879 "Ride of the
+-- Scientifically Enhanced Boar" / 59942 "The Re-Deather", map 859):
+--   riding the Giant Boar / Choppy Booster and throwing the bar spell
+--   29579 "Throw Dynamite" (Fire AOE, 625-775 dmg) kills NOTHING.
+--
+-- Root cause (data audit + FactionTemplate.dbc parse on 2026-09-08):
+--   the three undead targets all use faction template id = 7, whose record is
+--       [7, 7, 0, 0, 0, 0, 0,0,0,0, 0,0,0,0]   (14 uint32 fields)
+--   i.e. factionGroup = 0, friendGroup = 0, enemyGroup = 0 : a fully NEUTRAL
+--   template (nothing is its enemy, it is nobody's enemy).
+--   29579 hits "all enemies in a selected area": with caster = the player,
+--   neutral targets are filtered out by the attack-target check, so the AOE
+--   deals 0 damage to every zombie/cadaver/Torgok  -> "cannot burn any".
+--
+-- These three entries are referenced ONLY by quests 55879 + 59942
+-- (no smart_scripts, no npc_spellclick_spells, no pool) and have no AIName:
+-- they are pure riding-quest targets. Making them hostile to players is the
+-- correct original-Exile's-Reach semantics (undead army) and has no side
+-- effects on other content or passers-by (no aggressive AI, low level).
+--
+-- Fix: switch faction 7 (neutral) -> 16, the standard "hostile to all
+-- players, monster group" template used by e.g. Bolvar / Thok in this fork.
+--
+-- 中文：让亡灵战场的目标可被载具任务骑手攻击。老大实测反馈：骑上巨型野猪 /
+--   Choppy Booster 后投掷区域法术 29579「投掷炸药」(火焰 AOE，625-775 伤害)
+--   一个亡灵都烧不死。根因（数据核查 + FactionTemplate.dbc 解析）：三个亡灵
+--   目标全部使用阵营模板 7，其记录为 [7,7,0,0,0,0, 0,0,0,0, 0,0,0,0]，
+--   即 factionGroup=0、friendGroup=0、enemyGroup=0 的完全中立模板——它不是
+--   任何人的敌人，任何区域法术的敌对过滤都会把它剔除，故命中 0、伤害 0。
+--   这三个 entry 仅被任务 55879 与 59942 引用（无 smart_scripts、无
+--   npc_spellclick_spells、无 pool、无 AIName），是纯粹的骑行任务靶子；
+--   改为对玩家敌对既符合流放者离岛原版语义（亡灵军团），又无副作用
+--   （无主动攻击 AI、等级低，不影响路人与其他内容）。
+--   修正：faction 7（中立）-> 16（对全体玩家敌对的怪物模板，Bolvar / Thok
+--   在本分支中即使用此模板）。叠加修正，不删改既有代码与数据。
+--
+-- (FR) Correction de faction : les cibles du champ de bataille des morts-
+-- vivants (156532/157091/162817) utilisaient le template 7 totalement neutre
+-- (enemyGroup=0), donc l'AOE 29579 du passager ne pouvait pas les toucher.
+-- Passage a la faction 16 (hostile a tous les joueurs), sans effet de bord.
+-- ============================================================================
+
+UPDATE `creature_template` SET `faction` = 16
+WHERE `entry` IN (156532, 157091, 162817);

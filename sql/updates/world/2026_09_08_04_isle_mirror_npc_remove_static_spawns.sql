@@ -1,0 +1,47 @@
+-- By leewheel 2026-09-08
+-- ============================================================================
+-- Exile's Reach (map 859): remove the STATIC spawns of the whole-island
+-- mirrored checkpoint quest NPCs. Their visible position is now driven per
+-- player by the C++ stage manager (IsleQuilboarStage.cpp ->
+-- isle_stage_mirror_npc / isle_stage_mirror_world): each player receives a
+-- private TempSummon (visible by summoner only) at the checkpoint matching
+-- his personal quest progress.
+--
+-- Removed mirrored checkpoint spawns:
+--   Alliance : Lady Jaina Proudmoore (156280) x3, Kee-La (157043) x2
+--   Horde    : Thrall (166573) x3, Bo (166585) x2
+--   Neutral  : Hrun the Exiled (156900) guid 1051406 - legacy spawn sunken at
+--              the bottom of the spider cave (Z = -29.5). The ground copy
+--              guid 14507730 (Z = 103) is intentionally kept.
+--
+-- The 860/861 camp copies and the 863 in-dungeon copies of these entries are
+-- intentionally kept (single spawn each, part of the camp / instance design).
+--
+-- 中文：流放者离岛(859图)整岛镜像任务检查点 NPC 静态刷怪移除。可见位置改由
+-- C++ 阶段管理器(isle_stage_mirror_npc)按玩家个人任务进度生成专属临时副本。
+-- 删除：联盟 吉安娜(156280)x3、Kee-La(157043)x2；部落 萨尔(166573)x3、Bo
+-- (166585)x2；中立 放逐者赫伦(156900) 蜘蛛洞底残留 guid1051406(Z=-29.5)。
+-- 860/861 营地版与 863 副本内版为单刷怪点，属营地/副本设计，保留。
+--
+-- FR : Retrait des spawns statiques des PNJ miroirs de l'ile (carte 859).
+-- La position visible est desormais pilotee par joueur par le gestionnaire
+-- d'etapes C++ (isle_stage_mirror_npc). Les copies de camp (860/861) et les
+-- copies d'instance (863) sont conservees.
+--
+-- ====== RESTORE (undo) ======================================================
+-- INSERT INTO `creature` (`guid`,`id`,`map`,`zoneId`,`areaId`,`spawnMask`,`phaseMask`,`modelid`,`equipment_id`,`position_x`,`position_y`,`position_z`,`orientation`,`spawntimesecs`,`wander_distance`,`currentwaypoint`,`curhealth`,`curmana`,`MovementType`,`npcflag`,`unit_flags`,`dynamicflags`,`ScriptName`,`StringId`,`VerifiedBuild`,`size`) VALUES
+-- (14507468,156280,859,0,0,1,1,0,0,-439.195,-2599.68,0.628877,0.188965,30,0,0,6388800,0,0,0,0,0,'',NULL,0,-1),
+-- (14507540,156280,859,0,0,1,1,0,0,318.397,-2174.48,105.99,2.83133,30,0,0,6388800,0,0,0,0,0,'',NULL,0,-1),
+-- (14507544,156280,859,0,0,1,1,0,0,706.727,-1867.6,186.882,4.36286,30,0,0,6388800,0,0,0,0,0,'',NULL,0,-1),
+-- (1051406,156900,859,0,0,1,1,0,0,74.6753,-2126.99,-29.53,5.09893,30,0,0,100,0,0,0,0,0,'',NULL,45114,-1),
+-- (14507502,157043,859,0,0,1,1,0,0,283.361,-2338.67,84.9874,2.32649,30,0,0,84,0,0,0,0,0,'',NULL,0,-1),
+-- (14507531,157043,859,0,0,1,1,0,0,374.309,-2445.2,122.433,0.852012,30,0,0,84,0,0,0,0,0,'',NULL,0,-1),
+-- (14507460,166573,859,0,0,1,1,0,0,-435.865,-2611.58,0.591125,0.182215,30,0,0,6070000,2982000,0,0,0,0,0,'',NULL,0,-1),
+-- (14507541,166573,859,0,0,1,1,0,0,318.374,-2177.9,105.697,2.83133,30,0,0,6070000,2982000,0,0,0,0,0,'',NULL,0,-1),
+-- (14507545,166573,859,0,0,1,1,0,0,709.864,-1868.96,186.882,4.30395,30,0,0,6070000,2982000,0,0,0,0,0,'',NULL,0,-1),
+-- (14507503,166585,859,0,0,1,1,0,0,281.109,-2335.98,84.7438,5.42252,30,0,0,204,0,0,0,0,0,'',NULL,0,-1),
+-- (14507530,166585,859,0,0,1,1,0,0,371.783,-2442.98,122.017,0.816669,30,0,0,204,0,0,0,0,0,'',NULL,0,-1);
+-- ============================================================================
+
+DELETE FROM `creature` WHERE `id` IN (156280, 166573, 157043, 166585) AND `map` = 859;
+DELETE FROM `creature` WHERE `guid` = 1051406;
