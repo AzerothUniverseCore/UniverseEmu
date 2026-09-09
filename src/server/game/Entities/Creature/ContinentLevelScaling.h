@@ -28,6 +28,8 @@ namespace ContinentLevelScaling
     void OnCreatureEngage(Creature* creature, Unit* target);
 
     void OnCreatureDisengage(Creature* creature);
+
+    void OnCreatureCombatPulse(Creature* creature);
 }
 
 void AddSC_ContinentLevelScaling();

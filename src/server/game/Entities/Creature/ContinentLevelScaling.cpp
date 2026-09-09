@@ -29,6 +29,7 @@
 #include "World.h"
 
 #include <algorithm>
+#include <cctype>
 #include <sstream>
 #include <unordered_set>
 
@@ -50,8 +51,21 @@ namespace
         std::string token;
         while (std::getline(stream, token, ','))
         {
-            if (!token.empty())
-                s_scaledMaps.insert(uint32(atoi(token.c_str())));
+            size_t start = token.find_first_not_of(" \t");
+            size_t end = token.find_last_not_of(" \t");
+            std::string trimmed = (start == std::string::npos) ? std::string() : token.substr(start, end - start + 1);
+
+            if (trimmed.empty())
+                continue;
+
+            bool allDigits = std::all_of(trimmed.begin(), trimmed.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
+            if (!allDigits)
+            {
+                SC_LOG_ERROR("server.loading", ">> ContinentLevelScaling: entree invalide '{}' dans ContinentLevelScaling.MapIds, ignoree.", trimmed);
+                continue;
+            }
+
+            s_scaledMaps.insert(uint32(atoi(trimmed.c_str())));
         }
     }
 
@@ -141,10 +155,18 @@ namespace
 
         float healthPct = creature->GetHealthPct();
 
+        Powers powerType = creature->GetPowerType();
+        uint32 maxPowerBefore = creature->GetMaxPower(powerType);
+        float powerPct = (maxPowerBefore > 0) ? (float(creature->GetPower(powerType)) / float(maxPowerBefore) * 100.0f) : 0.0f;
+
         creature->SetLevel(targetLevel);
         creature->UpdateLevelDependantStats();
 
         creature->SetHealth(std::max<uint32>(1, uint32(creature->GetMaxHealth() * (healthPct / 100.0f))));
+
+        uint32 maxPowerAfter = creature->GetMaxPower(powerType);
+        if (maxPowerAfter > 0)
+            creature->SetPower(powerType, std::min<uint32>(maxPowerAfter, uint32(maxPowerAfter * (powerPct / 100.0f))));
     }
 }
 
@@ -172,10 +194,23 @@ void ContinentLevelScaling::OnCreatureDisengage(Creature* creature)
     if (!creature || !creature->ContinentScalingBaselineCaptured)
         return;
 
+    ApplyLevel(creature, creature->ContinentScalingBaseLevel);
+}
+
+void ContinentLevelScaling::OnCreatureCombatPulse(Creature* creature)
+{
+    if (!creature || !creature->ContinentScalingBaselineCaptured)
+        return;
+
     if (!IsEligible(creature))
         return;
 
-    ApplyLevel(creature, creature->ContinentScalingBaseLevel);
+    uint8 highestPlayerLevel = GetHighestEngagedPlayerLevel(creature, nullptr);
+    if (highestPlayerLevel == 0)
+        return;
+
+    uint8 targetLevel = std::min(s_maxLevel, std::max(s_minLevel, highestPlayerLevel));
+    ApplyLevel(creature, targetLevel);
 }
 
 class ContinentLevelScaling_WorldScript : public WorldScript

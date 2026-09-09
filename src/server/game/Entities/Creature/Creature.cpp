@@ -864,6 +864,16 @@ void Creature::Update(uint32 diff)
                     m_boundaryCheckTime -= diff;
             }
 
+            if (IsEngaged())
+            {
+                if (diff >= ContinentScalingRecheckTimer)
+                {
+                    ContinentLevelScaling::OnCreatureCombatPulse(this);
+                    ContinentScalingRecheckTimer = 2500;
+                } else
+                    ContinentScalingRecheckTimer -= diff;
+            }
+
             // if periodic combat pulse is enabled and we are both in combat and in a dungeon, do this now
             if (m_combatPulseDelay > 0 && IsEngaged() && GetMap()->IsDungeon())
             {
@@ -2256,6 +2266,8 @@ void Creature::Respawn(bool force)
                 UpdateEntry(m_originalEntry);
 
             SelectLevel();
+
+            ContinentScalingBaselineCaptured = false;
 
             setDeathState(JUST_RESPAWNED);
 
