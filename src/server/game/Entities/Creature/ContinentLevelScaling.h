@@ -21,10 +21,13 @@
 #include "Define.h"
 
 class Creature;
+class Unit;
 
 namespace ContinentLevelScaling
 {
-    void OnCreatureUpdate(Creature* creature, uint32 diff);
+    void OnCreatureEngage(Creature* creature, Unit* target);
+
+    void OnCreatureDisengage(Creature* creature);
 }
 
 void AddSC_ContinentLevelScaling();

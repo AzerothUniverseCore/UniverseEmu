@@ -24,6 +24,8 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
+#include "ThreatManager.h"
+#include "Unit.h"
 #include "World.h"
 
 #include <algorithm>
@@ -35,8 +37,6 @@ namespace
     bool s_enabled = false;
     uint8 s_minLevel = 1;
     uint8 s_maxLevel = 90;
-    uint32 s_updateInterval = 3000;
-    bool s_skipInCombat = true;
     bool s_skipCivilian = true;
     bool s_skipWorldBoss = true;
     std::unordered_set<uint32> s_scaledMaps;
@@ -62,9 +62,7 @@ namespace
 
         s_minLevel = uint8(sConfigMgr->GetIntDefault("ContinentLevelScaling.MinLevel", 1));
         s_maxLevel = uint8(sConfigMgr->GetIntDefault("ContinentLevelScaling.MaxLevel", 90));
-        s_updateInterval = uint32(sConfigMgr->GetIntDefault("ContinentLevelScaling.UpdateInterval", 3000));
 
-        s_skipInCombat = sConfigMgr->GetBoolDefault("ContinentLevelScaling.SkipInCombat", true);
         s_skipCivilian = sConfigMgr->GetBoolDefault("ContinentLevelScaling.SkipCivilian", true);
         s_skipWorldBoss = sConfigMgr->GetBoolDefault("ContinentLevelScaling.SkipWorldBoss", true);
 
@@ -74,11 +72,9 @@ namespace
             s_maxLevel = s_minLevel;
         if (s_maxLevel > MAX_LEVEL)
             s_maxLevel = uint8(MAX_LEVEL);
-        if (s_updateInterval < 500)
-            s_updateInterval = 500;
 
-        SC_LOG_INFO("server.loading", ">> ContinentLevelScaling: {} ({} map(s), levels {}-{}, every {} ms).",
-            s_enabled ? "enabled" : "disabled", s_scaledMaps.size(), s_minLevel, s_maxLevel, s_updateInterval);
+        SC_LOG_INFO("server.loading", ">> ContinentLevelScaling: {} ({} map(s), levels {}-{}, on-aggro).",
+            s_enabled ? "enabled" : "disabled", s_scaledMaps.size(), s_minLevel, s_maxLevel);
     }
 
     bool IsScalableMap(uint32 mapId)
@@ -86,59 +82,75 @@ namespace
         return s_scaledMaps.find(mapId) != s_scaledMaps.end();
     }
 
-    uint8 GetHighestPlayerLevelInZone(Map const* map, uint32 zoneId)
+    Player* ResolveResponsiblePlayer(Unit* unit)
+    {
+        if (!unit)
+            return nullptr;
+
+        if (Player* player = unit->ToPlayer())
+            return player;
+
+        return unit->GetCharmerOrOwnerPlayerOrPlayerItself();
+    }
+
+    uint8 GetHighestEngagedPlayerLevel(Creature* creature, Unit* target)
     {
         uint8 highest = 0;
 
-        Map::PlayerList const& players = map->GetPlayers();
-        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+        if (Player* player = ResolveResponsiblePlayer(target))
+            highest = player->GetLevel();
+
+        for (ThreatReference const* ref : creature->GetThreatManager().GetSortedThreatList())
         {
-            Player const* player = itr->GetSource();
-            if (!player || !player->IsInWorld() || player->IsGameMaster())
-                continue;
-
-            if (player->GetZoneId() != zoneId)
-                continue;
-
-            uint8 level = player->GetLevel();
-            if (level > highest)
-                highest = level;
+            if (Player* player = ResolveResponsiblePlayer(ref->GetVictim()))
+                highest = std::max(highest, player->GetLevel());
         }
 
         return highest;
     }
+
+    bool IsEligible(Creature* creature)
+    {
+        if (!s_enabled || !creature)
+            return false;
+
+        Map* map = creature->GetMap();
+        if (!map || !IsScalableMap(map->GetId()))
+            return false;
+
+        if (creature->IsPet() || creature->IsTotem() || creature->IsSummon())
+            return false;
+
+        CreatureTemplate const* cInfo = creature->GetCreatureTemplate();
+        if (!cInfo)
+            return false;
+
+        if (s_skipCivilian && (cInfo->flags_extra & CREATURE_FLAG_EXTRA_CIVILIAN))
+            return false;
+
+        if (s_skipWorldBoss && cInfo->rank == CREATURE_ELITE_WORLDBOSS)
+            return false;
+
+        return true;
+    }
+
+    void ApplyLevel(Creature* creature, uint8 targetLevel)
+    {
+        if (targetLevel == creature->GetLevel())
+            return;
+
+        float healthPct = creature->GetHealthPct();
+
+        creature->SetLevel(targetLevel);
+        creature->UpdateLevelDependantStats();
+
+        creature->SetHealth(std::max<uint32>(1, uint32(creature->GetMaxHealth() * (healthPct / 100.0f))));
+    }
 }
 
-void ContinentLevelScaling::OnCreatureUpdate(Creature* creature, uint32 diff)
+void ContinentLevelScaling::OnCreatureEngage(Creature* creature, Unit* target)
 {
-    if (!s_enabled || !creature || !creature->IsAlive())
-        return;
-
-    if (creature->ContinentScalingTimer > diff)
-    {
-        creature->ContinentScalingTimer -= diff;
-        return;
-    }
-    creature->ContinentScalingTimer = s_updateInterval;
-
-    Map* map = creature->GetMap();
-    if (!map || !IsScalableMap(map->GetId()))
-        return;
-
-    if (creature->IsPet() || creature->IsTotem() || creature->IsSummon())
-        return;
-
-    if (s_skipInCombat && creature->IsInCombat())
-        return;
-
-    CreatureTemplate const* cInfo = creature->GetCreatureTemplate();
-    if (!cInfo)
-        return;
-
-    if (s_skipCivilian && (cInfo->flags_extra & CREATURE_FLAG_EXTRA_CIVILIAN))
-        return;
-
-    if (s_skipWorldBoss && cInfo->rank == CREATURE_ELITE_WORLDBOSS)
+    if (!IsEligible(creature))
         return;
 
     if (!creature->ContinentScalingBaselineCaptured)
@@ -147,23 +159,23 @@ void ContinentLevelScaling::OnCreatureUpdate(Creature* creature, uint32 diff)
         creature->ContinentScalingBaselineCaptured = true;
     }
 
-    uint8 highestPlayerLevel = GetHighestPlayerLevelInZone(map, creature->GetZoneId());
-
-    uint8 targetLevel;
+    uint8 highestPlayerLevel = GetHighestEngagedPlayerLevel(creature, target);
     if (highestPlayerLevel == 0)
-        targetLevel = creature->ContinentScalingBaseLevel;
-    else
-        targetLevel = std::min(s_maxLevel, std::max(s_minLevel, highestPlayerLevel));
-
-    if (targetLevel == creature->GetLevel())
         return;
 
-    float healthPct = creature->GetHealthPct();
+    uint8 targetLevel = std::min(s_maxLevel, std::max(s_minLevel, highestPlayerLevel));
+    ApplyLevel(creature, targetLevel);
+}
 
-    creature->SetLevel(targetLevel);
-    creature->UpdateLevelDependantStats();
+void ContinentLevelScaling::OnCreatureDisengage(Creature* creature)
+{
+    if (!creature || !creature->ContinentScalingBaselineCaptured)
+        return;
 
-    creature->SetHealth(std::max<uint32>(1, uint32(creature->GetMaxHealth() * (healthPct / 100.0f))));
+    if (!IsEligible(creature))
+        return;
+
+    ApplyLevel(creature, creature->ContinentScalingBaseLevel);
 }
 
 class ContinentLevelScaling_WorldScript : public WorldScript

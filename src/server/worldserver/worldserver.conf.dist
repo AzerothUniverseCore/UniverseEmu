@@ -5334,11 +5334,15 @@ AutoBalance.DisabledID = ""
 #
 #     ContinentLevelScaling.Enable
 #        Open-world creature level scaling on the continent maps listed in
-#        ContinentLevelScaling.MapIds. An eligible creature takes the level of the
-#        highest-level player currently in the same zone (bidirectional: it can push a
-#        creature's level up as well as down), clamped to
-#        [ContinentLevelScaling.MinLevel, ContinentLevelScaling.MaxLevel]. A zone with no
-#        player in it reverts its creatures to their natural template level.
+#        ContinentLevelScaling.MapIds. Triggered by AGGRO, not by zone presence: the
+#        moment an eligible creature is engaged in combat, it takes the level of
+#        whoever is fighting it (highest level among its attackers if several, e.g. a
+#        group opening together; a pet/totem/guardian resolves to its owner),
+#        bidirectional, clamped to [ContinentLevelScaling.MinLevel,
+#        ContinentLevelScaling.MaxLevel]. It reverts to its natural template level the
+#        moment combat ends. A creature that is never engaged is never touched — two
+#        characters at very different levels can be in the same zone at once without
+#        affecting each other's creatures.
 #        Default:     0 (disabled)
 
 ContinentLevelScaling.Enable = 1
@@ -5359,24 +5363,10 @@ ContinentLevelScaling.MinLevel = 1
 ContinentLevelScaling.MaxLevel = 90
 
 #
-#     ContinentLevelScaling.UpdateInterval
-#        Minimum time (ms) between two level re-evaluations of the same creature.
-#        Default:     3000
-
-ContinentLevelScaling.UpdateInterval = 3000
-
-#
-#     ContinentLevelScaling.SkipInCombat
-#        Never rescale a creature that is currently in combat, so its level (and max HP)
-#        cannot shift under the player fighting it.
-#        Default:     1
-
-ContinentLevelScaling.SkipInCombat = 1
-
-#
 #     ContinentLevelScaling.SkipCivilian
 #        Skip creatures flagged CREATURE_FLAG_EXTRA_CIVILIAN (quest givers, vendors,
-#        trainers, etc.).
+#        trainers, etc.) — these should normally never reach combat anyway, this is
+#        kept as a safety net.
 #        Default:     1
 
 ContinentLevelScaling.SkipCivilian = 1

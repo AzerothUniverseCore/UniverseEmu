@@ -844,8 +844,6 @@ void Creature::Update(uint32 diff)
             if (!IsAlive())
                 break;
 
-            ContinentLevelScaling::OnCreatureUpdate(this, diff);
-
             GetThreatManager().Update(diff);
             if (_spellFocusInfo.Delay)
             {
@@ -3453,6 +3451,8 @@ void Creature::AtEngage(Unit* target)
         }
     }
 
+    ContinentLevelScaling::OnCreatureEngage(this, target);
+
     if (CreatureAI* ai = AI())
         ai->JustEngagedWith(target);
     if (CreatureGroup* formation = GetFormation())
@@ -3473,6 +3473,8 @@ void Creature::AtDisengage()
         UpdateSpeed(MOVE_SWIM);
         UpdateSpeed(MOVE_FLIGHT);
     }
+
+    ContinentLevelScaling::OnCreatureDisengage(this);
 }
 
 bool Creature::IsEscorted() const
