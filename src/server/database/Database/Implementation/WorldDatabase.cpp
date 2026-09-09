@@ -94,6 +94,13 @@ void WorldDatabaseConnection::DoPrepareStatements()
     PrepareStatement(WORLD_UPD_GAMEOBJECT_ZONE_AREA_DATA, "UPDATE gameobject SET zoneId = ?, areaId = ? WHERE guid = ?", CONNECTION_ASYNC);
     PrepareStatement(WORLD_DEL_SPAWNGROUP_MEMBER, "DELETE FROM spawn_group WHERE spawnType = ? AND spawnId = ?", CONNECTION_ASYNC);
     PrepareStatement(WORLD_DEL_GAMEOBJECT_ADDON, "DELETE FROM gameobject_addon WHERE guid = ?", CONNECTION_ASYNC);
+
+    PrepareStatement(WORLD_INS_QUEST_BYPASS_LOG,
+        "INSERT INTO quest_bypass_log (quest_id, quest_title, missing_type, missing_entry, reason, last_player_guid) "
+        "VALUES (?, ?, ?, ?, ?, ?) "
+        "ON DUPLICATE KEY UPDATE hit_count = hit_count + 1, last_seen = CURRENT_TIMESTAMP, "
+        "quest_title = VALUES(quest_title), reason = VALUES(reason), last_player_guid = VALUES(last_player_guid)",
+        CONNECTION_ASYNC);
 }
 
 WorldDatabaseConnection::WorldDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

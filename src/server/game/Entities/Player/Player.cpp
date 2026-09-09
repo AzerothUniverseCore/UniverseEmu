@@ -81,6 +81,7 @@
 #include "PoolMgr.h"
 #include "QueryHolder.h"
 #include "QuestDef.h"
+#include "QuestFeasibility.h"
 #include "QuestPools.h"
 #include "Realm.h"
 #include "ReputationMgr.h"
@@ -15141,6 +15142,23 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
 
     if (CanCompleteQuest(quest->GetQuestId()))
         CompleteQuest(quest->GetQuestId());
+    else
+    {
+        QuestFeasibility::UnreachableInfo bypassInfo;
+        if (QuestFeasibility::IsQuestUnreachable(quest, &bypassInfo))
+        {
+            QuestFeasibility::LogBypass(quest, bypassInfo, GetGUID().GetCounter());
+
+            CompleteQuest(quest->GetQuestId());
+            RewardQuest(quest, 0, this, false);
+
+            ChatHandler(GetSession()).PSendSysMessage(
+                "|cffff6060[Quest Bypass]|r La quete '%s' semble impossible a terminer sur ce serveur (contenu manquant) : elle a ete validee et recompensee automatiquement.",
+                quest->GetTitle().c_str());
+
+            return;
+        }
+    }
 
     if (!questGiver)
         return;
