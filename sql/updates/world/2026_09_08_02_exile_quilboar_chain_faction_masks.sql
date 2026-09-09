@@ -1,0 +1,38 @@
+-- By leewheel 2026-09-08
+-- ============================================================================
+-- Isle of Reach (maps 859/860/861/863): fix the FACTION visibility of the
+-- quilboar quest chain NPCs Austin Huxworth (157046, Alliance) and Breka
+-- Grimaxe (245248, Horde).
+--
+-- The first batch (2026_09_08_exile_quest_faction_visibility_fix.sql) covered
+-- the Jaina Proudmoore (156280) / Thrall (166573) chapter only. This second
+-- batch completes the whole mirrored island chain so every quest on the
+-- quilboar / scout-o-matic / boosted-boar chapter is faction locked too:
+--   Alliance: 55184 -> 55186 -> 55193 -> 55879
+--   Horde:    59939 -> 59938 -> 59940 -> 59942   (mirrored order)
+--
+-- AllowableRaces values (same as first batch, see SharedDefines.h):
+--   RACEMASK_ALLIANCE = 1431481421 (0x5552AC4D)  (15 races)
+--   RACEMASK_HORDE    =  716002226 (0x2AAD53B2)  (16 races)
+--
+-- 中文：流放者离岛(859/860/861/863)野猪人任务链 NPC 的阵营可见性修复——
+-- 奥斯汀·赫克斯沃斯(157046，联盟)与布蕾卡·格里姆斧(245248，部落)。
+-- 第一批(2026_09_08_01)只覆盖了吉安娜(156280)/萨尔(166573)章节；本批次补全
+-- 整条镜像岛任务链，使野猪人 / 侦察机器人 / 强化野猪章节全部阵营锁定：
+--   联盟：55184 -> 55186 -> 55193 -> 55879
+--   部落：59939 -> 59938 -> 59940 -> 59942（镜像顺序）
+-- AllowableRaces 取值与第一批相同（见 SharedDefines.h 的 RACEMASK_* 宏）。
+--
+-- FR : Correction de la visibilite par faction des PNJ de la chaine quilboar
+-- sur les cartes 859/860/861/863 : Austin Huxworth (157046, Alliance) et
+-- Breka Grimaxe (245248, Horde). Le premier lot (2026_09_08_01) ne couvrait
+-- que le chapitre Jaina (156280) / Thrall (166573) ; ce second lot verrouille
+-- toute la chaine miroir de l'ile, c'est-a-dire les chapitres quilboar,
+-- scout-o-matic et sanglier renforce :
+--   Alliance : 55184 -> 55186 -> 55193 -> 55879
+--   Horde    : 59939 -> 59938 -> 59940 -> 59942  (ordre miroir)
+-- Valeurs AllowableRaces identiques au premier lot (macros RACEMASK_*).
+-- ============================================================================
+
+UPDATE `quest_template` SET `AllowableRaces` = 1431481421 WHERE `ID` IN (55184, 55186, 55193, 55879);
+UPDATE `quest_template` SET `AllowableRaces` =  716002226 WHERE `ID` IN (59938, 59939, 59940, 59942);

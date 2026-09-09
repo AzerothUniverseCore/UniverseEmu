@@ -408,13 +408,29 @@ void ThreatManager::AddThreat(Unit* target, float amount, SpellInfo const* spell
             if (Unit* tempSummonSummoner = tempSummonVictim->GetSummonerUnit())
             {
                 // Personnal Spawns from same summoner can aggro each other
-                if (!_owner->ToTempSummon() ||
+                // [By leewheel 2026-09-08] Guard against an infinite redirection loop: when the
+                // summoner rides this very TempSummon as a VEHICLE (ex. the per-player quest
+                // chargers 167150/167142 on map 859), the vehicle branch above already
+                // redirected the threat to the vehicle. Redirecting it back to the summoner
+                // here makes the two branches ping-pong forever (stack overflow crash).
+                // Keep the threat on the vehicle itself instead.
+                // (FR) Protection contre une boucle de redirection infinie : quand l'invocateur
+                // chevauche ce TempSummon comme VEHICULE, la branche vehicule ci-dessus a deja
+                // redirige la menace vers le vehicule. La rediriger vers l'invocateur ici ferait
+                // rebondir les deux branches a l'infini (debordement de pile). La menace reste
+                // donc sur le vehicule lui-meme.
+                if (tempSummonSummoner->GetVehicleBase() == tempSummonVictim)
+                {
+                    // threat stays on the personal summon (the ridden vehicle)
+                }
+                else if (!_owner->ToTempSummon() ||
                     !_owner->ToTempSummon()->IsVisibleBySummonerOnly() ||
                     tempSummonVictim->GetSummonerGUID() != GetOwner()->ToTempSummon()->GetSummonerGUID())
                 {
                     AddThreat(tempSummonSummoner, amount, spell, ignoreModifiers, ignoreRedirects);
                     amount = 0.0f;
                 }
+                // End By leewheel
             }
         }
     }

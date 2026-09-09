@@ -1,0 +1,38 @@
+-- By leewheel 2026-09-08
+-- ============================================================================
+-- Isle of Reach (map 859): remove the STATIC spawns of the quilboar quest
+-- chain NPCs (Austin Huxworth 157046 Alliance / Breka Grimaxe 245248 Horde).
+--
+-- These NPCs are now managed per-player by the custom script
+-- "IsleQuilboarStage" (AddSC_isle_quilboar_stage_npc): each player receives
+-- a private TempSummon (visible by summoner only) at the checkpoint matching
+-- his personal quest progress. Keeping the static spawns would leave the
+-- "double / triple Austin" look for everyone, which is the bug being fixed.
+--
+-- The 860/861 camp copies of the same entries are intentionally kept.
+--
+-- 中文：流放者离岛(859图)野猪人任务链 NPC 的静态刷新移除。这些 NPC 现由
+-- 自定义脚本 IsleQuilboarStage(AddSC_isle_quilboar_stage_npc)按玩家管理：
+-- 每位玩家都会获得一个与其个人任务进度相匹配的检查点私属临时召唤副本
+-- (visible by summoner only)。若保留静态刷新，所有人都会看到"两个/三个
+-- 奥斯汀"，这正是要修复的问题。860/861 营地的同名副本故意保留。
+--
+-- FR : Retrait des spawns statiques des PNJ de la chaine quilboar (carte 859).
+-- Ces PNJ sont desormais geres par joueur par le script personnalise
+-- IsleQuilboarStage : chaque joueur recoit une copie privee (TempSummon
+-- visible par l'invocateur uniquement) au point de controle correspondant a sa
+-- progression personnelle. Conserver les spawns statiques laisserait le
+-- "double / triple Austin" visible pour tout le monde. Les copies de camp
+-- (860/861) sont volontairement conservees.
+--
+-- ====== RESTORE (undo) ======================================================
+-- INSERT INTO `creature` VALUES
+-- (14507473,245248,859,0,0,1,1,0,0,-246.732,-2489.28,17.993,2.89274,30,0,0,4050,0,0,0,0,0,'',NULL,0,-1),
+-- (14507488,157046,859,0,0,1,1,0,0,-247.601,-2492.04,17.9996,3.06504,30,0,0,1753,0,0,0,0,0,'',NULL,0,-1),
+-- (14507491,157046,859,0,0,1,1,0,0,-141.2,-2636.59,48.2745,2.22779,30,0,0,1753,0,0,0,0,0,'',NULL,0,-1),
+-- (14507492,245248,859,0,0,1,1,0,0,-144.048,-2638.73,48.5814,2.12442,30,0,0,4050,0,0,0,0,0,'',NULL,0,-1),
+-- (14507495,157046,859,0,0,1,1,0,0,100.148,-2419.73,90.2718,0.251483,30,0,0,1753,0,0,0,0,0,'',NULL,0,-1),
+-- (14507496,245248,859,0,0,1,1,0,0,102.587,-2417.51,90.3689,5.0011,30,0,0,4050,0,0,0,0,0,'',NULL,0,-1);
+-- ============================================================================
+
+DELETE FROM `creature` WHERE `guid` IN (14507488, 14507491, 14507495, 14507473, 14507492, 14507496);

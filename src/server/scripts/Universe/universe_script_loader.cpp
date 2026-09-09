@@ -24,6 +24,13 @@ void AddStartGuildScripts();
 void AddSC_starting_pet();
 void AddSC_syphrena_recycling();
 void AddSC_syphrena_first_aid();
+//By leewheel 2026-09-08
+// Isle of Reach (map 859) quilboar chain: per-player checkpoint NPCs,
+// whole-island mirrored quest NPCs and per-player ride vehicles.
+// (FR) Carte 859, chaine quilboar : PNJ de points de controle par joueur,
+// PNJ miroirs de l'ile et objets de transport par joueur.
+// End By leewheel
+void AddSC_isle_quilboar_stage_npc();
 void AddSC_azgath_gift_mount();
 void AddSC_REFORGER_NPC();
 void AddSC_Transmogrification();
@@ -72,6 +79,9 @@ void AddUniverseScripts()
 	AddSC_starting_pet();
 	AddSC_syphrena_recycling();
 	AddSC_syphrena_first_aid();
+	//By leewheel 2026-09-08
+	AddSC_isle_quilboar_stage_npc();
+	// End By leewheel
 	AddSC_azgath_gift_mount();
 	AddSC_REFORGER_NPC();
 	AddSC_Transmogrification();

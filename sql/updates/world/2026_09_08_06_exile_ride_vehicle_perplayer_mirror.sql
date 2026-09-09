@@ -1,0 +1,52 @@
+-- By leewheel 2026-09-08
+-- ============================================================================
+-- Exile's Reach (map 859): the three quest ride objects of the quilboar chain
+-- are now per-player mirrored copies (isle_stage_mirror_vehicle in
+-- IsleQuilboarStage.cpp). Their STATIC spawns are removed so that no player
+-- ever sees the ride object of the other faction at the same time:
+--   167027 Exploro-matic 5000 taxi     (scouting quests 55193 Alliance /
+--          59940 Horde, credit driven by the Eluna script
+--          Delivery_Mount_IsleReachAH.lua)       - static guid 8000022
+--   167142 Choppy Booster Mk. 5        (Horde charge quest 59942, real
+--          VehicleId 123 mount)                  - static guid 14507499
+--   167150 Giant Boar                  (Alliance charge quest 55879, real
+--          VehicleId 123 mount, added by the 2026_09_08_05 update)
+--                                                 - static guid 14507796
+--
+-- Each ride appears only for the player who needs it:
+--   * scouting quest active            -> his private taxi 167027
+--   * scouting rewarded + charge active -> his faction charger (167150 A /
+--     167142 H)
+--   * charge quest rewarded            -> nothing
+--
+-- The smart_scripts row of 167142 ("On Passenger Removed - Despawn In
+-- 20000 ms") is removed too: once the spawn is a per-player TempSummon its
+-- life cycle is owned by the stage manager. Keeping the despawn would make
+-- the ride vanish right after the passenger steps off (and, previously, with
+-- a static spawn without respawn it could disappear forever, which is why
+-- Horde players sometimes found "no charger to ride").
+--
+-- 中文：离岛(859)骑乘任务三件载具改由 C++ 阶段管理器按玩家阵营与任务进度
+-- 生成专属临时副本(isle_stage_mirror_vehicle)，故删除静态刷新，避免跨阵营
+-- 同屏(联盟不应看到部落冲锋车 167142，部落不应看到联盟野猪 167150)。
+-- 同时删除 167142 的"乘客离开 20 秒后消失"智能脚本——旧静态版下车即消失
+-- 且无重生，部落玩家会遇上"冲锋车不见了"。
+--
+-- FR : Retrait des spawns statiques des trois objets de transport de l'ile
+-- (carte 859) : taxi 167027, monture de charge horde 167142 et monture de
+-- charge alliance 167150. Ils sont desormais des copies privees pilotees par
+-- joueur (isle_stage_mirror_vehicle). La ligne smart_scripts de 167142
+-- ("despawn 20 s apres le retrait du passager") est supprimee : le cycle de
+-- vie est gere par le gestionnaire d'etapes.
+--
+-- ====== RESTORE (undo) ======================================================
+-- INSERT INTO `creature` (`guid`,`id`,`map`,`zoneId`,`areaId`,`spawnMask`,`phaseMask`,`modelid`,`equipment_id`,`position_x`,`position_y`,`position_z`,`orientation`,`spawntimesecs`,`wander_distance`,`currentwaypoint`,`curhealth`,`curmana`,`MovementType`,`npcflag`,`unit_flags`,`dynamicflags`,`ScriptName`,`StringId`,`VerifiedBuild`,`size`) VALUES
+-- (8000022,167027,859,0,0,1,1,0,0,107.872,-2414.18,95.4484,0,30,0,0,100,0,0,0,0,0,'',NULL,52649,-1),
+-- (14507499,167142,859,0,0,1,1,0,0,119.142,-2424.02,95.7469,0.965119,30,0,0,13,0,0,0,0,0,'',NULL,0,-1),
+-- (14507796,167150,859,0,0,1,1,0,0,99.5,-2422.5,90.4,0.9,30,0,0,100,0,0,0,0,0,'',NULL,0,3);
+-- INSERT INTO `smart_scripts` (`entryorguid`,`source_type`,`id`,`link`,`event_type`,`event_phase_mask`,`event_chance`,`event_flags`,`event_param1`,`event_param2`,`event_param3`,`event_param4`,`event_param5`,`action_type`,`action_param1`,`action_param2`,`action_param3`,`action_param4`,`action_param5`,`action_param6`,`target_type`,`target_param1`,`target_param2`,`target_param3`,`target_param4`,`target_x`,`target_y`,`target_z`,`target_o`,`comment`) VALUES
+-- (167142,0,0,0,28,0,100,0,0,0,0,0,0,41,20000,0,0,0,0,0,1,0,0,0,0,0,0,0,0,'Choppy Booster Mk. 5 - On Passenger Removed - Despawn In 20000 ms');
+-- ============================================================================
+
+DELETE FROM `creature` WHERE `guid` IN (8000022, 14507499, 14507796) AND `map` = 859;
+DELETE FROM `smart_scripts` WHERE `entryorguid` = 167142 AND `source_type` = 0 AND `id` = 0;
