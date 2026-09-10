@@ -5861,7 +5861,7 @@ NpcBot.EnrageOnDismiss = 1
 #        Note2:       You must have at least this number of non-spawned bots in creature_template.
 #        Default:     0 - (Disabled)
 
-NpcBot.WanderingBots.Continents.Count = 0
+NpcBot.WanderingBots.Continents.Count = 800
 
 #
 #    NpcBot.WanderingBots.Continents.Levels

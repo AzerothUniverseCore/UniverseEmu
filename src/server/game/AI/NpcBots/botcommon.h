@@ -24,7 +24,8 @@ enum BotCommonValues
     BOT_GIVER_ENTRY                     = 70000,
     BOT_ENTRY_BEGIN                     = 70001,
     //BOT_ENTRY_END                       = 71000,
-    BOT_ENTRY_CREATE_BEGIN              = 70800, // 70800+ reserved for bot creation
+    // scanning through it.
+    BOT_ENTRY_CREATE_BEGIN              = 71650, // 71650+ reserved for bot creation
     //BOT_PET_ENTRY_BEGIN                 = 70501,
     //BOT_PET_ENTRY_END                   = 70550,
     BOT_ENTRY_MIRROR_IMAGE_BM           = 70552,
