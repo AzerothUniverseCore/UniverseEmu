@@ -86,7 +86,7 @@ void WhoListStorageMgr::Update()
             wstrToLower(wideBotName);
 
             std::string guildName;
-            if (Player* owner = botAI->GetBotOwner())
+            if (Player* owner = botAI->GetBotOwner()->ToPlayer())
                 guildName = sGuildMgr->GetGuildNameById(owner->GetGuildId());
 
             std::wstring wideGuildName;
