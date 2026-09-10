@@ -1352,6 +1352,15 @@ void BotDataMgr::GenerateWanderingBots()
     SC_LOG_INFO("server.loading", ">> Set up spawning of {} wandering bots in {} ms", spawned_count, GetMSTimeDiffToNow(oldMSTime));
 }
 
+void BotDataMgr::QueueWandererReplacement(uint32 mapId)
+{
+    uint32 spawnedCount = 0;
+    if (!sBotGen->GenerateWanderingBotsToSpawn(1, int32(mapId), -1, false, nullptr, nullptr, spawnedCount))
+        SC_LOG_ERROR("npcbots", "BotDataMgr::QueueWandererReplacement(): failed to queue a replacement "
+            "wandering bot for map {} (spare pool for some class may be exhausted, or this map lacks "
+            "spawn nodes covering all three team brackets).", mapId);
+}
+
 bool BotDataMgr::GenerateBattlegroundBots(Player const* groupLeader, [[maybe_unused]] Group const* group, BattlegroundQueue* queue, PvPDifficultyEntry const* bracketEntry, GroupQueueInfo const* gqinfo)
 {
     if (!BotMgr::IsBotGenerationEnabledBGs())

@@ -1551,6 +1551,9 @@ BotAddResult BotMgr::AddBot(Creature* bot)
     ASSERT(bot->IsNPCBot());
     ASSERT(bot->GetBotAI() != nullptr);
 
+    bool const wasWanderer = bot->GetBotAI()->IsWanderer();
+    uint32 const wandererMapId = bot->GetMapId();
+
     bool owned = bot->GetBotAI()->IsTempBot() || bot->GetBotAI()->GetBotOwnerGuid() == _owner->GetGUID().GetCounter();
     uint8 owned_count = BotDataMgr::GetOwnedBotsCount(_owner->GetGUID());
     uint8 class_count = BotDataMgr::GetOwnedBotsCount(_owner->GetGUID(), bot->GetClassMask());
@@ -1647,6 +1650,12 @@ BotAddResult BotMgr::AddBot(Creature* bot)
 
         uint32 newOwner = _owner->GetGUID().GetCounter();
         BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
+
+        if (wasWanderer)
+        {
+            bot->GetBotAI()->ClearWandererState();
+            BotDataMgr::QueueWandererReplacement(wandererMapId);
+        }
     }
 
     return BOT_ADD_SUCCESS;

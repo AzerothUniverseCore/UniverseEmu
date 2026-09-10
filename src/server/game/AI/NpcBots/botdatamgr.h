@@ -190,6 +190,7 @@ class BotDataMgr
         static uint8 GetOwnedBotsCount(ObjectGuid owner_guid, uint32 class_mask = 0);
 
         static void DespawnWandererBot(uint32 entry);
+        static void QueueWandererReplacement(uint32 mapId);
         static void LoadWanderMap(bool reload = false);
         static void GenerateWanderingBots();
         static bool GenerateBattlegroundBots(Player const* groupLeader, Group const* group, BattlegroundQueue* queue, PvPDifficultyEntry const* bracketEntry, GroupQueueInfo const* gqinfo);

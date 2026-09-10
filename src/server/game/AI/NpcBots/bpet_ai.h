@@ -58,6 +58,7 @@ class bot_pet_ai : public CreatureAI
         //wandering bots
         bool IsWanderer() const { return _wanderer; }
         void SetWanderer() { if (IAmFree()) _wanderer = true; }
+        void ClearWandererState() { _wanderer = false; }
 
         uint64 GetAuraUpdateMaskForRaid() const { return _auraRaidUpdateMask; }
         void SetAuraUpdateMaskForRaid(uint8 slot) { _auraRaidUpdateMask |= (uint64(1) << slot); }

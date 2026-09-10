@@ -7458,13 +7458,13 @@ float bot_ai::CalcSpellMaxRange(uint32 spellId, bool enemy) const
 //GOSSIP//
 //////////
 //GossipHello
+
 bool bot_ai::OnGossipHello(Player* player, uint32 /*option*/)
 {
     if (!BotMgr::IsNpcBotModEnabled() || !BotMgr::IsClassEnabled(_botclass) ||
         IsTempBot() || me->IsInCombat() || CCed(me) || IsCasting() || IsDuringTeleport() ||
         HasBotCommandState(BOT_COMMAND_ISSUED_ORDER | BOT_COMMAND_NOGOSSIP) ||
-        (me->GetVehicle() && me->GetVehicle()->GetBase()->IsInCombat()) ||
-        (!player->IsGameMaster() && IsWanderer()))
+        (me->GetVehicle() && me->GetVehicle()->GetBase()->IsInCombat()))
     {
         player->PlayerTalkClass->SendCloseGossip();
         return true;
@@ -7517,7 +7517,7 @@ bool bot_ai::OnGossipHello(Player* player, uint32 /*option*/)
 
     if (player->GetGUID().GetCounter() != _ownerGuid)
     {
-        if (IAmFree() && !IsWanderer())
+        if (IAmFree())
         {
             uint32 cost = BotMgr::GetNpcBotCost(player->GetLevel(), _botclass);
 
@@ -18001,7 +18001,7 @@ void bot_ai::AbortTeleport()
 
 void bot_ai::GetHomePosition(uint16& mapid, Position* pos) const
 {
-    if (IsWanderer())
+    if (IsWanderer() || (!me->GetCreatureData() && _travel_node_cur))
     {
         mapid = _travel_node_cur->GetMapId();
         pos->Relocate(homepos);
@@ -18731,6 +18731,16 @@ void bot_ai::SetWanderer()
         if (botPet)
             botPet->GetBotPetAI()->SetWanderer();
     }
+}
+
+void bot_ai::ClearWandererState()
+{
+    _wanderer = false;
+
+    me->SetPvP(master->IsPvP());
+
+    if (botPet)
+        botPet->GetBotPetAI()->ClearWandererState();
 }
 
 void bot_ai::KillEvents(bool force)
