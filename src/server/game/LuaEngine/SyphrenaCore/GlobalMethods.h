@@ -8,6 +8,7 @@
 #define GLOBALMETHODS_H
 
 #include "BindingMap.h"
+#include "botdatamgr.h"
 
 /***
  * These functions can be used anywhere at any time, including at start-up.
@@ -234,6 +235,15 @@ namespace LuaGlobalFunctions
     int GetPlayerCount(lua_State* L)
     {
         Eluna::Push(L, eWorld->GetActiveSessionCount());
+        return 1;
+    }
+
+    /**
+     * @return uint32 count
+     */
+    int GetNpcBotsCount(lua_State* L)
+    {
+        Eluna::Push(L, uint32(BotDataMgr::GetExistingNPCBots().size()));
         return 1;
     }
 
@@ -3352,6 +3362,7 @@ namespace LuaGlobalFunctions
         { "GetGuildByName", &LuaGlobalFunctions::GetGuildByName },
         { "GetGuildByLeaderGUID", &LuaGlobalFunctions::GetGuildByLeaderGUID },
         { "GetPlayerCount", &LuaGlobalFunctions::GetPlayerCount },
+        { "GetNpcBotsCount", &LuaGlobalFunctions::GetNpcBotsCount },
         { "GetPlayerGUID", &LuaGlobalFunctions::GetPlayerGUID },
         { "GetItemGUID", &LuaGlobalFunctions::GetItemGUID },
 		{ "GetItemTemplate", &LuaGlobalFunctions::GetItemTemplate },
