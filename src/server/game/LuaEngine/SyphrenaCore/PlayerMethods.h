@@ -8,6 +8,10 @@
 #define PLAYERMETHODS_H
 
 #include "AchievementMgr.h"
+#include "WhoListStorage.h"
+#include "RBAC.h"
+#include "AccountMgr.h"
+#include "DBCStores.h"
 
 /***
  * Inherits all methods from: [Object], [WorldObject], [Unit]
@@ -3349,6 +3353,64 @@ namespace LuaPlayer
     }
 
     /**
+     * Each returned table entry is itself a table: { name, guild, level, class, race, zone, zoneName, team, isPlayer }
+     *
+     * @return table results
+     */
+    int GetFullWhoList(lua_State* L, Player* player)
+    {
+        lua_newtable(L);
+        int tbl = lua_gettop(L);
+        uint32 i = 0;
+
+        WorldSession* session = player->GetSession();
+        bool const seeAllTeams = session->HasPermission(rbac::RBAC_PERM_TWO_SIDE_WHO_LIST);
+        bool const seeAllSecLevels = session->HasPermission(rbac::RBAC_PERM_WHO_SEE_ALL_SEC_LEVELS);
+        uint32 const myTeam = player->GetTeam();
+        AccountTypes const mySec = session->GetSecurity();
+
+        for (WhoListPlayerInfo const& target : sWhoListStorageMgr->GetWhoList())
+        {
+            if (!seeAllTeams && target.GetTeam() != myTeam)
+                continue;
+
+            if (!seeAllSecLevels && target.GetSecurity() > mySec)
+                continue;
+
+            if (player->GetGUID() != target.GetGuid() && !target.IsVisible())
+                if (AccountMgr::IsPlayerAccount(mySec) || target.GetSecurity() > mySec)
+                    continue;
+
+            lua_newtable(L);
+            Eluna::Push(L, target.GetPlayerName());
+            lua_setfield(L, -2, "name");
+            Eluna::Push(L, target.GetGuildName());
+            lua_setfield(L, -2, "guild");
+            Eluna::Push(L, target.GetLevel());
+            lua_setfield(L, -2, "level");
+            Eluna::Push(L, target.GetClass());
+            lua_setfield(L, -2, "class");
+            Eluna::Push(L, target.GetRace());
+            lua_setfield(L, -2, "race");
+            Eluna::Push(L, target.GetZoneId());
+            lua_setfield(L, -2, "zone");
+            std::string zoneName;
+            if (AreaTableEntry const* areaEntry = sAreaTableStore.LookupEntry(target.GetZoneId()))
+                zoneName = areaEntry->AreaName[session->GetSessionDbcLocale()];
+            Eluna::Push(L, zoneName);
+            lua_setfield(L, -2, "zoneName");
+            Eluna::Push(L, target.GetTeam());
+            lua_setfield(L, -2, "team");
+            Eluna::Push(L, target.GetGuid().IsPlayer());
+            lua_setfield(L, -2, "isPlayer");
+
+            lua_rawseti(L, tbl, ++i);
+        }
+
+        return 1;
+    }
+
+    /**
      * Kicks the [Player] from the server
      */
     int KickPlayer(lua_State* /*L*/, Player* player)
@@ -4313,6 +4375,7 @@ namespace LuaPlayer
         { "SendNotification", &LuaPlayer::SendNotification },
         { "SendPacket", &LuaPlayer::SendPacket },
         { "SendAddonMessage", &LuaPlayer::SendAddonMessage },
+        { "GetFullWhoList", &LuaPlayer::GetFullWhoList },
         { "ModifyMoney", &LuaPlayer::ModifyMoney },
         { "LearnSpell", &LuaPlayer::LearnSpell },
         { "LearnTalent", &LuaPlayer::LearnTalent },
