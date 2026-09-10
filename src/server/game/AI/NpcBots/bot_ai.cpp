@@ -49,6 +49,7 @@
 #include "World.h"
 
 #include "G3DPosition.hpp"
+#include <cctype>
 /*
 NpcBot System by Trickerer (https://github.com/trickerer/Syphrena-Bots; onlysuffering@gmail.com)
 Version 5.2.77a
@@ -1309,6 +1310,36 @@ void bot_ai::SetBotCommandState(uint32 st, bool force, Position* newpos, float* 
 void bot_ai::RemoveBotCommandState(uint32 st)
 {
     _botCommandState &= ~st;
+}
+
+bool bot_ai::HandleWhisperCommand(Player* whisperer, std::string const& command)
+{
+    if (!whisperer || whisperer->GetGUID().GetCounter() != _ownerGuid)
+        return false;
+
+    std::string token = command.substr(0, command.find_first_of(" \t"));
+    std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
+
+    if (token == "follow" || token == "suivre")
+    {
+        SetBotCommandState(BOT_COMMAND_FOLLOW, true);
+        BotWhisper(token == "suivre" ? "Je te suis." : "Following you.", whisperer);
+        return true;
+    }
+    if (token == "stay" || token == "wait" || token == "attendre" || token == "reste")
+    {
+        SetBotCommandState(BOT_COMMAND_STAY);
+        BotWhisper((token == "attendre" || token == "reste") ? "Je reste en position." : "Holding position.", whisperer);
+        return true;
+    }
+    if (token == "stop" || token == "arrete")
+    {
+        SetBotCommandState(BOT_COMMAND_FULLSTOP);
+        BotWhisper(token == "stop" ? "Stopped." : "Je m'arrete.", whisperer);
+        return true;
+    }
+
+    return false;
 }
 
 bool bot_ai::IsPointedTarget(Unit const* target, uint8 targetFlags) const

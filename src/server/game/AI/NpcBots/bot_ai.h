@@ -119,6 +119,7 @@ class bot_ai : public CreatureAI
         void MoveToLastSendPosition() { MoveToSendPosition(sendlastpos); }
         void MarkSendPosition(uint32 point_id);
         void SetBotCommandState(uint32 st, bool force = false, Position* newpos = nullptr, float* speed = nullptr);
+        bool HandleWhisperCommand(Player* whisperer, std::string const& command);
         void RemoveBotCommandState(uint32 st);
         bool HasBotCommandState(uint32 st) const { return (_botCommandState & st); }
         void SetBotAwaitState(uint8 state);

@@ -21,6 +21,8 @@
 #include "Common.h"
 #include "Channel.h"
 #include "ChannelMgr.h"
+#include "bot_ai.h"
+#include "botmgr.h"
 #include "Chat.h"
 #include "ChatPackets.h"
 #include "DatabaseEnv.h"
@@ -350,6 +352,23 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
             }
 
             Player* receiver = ObjectAccessor::FindConnectedPlayerByName(to);
+
+            if (!receiver)
+            {
+                if (BotMgr* senderBotMgr = sender->GetBotMgr())
+                {
+                    if (Creature* bot = senderBotMgr->GetBotByName(to))
+                    {
+                        if (bot_ai* botAI = bot->GetBotAI())
+                        {
+                            if (!botAI->HandleWhisperCommand(sender, msg))
+                                ChatHandler(this).SendSysMessage("Bot commands: follow (suivre), stay (attendre/reste), stop (arrete).");
+                            return;
+                        }
+                    }
+                }
+            }
+
             if (!receiver || (lang != LANG_ADDON && !receiver->isAcceptWhispers() && receiver->GetSession()->HasPermission(rbac::RBAC_PERM_CAN_FILTER_WHISPERS) && !receiver->IsInWhisperWhiteList(sender->GetGUID())))
             {
                 if (sWorld->getBoolConfig(CONFIG_WHO_BOTS_ENABLE))
