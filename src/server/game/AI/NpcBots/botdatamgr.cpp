@@ -1102,7 +1102,7 @@ void BotDataMgr::LoadWanderMap(bool reload)
             flags &= ~conflicting_flags_1;
         }
 
-        if (mapEntry->IsContinent() && !BotMgr::IsBotGenerationEnabledWorldMapId(mapId))
+        if (mapEntry->IsWorldMap() && !BotMgr::IsBotGenerationEnabledWorldMapId(mapId))
         {
             ++disabled_nodes;
             continue;

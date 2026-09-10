@@ -462,9 +462,10 @@ void BotMgr::LoadConfig(bool reload)
         }
         uint32 uval = val.value_or(uint32(0));
         MapEntry const* mapEntry = sMapStore.LookupEntry(uval);
-        if (!mapEntry || !mapEntry->IsContinent())
+
+        if (!mapEntry || !mapEntry->IsWorldMap())
         {
-            SC_LOG_ERROR("server.loading", "NpcBot.WanderingBots.Continents.Maps contains invalid continent map id '{}', skipped", uval);
+            SC_LOG_ERROR("server.loading", "NpcBot.WanderingBots.Continents.Maps contains invalid world map id '{}', skipped", uval);
             continue;
         }
         _enabled_wander_node_maps.push_back(uval);
