@@ -279,6 +279,15 @@ bot_ai::bot_ai(Creature* creature) : CreatureAI(creature)
     _travel_node_last = nullptr;
     _travel_node_cur = nullptr;
 
+    _wanderQuestId = 0;
+    _wanderQuestTargetEntry = 0;
+    _wanderQuestProgress = 0;
+    _wanderQuestGoal = 0;
+    _wanderQuestTurningIn = false;
+    _wanderQuestGiverGUID = ObjectGuid::Empty;
+    _wanderQuestGiverPos = Position();
+    _wanderQuestCheckTimer = 0;
+
     _groupUpdateMask = 0;
     _auraRaidUpdateMask = 0;
     _bg = nullptr;
@@ -15475,6 +15484,12 @@ void bot_ai::KilledUnit(Unit* u)
 
         if (me->GetMap()->GetEntry()->IsContinent())
             evadeDelayTimer = 3000;
+
+        if (_wanderQuestId && !_wanderQuestTurningIn && int32(u->GetEntry()) == _wanderQuestTargetEntry)
+        {
+            if (++_wanderQuestProgress >= _wanderQuestGoal)
+                _wanderQuestTurningIn = true;
+        }
     }
 }
 
@@ -17563,6 +17578,9 @@ void bot_ai::CommonTimers(uint32 diff)
     if (IAmFree())
         UpdateReviveTimer(diff);
 
+    if (IsWanderer())
+        UpdateWanderQuestTurnIn(diff);
+
     if (me->IsInWorld())
     {
         if (_wmoAreaUpdateTimer > diff) _wmoAreaUpdateTimer -= diff;
@@ -18449,6 +18467,104 @@ WanderNode const* bot_ai::GetNextBGTravelNode() const
     return nullptr;
 }
 
+void bot_ai::CheckWanderQuestPickup()
+{
+    if (!IsWanderer() || _wanderQuestId || _wanderQuestTurningIn)
+        return;
+
+    std::list<Creature*> nearby;
+    Syphrena::AllCreaturesOfEntryInRange check(me, 0, 30.f);
+    Syphrena::CreatureListSearcher<Syphrena::AllCreaturesOfEntryInRange> searcher(me, nearby, check);
+    Cell::VisitAllObjects(me, searcher, 30.f);
+
+    for (Creature* giver : nearby)
+    {
+        if (giver == me || !giver->IsAlive())
+            continue;
+
+        QuestRelationResult qr = sObjectMgr->GetCreatureQuestRelations(giver->GetEntry());
+        for (uint32 questId : qr)
+        {
+            Quest const* quest = sObjectMgr->GetQuestTemplate(questId);
+            if (!quest || quest->GetReqItemsCount() != 0)
+                continue;
+
+            int32 targetEntry = 0;
+            uint32 targetCount = 0;
+            uint8 killSlots = 0;
+            bool hasOtherObjective = false;
+            for (uint8 i = 0; i < QUEST_OBJECTIVES_COUNT; ++i)
+            {
+                if (quest->RequiredNpcOrGo[i] > 0 && quest->RequiredNpcOrGoCount[i] > 0)
+                {
+                    targetEntry = quest->RequiredNpcOrGo[i];
+                    targetCount = quest->RequiredNpcOrGoCount[i];
+                    ++killSlots;
+                }
+                else if (quest->RequiredNpcOrGo[i] != 0 && quest->RequiredNpcOrGoCount[i] > 0)
+                    hasOtherObjective = true; // negative entry = GameObject objective, not a simple kill quest
+            }
+            if (killSlots != 1 || hasOtherObjective)
+                continue;
+
+            uint8 mylevel = me->GetLevel();
+            if (mylevel < quest->GetMinLevel())
+                continue;
+            if (quest->GetMaxLevel() > 0 && mylevel > quest->GetMaxLevel())
+                continue;
+
+            _wanderQuestId = questId;
+            _wanderQuestTargetEntry = targetEntry;
+            _wanderQuestGoal = uint16(std::min<uint32>(targetCount, 65535u));
+            _wanderQuestProgress = 0;
+            _wanderQuestTurningIn = false;
+            _wanderQuestGiverGUID = giver->GetGUID();
+            _wanderQuestGiverPos.Relocate(giver);
+
+            SC_LOG_DEBUG("npcbots", "Wandering bot {} id {} accepted quest '{}' (id {}) from {} - needs {} kills of creature {}.",
+                me->GetName(), me->GetEntry(), quest->GetTitle(), questId, giver->GetName(), _wanderQuestGoal, targetEntry);
+
+            return; // one quest at a time, stop scanning
+        }
+    }
+}
+
+void bot_ai::UpdateWanderQuestTurnIn(uint32 diff)
+{
+    if (!_wanderQuestId || !_wanderQuestTurningIn)
+        return;
+
+    if (_wanderQuestCheckTimer > diff)
+    {
+        _wanderQuestCheckTimer -= diff;
+        return;
+    }
+    _wanderQuestCheckTimer = 1500;
+
+    if (!me->IsAlive() || me->IsInCombat())
+        return; // wait for a calmer moment before travelling to turn in
+
+    float dist = me->GetExactDist2d(&_wanderQuestGiverPos);
+    if (dist > 5.0f)
+    {
+        if (!me->isMoving())
+            BotMovement(BOT_MOVE_POINT, &_wanderQuestGiverPos);
+        return;
+    }
+
+    _killsCount += _wanderQuestGoal;
+
+    SC_LOG_DEBUG("npcbots", "Wandering bot {} id {} turned in quest id {}.",
+        me->GetName(), me->GetEntry(), _wanderQuestId);
+
+    _wanderQuestId = 0;
+    _wanderQuestTargetEntry = 0;
+    _wanderQuestProgress = 0;
+    _wanderQuestGoal = 0;
+    _wanderQuestTurningIn = false;
+    _wanderQuestGiverGUID = ObjectGuid::Empty;
+}
+
 void bot_ai::OnWanderNodeReached()
 {
     ASSERT(me->IsInWorld());
@@ -18717,6 +18833,8 @@ void bot_ai::OnWanderNodeReached()
             }
         }
     }
+    else
+        CheckWanderQuestPickup();
 }
 
 void bot_ai::OnBotEnterBattleground()
@@ -18769,6 +18887,13 @@ void bot_ai::ClearWandererState()
     _wanderer = false;
 
     me->SetPvP(master->IsPvP());
+
+    _wanderQuestId = 0;
+    _wanderQuestTargetEntry = 0;
+    _wanderQuestProgress = 0;
+    _wanderQuestGoal = 0;
+    _wanderQuestTurningIn = false;
+    _wanderQuestGiverGUID = ObjectGuid::Empty;
 
     if (botPet)
         botPet->GetBotPetAI()->ClearWandererState();

@@ -560,6 +560,9 @@ class bot_ai : public CreatureAI
     private:
         void FindMaster();
 
+        void CheckWanderQuestPickup();
+        void UpdateWanderQuestTurnIn(uint32 diff);
+
         void _OnHealthUpdate() const;
         void _OnManaUpdate() const;
         void _OnManaRegenUpdate() const;
@@ -706,6 +709,15 @@ class bot_ai : public CreatureAI
         uint8 _baseLevel;
         WanderNode const* _travel_node_last;
         WanderNode const* _travel_node_cur;
+
+        uint32 _wanderQuestId;
+        int32 _wanderQuestTargetEntry;
+        uint16 _wanderQuestProgress;
+        uint16 _wanderQuestGoal;
+        bool _wanderQuestTurningIn;
+        ObjectGuid _wanderQuestGiverGUID;
+        Position _wanderQuestGiverPos;
+        uint32 _wanderQuestCheckTimer;
 
         uint32 _groupUpdateMask;
         uint64 _auraRaidUpdateMask;
