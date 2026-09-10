@@ -563,6 +563,9 @@ class bot_ai : public CreatureAI
         void CheckWanderQuestPickup();
         void UpdateWanderQuestTurnIn(uint32 diff);
 
+        void CheckWanderSparInvite();
+        void UpdateWanderSpar(uint32 diff);
+
         void _OnHealthUpdate() const;
         void _OnManaUpdate() const;
         void _OnManaRegenUpdate() const;
@@ -718,6 +721,10 @@ class bot_ai : public CreatureAI
         ObjectGuid _wanderQuestGiverGUID;
         Position _wanderQuestGiverPos;
         uint32 _wanderQuestCheckTimer;
+
+        ObjectGuid _sparOpponentGUID;
+        uint32 _sparCheckTimer;
+        uint32 _sparCooldownTimer;
 
         uint32 _groupUpdateMask;
         uint64 _auraRaidUpdateMask;

@@ -288,6 +288,10 @@ bot_ai::bot_ai(Creature* creature) : CreatureAI(creature)
     _wanderQuestGiverPos = Position();
     _wanderQuestCheckTimer = 0;
 
+    _sparOpponentGUID = ObjectGuid::Empty;
+    _sparCheckTimer = 0;
+    _sparCooldownTimer = 0;
+
     _groupUpdateMask = 0;
     _auraRaidUpdateMask = 0;
     _bg = nullptr;
@@ -3682,10 +3686,15 @@ bool bot_ai::CanBotAttack(Unit const* target, int8 byspell, bool secondary) cons
         return false;
     if (!BotMgr::IsPvPEnabled() && me->IsPvP() && target->IsControlledByPlayer())
         return false;
-    if (me->GetFaction() == 35 && IAmFree() && target->GetTypeId() == TYPEID_UNIT && target->GetVictim() != me)
-        return false;
-    if ((target->GetFaction() == 35 || target->GetFaction() == me->GetFaction()) && me->GetFaction() != 14)
-        return false;
+
+    bool const isAgreedSparOpponent = !_sparOpponentGUID.IsEmpty() && target->GetGUID() == _sparOpponentGUID;
+    if (!isAgreedSparOpponent)
+    {
+        if (me->GetFaction() == 35 && IAmFree() && target->GetTypeId() == TYPEID_UNIT && target->GetVictim() != me)
+            return false;
+        if ((target->GetFaction() == 35 || target->GetFaction() == me->GetFaction()) && me->GetFaction() != 14)
+            return false;
+    }
     if (!CanBotAttackOnVehicle())
         return false;
     if (IsPointedNoDPSTarget(target))
@@ -17579,7 +17588,10 @@ void bot_ai::CommonTimers(uint32 diff)
         UpdateReviveTimer(diff);
 
     if (IsWanderer())
+    {
         UpdateWanderQuestTurnIn(diff);
+        UpdateWanderSpar(diff);
+    }
 
     if (me->IsInWorld())
     {
@@ -18469,7 +18481,7 @@ WanderNode const* bot_ai::GetNextBGTravelNode() const
 
 void bot_ai::CheckWanderQuestPickup()
 {
-    if (!IsWanderer() || _wanderQuestId || _wanderQuestTurningIn)
+    if (!IsWanderer() || _wanderQuestId || _wanderQuestTurningIn || !_sparOpponentGUID.IsEmpty())
         return;
 
     std::list<Creature*> nearby;
@@ -18563,6 +18575,86 @@ void bot_ai::UpdateWanderQuestTurnIn(uint32 diff)
     _wanderQuestGoal = 0;
     _wanderQuestTurningIn = false;
     _wanderQuestGiverGUID = ObjectGuid::Empty;
+}
+
+void bot_ai::CheckWanderSparInvite()
+{
+    if (!IsWanderer() || !_sparOpponentGUID.IsEmpty() || _sparCooldownTimer || _wanderQuestId || me->IsInCombat())
+        return;
+
+    std::list<Creature*> nearby;
+    Syphrena::AllCreaturesOfEntryInRange check(me, 0, 20.f);
+    Syphrena::CreatureListSearcher<Syphrena::AllCreaturesOfEntryInRange> searcher(me, nearby, check);
+    Cell::VisitAllObjects(me, searcher, 20.f);
+
+    for (Creature* other : nearby)
+    {
+        if (other == me || !other->IsAlive() || !other->IsNPCBot() || other->IsInCombat())
+            continue;
+
+        bot_ai* otherAI = other->GetBotAI();
+        if (!otherAI || !otherAI->IsWanderer())
+            continue;
+        if (!otherAI->_sparOpponentGUID.IsEmpty() || otherAI->_sparCooldownTimer || otherAI->_wanderQuestId)
+            continue;
+
+        if (urand(0, 99) >= 20) // ~20% chance per eligible encounter - occasional, not constant
+            continue;
+
+        _sparOpponentGUID = other->GetGUID();
+        _sparCheckTimer = 500;
+        otherAI->_sparOpponentGUID = me->GetGUID();
+        otherAI->_sparCheckTimer = 500;
+
+        BotYell("A nous deux !", nullptr);
+
+        SC_LOG_DEBUG("npcbots", "Wandering bot {} id {} challenges wandering bot {} id {} to a friendly duel.",
+            me->GetName(), me->GetEntry(), other->GetName(), other->GetEntry());
+
+        return; // one duel at a time, stop scanning
+    }
+}
+
+void bot_ai::UpdateWanderSpar(uint32 diff)
+{
+    if (_sparCooldownTimer)
+        _sparCooldownTimer = (_sparCooldownTimer > diff) ? (_sparCooldownTimer - diff) : 0;
+
+    if (_sparOpponentGUID.IsEmpty())
+        return;
+
+    if (_sparCheckTimer > diff)
+    {
+        _sparCheckTimer -= diff;
+        return;
+    }
+    _sparCheckTimer = 500;
+
+    Unit* opponentUnit = ObjectAccessor::GetUnit(*me, _sparOpponentGUID);
+    Creature* sparOpponent = opponentUnit ? opponentUnit->ToCreature() : nullptr;
+    bot_ai* opponentAI = sparOpponent ? sparOpponent->GetBotAI() : nullptr;
+
+    bool const shouldEnd = !sparOpponent || !sparOpponent->IsAlive() || !opponentAI ||
+        opponentAI->_sparOpponentGUID != me->GetGUID() ||
+        me->GetHealthPct() <= 25.0f || sparOpponent->GetHealthPct() <= 25.0f;
+
+    if (!shouldEnd)
+        return;
+
+    if (opponentAI && opponentAI->_sparOpponentGUID == me->GetGUID())
+    {
+        opponentAI->_sparOpponentGUID = ObjectGuid::Empty;
+        opponentAI->_sparCooldownTimer = 60000;
+        if (sparOpponent->IsInCombat() && sparOpponent->GetVictim() == me)
+            sparOpponent->AttackStop();
+    }
+
+    _sparOpponentGUID = ObjectGuid::Empty;
+    _sparCooldownTimer = 60000;
+    if (me->IsInCombat() && me->GetVictim() == sparOpponent)
+        me->AttackStop();
+
+    SC_LOG_DEBUG("npcbots", "Wandering bot {} id {} ends friendly duel.", me->GetName(), me->GetEntry());
 }
 
 void bot_ai::OnWanderNodeReached()
@@ -18834,7 +18926,10 @@ void bot_ai::OnWanderNodeReached()
         }
     }
     else
+    {
         CheckWanderQuestPickup();
+        CheckWanderSparInvite();
+    }
 }
 
 void bot_ai::OnBotEnterBattleground()
@@ -18894,6 +18989,8 @@ void bot_ai::ClearWandererState()
     _wanderQuestGoal = 0;
     _wanderQuestTurningIn = false;
     _wanderQuestGiverGUID = ObjectGuid::Empty;
+
+    _sparOpponentGUID = ObjectGuid::Empty;
 
     if (botPet)
         botPet->GetBotPetAI()->ClearWandererState();
