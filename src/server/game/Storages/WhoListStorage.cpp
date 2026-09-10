@@ -21,6 +21,11 @@
 #include "Player.h"
 #include "GuildMgr.h"
 #include "WorldSession.h"
+//npcbot
+#include "Creature.h"
+#include "botdatamgr.h"
+#include "bot_ai.h"
+//end npcbot
 
 WhoListStorageMgr* WhoListStorageMgr::instance()
 {
@@ -58,4 +63,45 @@ void WhoListStorageMgr::Update()
             itr->second->GetClass(), itr->second->GetRace(), itr->second->GetZoneId(), itr->second->GetNativeGender(), itr->second->IsVisible(),
             widePlayerName, wideGuildName, playerName, guildName);
     }
+
+    //npcbot
+    {
+        std::shared_lock<std::shared_mutex> botLock(*BotDataMgr::GetLock());
+        NpcBotRegistry const& bots = BotDataMgr::GetExistingNPCBots();
+        _whoListStorage.reserve(_whoListStorage.size() + bots.size());
+        for (Creature const* bot : bots)
+        {
+            if (!bot || !bot->IsInWorld())
+                continue;
+
+            bot_ai* botAI = bot->GetBotAI();
+            if (!botAI)
+                continue;
+
+            std::string botName = bot->GetName();
+            std::wstring wideBotName;
+            if (!Utf8toWStr(botName, wideBotName))
+                continue;
+
+            wstrToLower(wideBotName);
+
+            std::string guildName;
+            if (Player* owner = botAI->GetBotOwner())
+                guildName = sGuildMgr->GetGuildNameById(owner->GetGuildId());
+
+            std::wstring wideGuildName;
+            if (!Utf8toWStr(guildName, wideGuildName))
+                continue;
+
+            wstrToLower(wideGuildName);
+
+            uint8 const botClass = botAI->GetPlayerClass();
+            uint8 const botRace = botAI->GetPlayerRace();
+            uint32 const botTeam = BotDataMgr::GetTeamForFaction(bot->GetFaction());
+
+            _whoListStorage.emplace_back(bot->GetGUID(), botTeam, SEC_PLAYER, bot->GetLevel(), botClass, botRace,
+                bot->GetZoneId(), bot->GetNativeGender(), true, wideBotName, wideGuildName, botName, guildName);
+        }
+    }
+    //end npcbot
 }
