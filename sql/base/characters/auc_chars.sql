@@ -15288,6 +15288,26 @@ insert  into `character_reputation`(`guid`,`faction`,`standing`,`flags`) values
 (1,1181,0,0),
 (1,1204,0,16);
 
+/*Table structure for table `character_restore_log` */
+
+DROP TABLE IF EXISTS `character_restore_log`;
+
+CREATE TABLE `character_restore_log` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `old_account_id` int(10) unsigned NOT NULL COMMENT 'id du compte sur l ancienne auc_auth (auth_old)',
+  `old_character_guid` int(10) unsigned NOT NULL COMMENT 'guid du personnage sur l ancienne auc_chars (chars_old)',
+  `old_character_name` varchar(12) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `new_account_id` int(10) unsigned NOT NULL COMMENT 'id du compte ACTUEL (auc_auth) qui a recupere le personnage',
+  `new_character_guid` int(10) unsigned NOT NULL COMMENT 'guid attribue au personnage restaure sur la base live',
+  `restored_at` datetime NOT NULL,
+  `restored_ip` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_old_character_guid` (`old_character_guid`),
+  KEY `idx_new_account_id` (`new_account_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Journal des restaurations de personnages (voir application/modules/restauration)';
+
+/*Data for the table `character_restore_log` */
+
 /*Table structure for table `character_secondary_spell_choices` */
 
 DROP TABLE IF EXISTS `character_secondary_spell_choices`;

@@ -131,6 +131,22 @@ CREATE TABLE `autobroadcast` (
 
 /*Data for the table `autobroadcast` */
 
+/*Table structure for table `bot_status` */
+
+DROP TABLE IF EXISTS `bot_status`;
+
+CREATE TABLE `bot_status` (
+  `realm_id` int(10) unsigned NOT NULL,
+  `npcbots_count` int(10) unsigned NOT NULL DEFAULT 0,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`realm_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `bot_status` */
+
+insert  into `bot_status`(`realm_id`,`npcbots_count`,`updated_at`) values 
+(1,291,'2026-09-11 03:04:58');
+
 /*Table structure for table `build_executable_hash` */
 
 DROP TABLE IF EXISTS `build_executable_hash`;

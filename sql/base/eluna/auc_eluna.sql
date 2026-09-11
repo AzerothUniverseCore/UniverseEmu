@@ -190,6 +190,18 @@ CREATE TABLE `characters_parangontwo` (
 
 /*Data for the table `characters_parangontwo` */
 
+/*Table structure for table `contributor_weekly_reward` */
+
+DROP TABLE IF EXISTS `contributor_weekly_reward`;
+
+CREATE TABLE `contributor_weekly_reward` (
+  `accountID` int(10) unsigned NOT NULL,
+  `last_reward_at` int(10) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`accountID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `contributor_weekly_reward` */
+
 /*Table structure for table `index_spell_bonus_action` */
 
 DROP TABLE IF EXISTS `index_spell_bonus_action`;
