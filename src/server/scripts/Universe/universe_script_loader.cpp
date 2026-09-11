@@ -47,6 +47,7 @@ void AddSC_AccountMounts();
 void AddSC_premium_account();
 void AddSC_custom_reload_commands();
 void AddSC_minelevationtrigger();
+void AddSC_npc_dalaran_legion_weapon_guide();
 /* ######################## > */
 
 /* ######### Event ######## > */
@@ -98,6 +99,7 @@ void AddUniverseScripts()
 	AddSC_premium_account();
 	AddSC_custom_reload_commands();
 	AddSC_minelevationtrigger();
+	AddSC_npc_dalaran_legion_weapon_guide();
 /* ######################## > */
 
 /* ######### Event ######## > */
