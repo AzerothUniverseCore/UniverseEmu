@@ -1,5 +1,5 @@
 /*
-SQLyog Community v13.3.1 (64 bit)
+SQLyog Community v13.3.0 (64 bit)
 MySQL - 10.5.8-MariaDB : Database - auc_website
 *********************************************************************
 */
@@ -1512,6 +1512,25 @@ CREATE TABLE `votes_logs` (
 ) ENGINE=InnoDB AUTO_INCREMENT=44789 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
 
 /*Data for the table `votes_logs` */
+
+/*Table structure for table `votes_rpgparadize_otp` */
+
+DROP TABLE IF EXISTS `votes_rpgparadize_otp`;
+
+CREATE TABLE `votes_rpgparadize_otp` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `idaccount` int(10) unsigned NOT NULL,
+  `idvote` int(10) unsigned NOT NULL,
+  `otp_token` varchar(128) NOT NULL,
+  `requested_at` int(10) unsigned NOT NULL,
+  `expires_at` int(10) unsigned NOT NULL,
+  `status` enum('pending','verified','expired') NOT NULL DEFAULT 'pending',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_status_expires` (`status`,`expires_at`),
+  KEY `idx_account_vote` (`idaccount`,`idvote`)
+) ENGINE=InnoDB AUTO_INCREMENT=103 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
+
+/*Data for the table `votes_rpgparadize_otp` */
 
 /*Table structure for table `zones` */
 
