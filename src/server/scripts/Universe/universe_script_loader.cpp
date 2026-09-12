@@ -48,6 +48,7 @@ void AddSC_premium_account();
 void AddSC_custom_reload_commands();
 void AddSC_minelevationtrigger();
 void AddSC_npc_dalaran_legion_weapon_guide();
+void AddSC_npc_jaedenar_legionnaire_netheril_guide();
 /* ######################## > */
 
 /* ######### Event ######## > */
@@ -100,6 +101,7 @@ void AddUniverseScripts()
 	AddSC_custom_reload_commands();
 	AddSC_minelevationtrigger();
 	AddSC_npc_dalaran_legion_weapon_guide();
+	AddSC_npc_jaedenar_legionnaire_netheril_guide();
 /* ######################## > */
 
 /* ######### Event ######## > */
