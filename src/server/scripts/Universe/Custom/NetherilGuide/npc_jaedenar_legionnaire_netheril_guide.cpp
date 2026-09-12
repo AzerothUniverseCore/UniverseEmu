@@ -25,6 +25,8 @@
 #include "Duration.h"
 #include <unordered_map>
 
+// Guide Jaedenar Legionnaire
+
 namespace
 {
     enum NetherilGuidePhase : uint8
@@ -68,33 +70,43 @@ namespace
         SAY_CAMP_FAREWELL      = 18
     };
 
+    // Point de depart
     static float const ShipStart[4] = { -11800.7f, 2953.42f, 2745.98f, 1.51408f };
 
+    // Point d'arrivee a Netheril
     static float const CampStart[4] = { -14749.9f, -13192.5f, 34.431f, 1.89685f };
 
     struct GuidePoint { float x, y, z; };
-    struct GuideDialogueLine { uint32 afterPoint; uint32 textId; };
 
+    // pauseMs
+    struct GuideDialogueLine { uint32 afterPoint; uint32 textId; uint32 pauseMs; };
+
+    // Pause
+    static uint32 const SHIP_START_PAUSE_MS = 6000;
+    static uint32 const CAMP_ARRIVE_PAUSE_MS = 2500;
+
+    // --- Vaisseau de la Legion (map 781) -----------------------------------
     static GuidePoint const ShipPath[] =
     {
         { -11800.9f, 2958.73f, 2745.98f }, // 1
         { -11802.6f, 2967.51f, 2745.98f }, // 2
         { -11804.8f, 2974.75f, 2745.98f }, // 3
         { -11807.0f, 2981.84f, 2745.98f }, // 4
-        { -11809.1f, 2988.21f, 2745.98f }, // 5 - Teleport To Netheril
+        { -11809.1f, 2988.21f, 2745.98f }, // 5 - dernier arret avant teleportation vers Netheril
     };
     static uint32 const ShipPathSize = sizeof(ShipPath) / sizeof(GuidePoint);
 
     static GuideDialogueLine const ShipDialogue[] =
     {
-        { 1, SAY_SHIP_1          },
-        { 2, SAY_SHIP_2          },
-        { 3, SAY_SHIP_3          },
-        { 4, SAY_SHIP_4          },
-        { 5, SAY_SHIP_5_TELEPORT },
+        { 1, SAY_SHIP_1,          3000 },
+        { 2, SAY_SHIP_2,          3500 },
+        { 3, SAY_SHIP_3,          4500 },
+        { 4, SAY_SHIP_4,          4500 },
+        { 5, SAY_SHIP_5_TELEPORT, 4000 },
     };
     static uint32 const ShipDialogueSize = sizeof(ShipDialogue) / sizeof(GuideDialogueLine);
 
+    // --- Camp de Netheril (map 725) ----------------------------------------
     static GuidePoint const CampPath[] =
     {
         { -14747.2f, -13188.3f, 34.4086f  }, // 1
@@ -211,18 +223,18 @@ namespace
 
     static GuideDialogueLine const CampDialogue[] =
     {
-        { 1,   SAY_CAMP_INTRO         },
-        { 7,   SAY_CAMP_QUEST1        },
-        { 12,  SAY_CAMP_GEARZONE      },
-        { 20,  SAY_CAMP_GEAR2         },
-        { 23,  SAY_CAMP_HF            },
-        { 26,  SAY_CAMP_CONVERT       },
-        { 28,  SAY_CAMP_RECIPES       },
-        { 30,  SAY_CAMP_GEAR_ALLIANCE },
-        { 32,  SAY_CAMP_QUEST2        },
-        { 44,  SAY_CAMP_PVP           },
-        { 93,  SAY_CAMP_QUEST3        },
-        { 109, SAY_CAMP_FAREWELL      },
+        { 1,   SAY_CAMP_INTRO,         3000 },
+        { 7,   SAY_CAMP_QUEST1,        3500 },
+        { 12,  SAY_CAMP_GEARZONE,      8000 },
+        { 20,  SAY_CAMP_GEAR2,         3500 },
+        { 23,  SAY_CAMP_HF,            6000 },
+        { 26,  SAY_CAMP_CONVERT,       6500 },
+        { 28,  SAY_CAMP_RECIPES,       2500 },
+        { 30,  SAY_CAMP_GEAR_ALLIANCE, 4500 },
+        { 32,  SAY_CAMP_QUEST2,        3000 },
+        { 44,  SAY_CAMP_PVP,           6500 },
+        { 93,  SAY_CAMP_QUEST3,        3500 },
+        { 109, SAY_CAMP_FAREWELL,      7000 },
     };
     static uint32 const CampDialogueSize = sizeof(CampDialogue) / sizeof(GuideDialogueLine);
 
@@ -248,6 +260,39 @@ public:
         bool guiding = false;
         bool isShipPhase = true;
         ObjectGuid followedPlayerGuid;
+
+        // Pause "explication"
+        bool paused = false;
+        uint32 pauseTimer = 0;
+        bool pendingIncrementAfterPause = false;
+
+        void BeginPause(uint32 ms, bool incrementPathIndexAfter)
+        {
+            paused = true;
+            pauseTimer = ms;
+            pendingIncrementAfterPause = incrementPathIndexAfter;
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            if (!paused)
+                return;
+
+            if (diff >= pauseTimer)
+            {
+                paused = false;
+
+                if (pendingIncrementAfterPause)
+                {
+                    pendingIncrementAfterPause = false;
+                    ++pathIndex;
+                }
+
+                StepForward();
+            }
+            else
+                pauseTimer -= diff;
+        }
 
         bool OnGossipHello(Player* player)
         {
@@ -319,7 +364,7 @@ public:
             guiding = true;
             me->SetWalk(true);
             Talk(SAY_SHIP_START);
-            StepForward();
+            BeginPause(SHIP_START_PAUSE_MS, false);
         }
 
         void StartCampGuiding()
@@ -328,7 +373,7 @@ public:
             pathIndex = 0;
             guiding = true;
             Talk(SAY_CAMP_ARRIVE);
-            StepForward();
+            BeginPause(CAMP_ARRIVE_PAUSE_MS, false);
         }
 
         void StepForward()
@@ -373,7 +418,9 @@ public:
                     if (lines[i].afterPoint == reachedPoint)
                     {
                         Talk(lines[i].textId);
-                        break;
+						
+                        BeginPause(lines[i].pauseMs, true);
+                        return;
                     }
                 }
 

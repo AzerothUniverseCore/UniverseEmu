@@ -11,7 +11,7 @@ INSERT INTO `creature_text` VALUES (2000512, 6, 0, 'Here we are, we\'ve arrived 
 INSERT INTO `creature_text` VALUES (2000512, 7, 0, 'Follow me, I\'ll show you around.', 12, 0, 100, 0, 0, 0, 0, 0, 'Guide Netheril - intro visite');
 INSERT INTO `creature_text` VALUES (2000512, 8, 0, 'Pick up your quests here, then we\'ll continue on our way.', 12, 0, 100, 0, 0, 0, 0, 0, 'Guide Netheril - quetes 1');
 INSERT INTO `creature_text` VALUES (2000512, 9, 0, 'This is where you\'ll find the creatures to defeat in order to earn gear vouchers, which you can then convert to equip yourself before Azeroth Universe\'s custom dungeons.', 12, 0, 100, 0, 0, 0, 0, 0, 'Guide Netheril - zone creatures/bons d\'equipement');
-INSERT INTO `creature_text` VALUES (2000512, 10, 0, 'You can also pick up gear vouchers around here.', 12, 0, 100, 0, 0, 0, 0, 0, 'Guide Netheril - bons d\'equipement bis');
+INSERT INTO `creature_text` VALUES (2000512, 10, 0, 'You can also pick up gear around here.', 12, 0, 100, 0, 0, 0, 0, 0, 'Guide Netheril - bons d\'equipement bis');
 INSERT INTO `creature_text` VALUES (2000512, 11, 0, 'To access the first dungeon of the Lands of Fyra, S0 tier of Azeroth Universe, you\'ll need to earn the Netheril achievement.', 12, 0, 100, 0, 0, 0, 0, 0, 'Guide Netheril - haut fait');
 INSERT INTO `creature_text` VALUES (2000512, 12, 0, 'By defeating the creatures I showed you, you\'ll earn gear vouchers. Here, you can convert them into higher-tier gear vouchers.', 12, 0, 100, 0, 0, 0, 0, 0, 'Guide Netheril - conversion des bons');
 INSERT INTO `creature_text` VALUES (2000512, 13, 0, 'Here, you can buy your recipes.', 12, 0, 100, 0, 0, 0, 0, 0, 'Guide Netheril - vente de recettes');
@@ -31,7 +31,7 @@ INSERT INTO `creature_text_locale` VALUES (2000512, 6, 0, 'frFR', 'Nous voici ar
 INSERT INTO `creature_text_locale` VALUES (2000512, 7, 0, 'frFR', 'Suivez-moi, je vais vous faire visiter les lieux.');
 INSERT INTO `creature_text_locale` VALUES (2000512, 8, 0, 'frFR', 'Prenez vos quêtes ici, puis nous continuons notre chemin.');
 INSERT INTO `creature_text_locale` VALUES (2000512, 9, 0, 'frFR', 'C\'est ici que se trouvent les créatures à vaincre pour obtenir des bons d\'équipement, à convertir ensuite pour vous équiper avant les donjons personnalisés d\'Azeroth Universe.');
-INSERT INTO `creature_text_locale` VALUES (2000512, 10, 0, 'frFR', 'Vous pouvez également récupérer des bons d\'équipement par ici.');
+INSERT INTO `creature_text_locale` VALUES (2000512, 10, 0, 'frFR', 'Vous pouvez également récupérer vos d\'équipements par ici.');
 INSERT INTO `creature_text_locale` VALUES (2000512, 11, 0, 'frFR', 'Pour accéder au premier donjon des Terres de Fyra, palier S0 d\'Azeroth Universe, vous devrez obtenir le haut fait de Netheril.');
 INSERT INTO `creature_text_locale` VALUES (2000512, 12, 0, 'frFR', 'En vainquant les créatures que je vous ai montrées, vous obtiendrez des bons d\'équipement. Ici, vous pourrez les convertir en bons d\'équipement supérieurs.');
 INSERT INTO `creature_text_locale` VALUES (2000512, 13, 0, 'frFR', 'Ici, vous pourrez acheter vos recettes.');
