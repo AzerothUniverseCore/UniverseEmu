@@ -450,7 +450,7 @@ void BotMgr::LoadConfig(bool reload)
     ASSERT(total_pct == 100u, "NpcBot.WanderingBots.Continents.Levels sum of values must be exactly 100!");
 
     _enabled_wander_node_maps.clear();
-    std::string enabled_wander_node_maps = sConfigMgr->GetStringDefault("NpcBot.WanderingBots.Continents.Maps", "0,1,530,571");
+    std::string enabled_wander_node_maps = sConfigMgr->GetStringDefault("NpcBot.WanderingBots.Continents.Maps", "0,1,530,571,754,807,811");
     std::vector<std::string_view> toks3 = Syphrena::Tokenize(enabled_wander_node_maps, ',', false);
     for (decltype(toks3)::size_type i = 0; i != toks3.size(); ++i)
     {
