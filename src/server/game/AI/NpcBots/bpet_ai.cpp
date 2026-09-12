@@ -2163,7 +2163,7 @@ float bot_pet_ai::CalcSpellMaxRange(uint32 spellId, bool enemy) const
 }
 bool bot_pet_ai::IAmFree() const
 {
-    return petOwner->IsFreeBot();
+    return petOwner && petOwner->IsFreeBot();
 }
 
 bool bot_pet_ai::CCed(Unit const* target, bool root)
