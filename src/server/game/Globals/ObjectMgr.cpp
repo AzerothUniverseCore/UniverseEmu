@@ -7620,7 +7620,7 @@ uint32 ObjectMgr::GeneratePetNumber()
 
 uint32 ObjectMgr::GenerateCreatureSpawnId()
 {
-    if (_creatureSpawnId >= uint32(0xFFFFFF))
+    if (_creatureSpawnId >= uint32(0xFFFFFFFE))
     {
         SC_LOG_ERROR("misc", "Creature spawn id overflow!! Can't continue, shutting down server. Search on forum for TCE00007 for more info.");
         World::StopNow(ERROR_EXIT_CODE);
@@ -7630,7 +7630,7 @@ uint32 ObjectMgr::GenerateCreatureSpawnId()
 
 uint32 ObjectMgr::GenerateGameObjectSpawnId()
 {
-    if (_gameObjectSpawnId >= uint32(0xFFFFFF))
+    if (_gameObjectSpawnId >= uint32(0xFFFFFFFE))
     {
         SC_LOG_ERROR("misc", "GameObject spawn id overflow!! Can't continue, shutting down server. Search on forum for TCE00007 for more info. ");
         World::StopNow(ERROR_EXIT_CODE);

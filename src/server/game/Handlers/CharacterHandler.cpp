@@ -16,6 +16,7 @@
  */
 
 #include "WorldSession.h"
+#include "AccountMgr.h"
 #include "ArenaTeamMgr.h"
 #include "CalendarMgr.h"
 #include "CharacterCache.h"
@@ -224,6 +225,14 @@ bool LoginQueryHolder::Initialize()
     return res;
 }
 
+// Azeroth Universe custom: marker prepended to the display name of a
+// synthetic "deleted character" entry injected into SMSG_CHAR_ENUM (see
+// HandleCharEnum below). normalizePlayerName() never allows this character
+// in a real name, so it can never collide with a legitimate character and
+// the client can reliably detect and hide these entries by default.
+// Kept in sync with GlueXML/CharacterSelect.lua's DELETED_CHAR_MARKER.
+char const* const DELETED_CHAR_NAME_MARKER = "~";
+
 void WorldSession::HandleCharEnum(PreparedQueryResult result)
 {
     WorldPacket data(SMSG_CHAR_ENUM, 100);                  // we guess size
@@ -250,6 +259,30 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
                 ++num;
             }
         } while (result->NextRow() && num < MAX_CHARACTERS_PER_REALM); // client shows an error if more than 20 characters are listed
+    }
+
+    // Azeroth Universe custom: opcode-reuse restore feature. Append this
+    // account's soft-deleted characters as extra, clearly-marked entries in
+    // the SAME SMSG_CHAR_ENUM response (still capped at MAX_CHARACTERS_PER_REALM
+    // total). The client keeps these hidden from the normal roster and only
+    // surfaces them in a dedicated "Restore a Character" panel; because they
+    // travel through the stock enum with their real GUID, the stock
+    // DeleteCharacter(id) call (CMSG_CHAR_DELETE) can later be reused to
+    // request a restore for one of them without any new opcode.
+    if (num < MAX_CHARACTERS_PER_REALM)
+    {
+        CharacterDatabasePreparedStatement* delStmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_ENUM_DELETED);
+        delStmt->setString(0, DELETED_CHAR_NAME_MARKER);
+        delStmt->setUInt8(1, PET_SAVE_AS_CURRENT);
+        delStmt->setUInt32(2, GetAccountId());
+        if (PreparedQueryResult delResult = CharacterDatabase.Query(delStmt))
+        {
+            do
+            {
+                if (Player::BuildEnumData(delResult, &data))
+                    ++num;
+            } while (delResult->NextRow() && num < MAX_CHARACTERS_PER_REALM);
+        }
     }
 
     data.put<uint8>(0, num);
@@ -817,6 +850,90 @@ void WorldSession::HandleCharDeleteOpcode(WorldPacket& recvData)
     recvData >> guid;
     // Initiating
     uint32 initAccountId = GetAccountId();
+
+    // Azeroth Universe custom: opcode-reuse restore feature.
+    // The client's "Restore a Character" panel is populated from the
+    // synthetic, marker-named entries HandleCharEnum() appends to
+    // SMSG_CHAR_ENUM (see above). When the player confirms a restore, the
+    // client calls the same stock DeleteCharacter(id) it uses for normal
+    // deletion, which resolves to the character's REAL guid client-side and
+    // sends this same CMSG_CHAR_DELETE opcode. Detect that case here -- guid
+    // already soft-deleted and owned (via deleteInfos_Account) by the
+    // requesting account -- and perform a restore instead of a delete,
+    // replying with the same CHAR_DELETE_SUCCESS the client already
+    // understands. A soft-deleted character can never be "loaded" or a
+    // guild leader/arena captain, so this must run before those checks,
+    // which rely on character-cache/lookup data that no longer exists for
+    // a deleted character (Player::DeleteFromDB removes its cache entry).
+    {
+        CharacterDatabasePreparedStatement* delInfoStmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_DEL_INFO_BY_GUID);
+        delInfoStmt->setUInt32(0, guid.GetCounter());
+        if (PreparedQueryResult delInfoResult = CharacterDatabase.Query(delInfoStmt))
+        {
+            Field* delFields = delInfoResult->Fetch();
+            std::string deleteInfoName = delFields[1].GetString();
+            uint32 deleteInfoAccount = delFields[2].GetUInt32();
+
+            if (deleteInfoAccount == initAccountId)
+            {
+                if (AccountMgr::GetCharactersCount(initAccountId) >= sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM))
+                {
+                    SC_LOG_INFO("entities.player.character", "Account: {} tried to restore character {} but the realm character limit was reached.", initAccountId, guid.ToString());
+                    SendCharDelete(CHAR_DELETE_FAILED);
+                    return;
+                }
+
+                std::string restoreName = deleteInfoName;
+                bool needsRename = false;
+
+                // The name may have been taken by someone else since this
+                // character was deleted. Rather than fail outright, restore
+                // under a temporary unique name and flag the character for
+                // the stock forced-rename-at-login flow (the same one
+                // GlueXML already handles via the FORCE_RENAME_CHARACTER
+                // event / CharacterRenameDialog), so the player picks a new
+                // name themselves the first time they log into it.
+                if (restoreName.empty() || sCharacterCache->GetCharacterGuidByName(restoreName))
+                {
+                    needsRename = true;
+                    restoreName = "Restored" + std::to_string(guid.GetCounter());
+                    if (restoreName.size() > 12)
+                        restoreName = restoreName.substr(0, 12);
+                    // Vanishingly unlikely, but guarantee uniqueness of the
+                    // placeholder name too before writing it.
+                    if (sCharacterCache->GetCharacterGuidByName(restoreName))
+                    {
+                        SendCharDelete(CHAR_DELETE_FAILED);
+                        return;
+                    }
+                }
+
+                CharacterDatabasePreparedStatement* restoreStmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_RESTORE_DELETE_INFO);
+                restoreStmt->setString(0, restoreName);
+                restoreStmt->setUInt32(1, initAccountId);
+                restoreStmt->setUInt32(2, guid.GetCounter());
+                CharacterDatabase.Execute(restoreStmt);
+
+                if (needsRename)
+                {
+                    CharacterDatabasePreparedStatement* flagStmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_ADD_AT_LOGIN_FLAG);
+                    flagStmt->setUInt16(0, uint16(AT_LOGIN_RENAME));
+                    flagStmt->setUInt32(1, guid.GetCounter());
+                    CharacterDatabase.Execute(flagStmt);
+                }
+
+                CharacterDatabasePreparedStatement* nameDataStmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_NAME_DATA);
+                nameDataStmt->setUInt32(0, guid.GetCounter());
+                if (PreparedQueryResult nameDataResult = CharacterDatabase.Query(nameDataStmt))
+                    sCharacterCache->AddCharacterCacheEntry(guid, initAccountId, restoreName, (*nameDataResult)[2].GetUInt8(), (*nameDataResult)[0].GetUInt8(), (*nameDataResult)[1].GetUInt8(), (*nameDataResult)[3].GetUInt8());
+
+                SC_LOG_INFO("entities.player.character", "Account: {} restored deleted character {} ({}) via CharacterSelect.", initAccountId, restoreName, guid.ToString());
+
+                SendCharDelete(CHAR_DELETE_SUCCESS);
+                return;
+            }
+        }
+    }
 
     // can't delete loaded character
     if (ObjectAccessor::FindPlayer(guid))

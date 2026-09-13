@@ -51,6 +51,17 @@ void CharacterDatabaseConnection::DoPrepareStatements()
                      "cb.guid, cd.genitive FROM characters AS c LEFT JOIN character_pet AS cp ON c.guid = cp.owner AND cp.slot = ? "
                      "LEFT JOIN character_declinedname AS cd ON c.guid = cd.guid LEFT JOIN guild_member AS gm ON c.guid = gm.guid "
                      "LEFT JOIN character_banned AS cb ON c.guid = cb.guid AND cb.active = 1 WHERE c.account = ?  AND c.deleteInfos_Name IS NULL ORDER BY c.guid", CONNECTION_ASYNC);
+    // Azeroth Universe custom: builds synthetic SMSG_CHAR_ENUM rows for this
+    // account's soft-deleted characters, reusing the exact CHAR_SEL_ENUM
+    // column shape so Player::BuildEnumData() can be called unmodified. The
+    // display name is prefixed with a marker (a character normalizePlayerName
+    // never allows, so it can never collide with a real name) so the client
+    // can recognize and hide these entries by default. Scoped by
+    // deleteInfos_Account (the real 'account' column is zeroed on delete).
+    PrepareStatement(CHAR_SEL_ENUM_DELETED, "SELECT c.guid, CONCAT(?, c.deleteInfos_Name) AS name, c.race, c.class, c.gender, c.skin, c.face, c.hairStyle, c.hairColor, c.facialStyle, c.level, c.zone, c.map, c.position_x, c.position_y, c.position_z, "
+                     "gm.guildid, c.playerFlags, c.at_login, cp.entry, cp.modelid, cp.level, c.equipmentCache, cb.guid "
+                     "FROM characters AS c LEFT JOIN character_pet AS cp ON c.guid = cp.owner AND cp.slot = ? LEFT JOIN guild_member AS gm ON c.guid = gm.guid "
+                     "LEFT JOIN character_banned AS cb ON c.guid = cb.guid AND cb.active = 1 WHERE c.deleteInfos_Account = ? AND c.deleteDate IS NOT NULL ORDER BY c.deleteDate DESC", CONNECTION_SYNCH);
     PrepareStatement(CHAR_SEL_FREE_NAME, "SELECT guid, name, at_login FROM characters WHERE guid = ? AND account = ? AND NOT EXISTS (SELECT NULL FROM characters WHERE name = ?)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_SEL_CHAR_ZONE, "SELECT zone FROM characters WHERE guid = ?", CONNECTION_SYNCH);
     PrepareStatement(CHAR_SEL_CHARACTER_NAME_DATA, "SELECT race, class, gender, level, name FROM characters WHERE guid = ?", CONNECTION_SYNCH);
