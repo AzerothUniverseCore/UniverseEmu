@@ -136,6 +136,9 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
     {
         me->SetReactState(REACT_AGGRESSIVE);
         _enemyKit.Init(creature->GetEntry());
+
+        if (_isRangedArtillery)
+            SetCombatMovement(false);
     }
 
     void Reset() override
@@ -263,12 +266,12 @@ private:
 
                 if (target)
                 {
-                    AttackStart(target);
+                    AttackStartNoMove(target);
                     victim = target;
 
 #ifdef LEGION_SCENARIO_DEBUG_LOG
                     SC_LOG_INFO("scripts.legion_scenario",
-                        "[{}] artillery: acquired player target '{}' at {:.0f}y",
+                        "[{}] artillery: acquired player target '{}' at {:.0f}y (stationary)",
                         me->GetEntry(), target->GetName(), bestDist);
 #endif
                 }
