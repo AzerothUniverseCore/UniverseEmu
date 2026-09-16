@@ -74,8 +74,8 @@ namespace
 
     constexpr float LEGION_LEASH_RANGE = 60.0f;
 
-    constexpr float ARTILLERY_SEEK_RANGE = 50.0f;
-    constexpr float ARTILLERY_MAX_RANGE = 40.0f;
+    constexpr float ARTILLERY_SEEK_RANGE = 900.0f;
+    constexpr float ARTILLERY_MAX_RANGE = 900.0f;
     constexpr uint32 ARTILLERY_SCAN_INTERVAL = 2000; // 2 s
 
     LegionScenario::Side g_advancingSide = LegionScenario::SIDE_ENEMY;
