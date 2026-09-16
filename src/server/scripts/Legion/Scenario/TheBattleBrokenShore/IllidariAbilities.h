@@ -29,7 +29,7 @@ namespace LegionScenario
     {
         SPELL_MORSURE_DU_DEMON        = 162243,
         SPELL_EBRANLEMENT              = 98898,
-        SPELL_LANCER_DE_GLAIVE         = 9994,
+        SPELL_LANCER_DE_GLAIVE         = 99994,
         SPELL_FRAPPE_INFERNALE         = 100006,
         SPELL_POINTS_DEMONIAQUES       = 203819,
         SPELL_ENTAILLE                 = 100010,
