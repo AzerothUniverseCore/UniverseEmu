@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "LegionEscort.h"
-#include "LegionScenario.h"
+#include "BattleBrokenShoreEscort.h"
+#include "TheBattleBrokenShore.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
