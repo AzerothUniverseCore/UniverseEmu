@@ -198,10 +198,10 @@ namespace LegionEscort
     constexpr uint32 COMBAT_GATE_BOSS2_POINT = 149;
 
     constexpr uint32 HORDE_LEADER = 956655;
-    constexpr uint32 HORDE_MEMBERS[4] = { 1505945, 953127, 957600, 1513927 };
+    constexpr uint32 HORDE_MEMBERS[2] = { 1505945, 953127 };
 
     constexpr uint32 ALLIANCE_LEADER = 957599;
-    constexpr uint32 ALLIANCE_MEMBERS[4] = { 956420, 959045, 1513924, 956931 };
+    constexpr uint32 ALLIANCE_MEMBERS[2] = { 956420, 959045 };
 
     constexpr uint32 HORDE_QUESTGIVER = 956930;
     constexpr uint32 ALLIANCE_QUESTGIVER = 953759;
