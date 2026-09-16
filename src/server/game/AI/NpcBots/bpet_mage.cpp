@@ -75,10 +75,14 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
+            if (!canUpdate)
+                return;
+
             if ((liveTimer += diff) >= uint32(IAmFree() ? (1 * HOUR * IN_MILLISECONDS) : ELEMENTAL_DURATION))
             {
                 canUpdate = false;
-                me->ToTempSummon()->UnSummon(1);
+                if (TempSummon* summon = me->ToTempSummon())
+                    summon->UnSummon(1);
                 return;
             }
 

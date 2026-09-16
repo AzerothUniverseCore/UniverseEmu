@@ -58,6 +58,9 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
+            if (!canUpdate)
+                return;
+
             if ((liveTimer += diff) >= INFERNAL_DURATION)
             {
                 canUpdate = false;

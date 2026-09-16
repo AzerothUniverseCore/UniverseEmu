@@ -178,6 +178,9 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
+            if (!canUpdate)
+                return;
+
             _activeTimer += diff;
 
             if (!GlobalUpdate(diff))
@@ -239,7 +242,8 @@ public:
                     if (expired)
                     {
                         canUpdate = false;
-                        me->ToTempSummon()->UnSummon(1);
+                        if (TempSummon* summon = me->ToTempSummon())
+                            summon->UnSummon(1);
                         return;
                     }
                 }

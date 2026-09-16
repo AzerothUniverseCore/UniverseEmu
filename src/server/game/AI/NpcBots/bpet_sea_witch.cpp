@@ -86,17 +86,22 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
+            if (!canUpdate)
+                return;
+
             if (((liveTimer += diff) >= TORNADO_DURATION) || !petOwner->GetBotAI()->HasRole(BOT_ROLE_DPS))
             {
                 canUpdate = false;
-                me->ToTempSummon()->UnSummon(1);
+                if (TempSummon* summon = me->ToTempSummon())
+                    summon->UnSummon(1);
                 return;
             }
             else if ((IsIndoors() && !me->IsOutdoors()) && (isIndoorsTimer += diff) >= TORNADO_DISSIPATE_TIMER)
             {
                 canUpdate = false;
                 me->SetObjectScale(me->GetNativeObjectScale() / 2.f);
-                me->ToTempSummon()->UnSummon(2000);
+                if (TempSummon* summon = me->ToTempSummon())
+                    summon->UnSummon(2000);
                 return;
             }
 
