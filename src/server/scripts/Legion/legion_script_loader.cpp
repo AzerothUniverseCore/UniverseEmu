@@ -28,6 +28,9 @@ void AddSC_instance_hallsofvalor();
 void AddSC_instance_legionship();
 // TheNighthold
 void AddSC_instance_thenighthold();
+// TheBattleBrokenShore
+void AddSC_legion_scenario();
+void AddSC_legion_escort();
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
 void AddLegionScripts()
@@ -44,4 +47,7 @@ void AddLegionScripts()
     AddSC_instance_legionship();
 	// TheNighthold
     AddSC_instance_thenighthold();
+	// TheBattleBrokenShore
+	AddSC_legion_scenario();
+	AddSC_legion_escort();
 }
