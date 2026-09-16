@@ -74,6 +74,10 @@ namespace
 
     constexpr float LEGION_LEASH_RANGE = 60.0f;
 
+    constexpr float ARTILLERY_SEEK_RANGE = 50.0f;
+    constexpr float ARTILLERY_MAX_RANGE = 40.0f;
+    constexpr uint32 ARTILLERY_SCAN_INTERVAL = 2000; // 2 s
+
     LegionScenario::Side g_advancingSide = LegionScenario::SIDE_ENEMY;
 
     bool IsAdvancing(LegionScenario::Side side)
@@ -125,8 +129,10 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
         _side(LegionScenario::GetSide(creature->GetEntry())),
         _isBoss(LegionScenario::IsBossEntry(creature->GetEntry())),
         _isIllidari(LegionScenario::IsIllidariDemonHunter(creature->GetEntry())),
+        _isRangedArtillery(LegionScenario::GetEnemyArchetype(creature->GetEntry()) == LegionScenario::EnemyArchetype::BOSS_INFERNAL),
         _seekTimer(LEGION_SEEK_INTERVAL),
-        _meleeStuckTimer(0)
+        _meleeStuckTimer(0),
+        _artilleryScanTimer(0)
     {
         me->SetReactState(REACT_AGGRESSIVE);
         _enemyKit.Init(creature->GetEntry());
@@ -136,12 +142,19 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
     {
         _seekTimer = LEGION_SEEK_INTERVAL;
         _meleeStuckTimer = 0;
+        _artilleryScanTimer = 0;
         _illidariKit.Reset();
         _enemyKit.Reset();
     }
 
     void UpdateAI(uint32 diff) override
     {
+        if (_isRangedArtillery)
+        {
+            UpdateRangedArtillery(diff);
+            return;
+        }
+
         if (Unit* victim = me->GetVictim())
         {
             if (!victim->IsAlive() || !me->IsAlive())
@@ -209,6 +222,63 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
     }
 
 private:
+    void UpdateRangedArtillery(uint32 diff)
+    {
+        Unit* victim = me->GetVictim();
+
+        _artilleryScanTimer += diff;
+        if (_artilleryScanTimer >= ARTILLERY_SCAN_INTERVAL)
+        {
+            _artilleryScanTimer = 0;
+
+            if (victim && (!victim->IsAlive() || me->GetDistance(victim) > ARTILLERY_MAX_RANGE
+                    || !me->IsWithinLOSInMap(victim)))
+            {
+                me->AttackStop();
+                victim = nullptr;
+            }
+
+            if (!victim)
+            {
+                std::list<Player*> nearbyPlayers;
+                me->GetPlayerListInGrid(nearbyPlayers, ARTILLERY_SEEK_RANGE);
+
+                Player* target = nullptr;
+                float bestDist = ARTILLERY_SEEK_RANGE;
+
+                for (Player* player : nearbyPlayers)
+                {
+                    if (!player || !player->IsAlive() || player->IsGameMaster())
+                        continue;
+                    if (!me->IsWithinLOSInMap(player))
+                        continue;
+
+                    float dist = me->GetDistance(player);
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        target = player;
+                    }
+                }
+
+                if (target)
+                {
+                    AttackStart(target);
+                    victim = target;
+
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+                    SC_LOG_INFO("scripts.legion_scenario",
+                        "[{}] artillery: acquired player target '{}' at {:.0f}y",
+                        me->GetEntry(), target->GetName(), bestDist);
+#endif
+                }
+            }
+        }
+
+        if (victim && _enemyKit.IsActive())
+            _enemyKit.Update(me, victim, diff);
+    }
+
     void TrySeekEnemy()
     {
         float range = IsAdvancing(_side) ? LEGION_SEEK_RANGE_ADVANCE : LEGION_SEEK_RANGE_DEFEND;
@@ -258,8 +328,10 @@ private:
     LegionScenario::Side _side;
     bool _isBoss;
     bool _isIllidari;
+    bool _isRangedArtillery;
     uint32 _seekTimer;
     uint32 _meleeStuckTimer;
+    uint32 _artilleryScanTimer;
     LegionScenario::IllidariCombatKit _illidariKit;
     LegionScenario::EnemyCombatKit _enemyKit;
 };
