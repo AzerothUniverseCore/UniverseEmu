@@ -16,6 +16,7 @@
  */
 
 #include "TheBattleBrokenShore.h"
+#include "IllidariAbilities.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "Player.h"
@@ -122,6 +123,7 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
     npc_legion_scenario_combatantAI(Creature* creature) : ScriptedAI(creature),
         _side(LegionScenario::GetSide(creature->GetEntry())),
         _isBoss(LegionScenario::IsBossEntry(creature->GetEntry())),
+        _isIllidari(LegionScenario::IsIllidariDemonHunter(creature->GetEntry())),
         _seekTimer(LEGION_SEEK_INTERVAL),
         _meleeStuckTimer(0)
     {
@@ -132,6 +134,7 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
     {
         _seekTimer = LEGION_SEEK_INTERVAL;
         _meleeStuckTimer = 0;
+        _illidariKit.Reset();
     }
 
     void UpdateAI(uint32 diff) override
@@ -166,6 +169,10 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
                     _meleeStuckTimer = 0;
 
                 DoMeleeAttackIfReady();
+
+                if (_isIllidari)
+                    _illidariKit.Update(me, victim, diff);
+
                 return;
             }
         }
@@ -245,8 +252,10 @@ private:
 
     LegionScenario::Side _side;
     bool _isBoss;
+    bool _isIllidari;
     uint32 _seekTimer;
     uint32 _meleeStuckTimer;
+    LegionScenario::IllidariCombatKit _illidariKit;
 };
 
 class npc_legion_scenario_combatant : public CreatureScript

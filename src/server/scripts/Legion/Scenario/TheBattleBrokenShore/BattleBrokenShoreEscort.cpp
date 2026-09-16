@@ -17,6 +17,7 @@
 
 #include "BattleBrokenShoreEscort.h"
 #include "TheBattleBrokenShore.h"
+#include "IllidariAbilities.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
@@ -175,6 +176,7 @@ public:
     {
         npc_legion_escortAI(Creature* creature) : ScriptedAI(creature),
             isLeader(IsEscortLeaderEntry(creature->GetEntry())),
+            isIllidari(LegionScenario::IsIllidariDemonHunter(creature->GetEntry())),
             pathIndex(0),
             waitingForGossip(false),
             followAngle(0.0f),
@@ -404,6 +406,10 @@ public:
                         meleeStuckTimer = 0;
 
                     DoMeleeAttackIfReady();
+
+                    if (isIllidari)
+                        illidariKit.Update(me, victim, diff);
+
                     return;
                 }
 
@@ -563,6 +569,7 @@ public:
         }
 
         bool isLeader;
+        bool isIllidari;
         uint32 pathIndex;
         bool waitingForGossip;
         ObjectGuid leaderGuid;
@@ -570,6 +577,7 @@ public:
         bool questsFired;
         LegionEscortGateType gateType;
         uint32 meleeStuckTimer;
+        LegionScenario::IllidariCombatKit illidariKit;
 
         bool finalBossEngaged;
         ObjectGuid finalBossGuid;
@@ -673,7 +681,7 @@ namespace
 
         static float const followAngles[4] = { 0.0f, 1.57f, 3.14f, 4.71f };
 
-        for (uint8 i = 0; i < 4; ++i)
+        for (uint8 i = 0; i < LegionEscort::MEMBER_COUNT; ++i)
         {
             LegionEscort::Point const& sp = LegionEscort::SPAWN_POINTS[i + 1];
             if (TempSummon* member = player->SummonCreature(memberEntries[i],

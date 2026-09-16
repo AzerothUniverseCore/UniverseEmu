@@ -203,6 +203,8 @@ namespace LegionEscort
     constexpr uint32 ALLIANCE_LEADER = 957599;
     constexpr uint32 ALLIANCE_MEMBERS[2] = { 956420, 959045 };
 
+    constexpr uint32 MEMBER_COUNT = 2;
+
     constexpr uint32 HORDE_QUESTGIVER = 956930;
     constexpr uint32 ALLIANCE_QUESTGIVER = 953759;
 
