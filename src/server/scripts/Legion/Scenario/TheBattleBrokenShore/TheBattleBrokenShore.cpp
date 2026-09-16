@@ -74,8 +74,8 @@ namespace
 
     constexpr float LEGION_LEASH_RANGE = 60.0f;
 
-    constexpr float ARTILLERY_SEEK_RANGE = 900.0f;
-    constexpr float ARTILLERY_MAX_RANGE = 900.0f;
+    constexpr float ARTILLERY_SEEK_RANGE = 50000.0f;
+    constexpr float ARTILLERY_MAX_RANGE = 50000.0f;
     constexpr uint32 ARTILLERY_SCAN_INTERVAL = 2000; // 2 s
 
     LegionScenario::Side g_advancingSide = LegionScenario::SIDE_ENEMY;
@@ -229,52 +229,56 @@ private:
     {
         Unit* victim = me->GetVictim();
 
-        _artilleryScanTimer += diff;
-        if (_artilleryScanTimer >= ARTILLERY_SCAN_INTERVAL)
+        if (victim)
         {
-            _artilleryScanTimer = 0;
-
-            if (victim && (!victim->IsAlive() || me->GetDistance(victim) > ARTILLERY_MAX_RANGE
-                    || !me->IsWithinLOSInMap(victim)))
+            _artilleryScanTimer += diff;
+            if (_artilleryScanTimer >= ARTILLERY_SCAN_INTERVAL)
             {
-                me->AttackStop();
-                victim = nullptr;
+                _artilleryScanTimer = 0;
+
+                if (!victim->IsAlive() || me->GetDistance(victim) > ARTILLERY_MAX_RANGE
+                        || !me->IsWithinLOSInMap(victim))
+                {
+                    me->AttackStop();
+                    victim = nullptr;
+                }
+            }
+        }
+
+        if (!victim)
+        {
+            std::list<Player*> nearbyPlayers;
+            me->GetPlayerListInGrid(nearbyPlayers, ARTILLERY_SEEK_RANGE);
+
+            Player* target = nullptr;
+            float bestDist = ARTILLERY_SEEK_RANGE;
+
+            for (Player* player : nearbyPlayers)
+            {
+                if (!player || !player->IsAlive() || player->IsGameMaster())
+                    continue;
+                if (!me->IsWithinLOSInMap(player))
+                    continue;
+
+                float dist = me->GetDistance(player);
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    target = player;
+                }
             }
 
-            if (!victim)
+            if (target)
             {
-                std::list<Player*> nearbyPlayers;
-                me->GetPlayerListInGrid(nearbyPlayers, ARTILLERY_SEEK_RANGE);
-
-                Player* target = nullptr;
-                float bestDist = ARTILLERY_SEEK_RANGE;
-
-                for (Player* player : nearbyPlayers)
-                {
-                    if (!player || !player->IsAlive() || player->IsGameMaster())
-                        continue;
-                    if (!me->IsWithinLOSInMap(player))
-                        continue;
-
-                    float dist = me->GetDistance(player);
-                    if (dist < bestDist)
-                    {
-                        bestDist = dist;
-                        target = player;
-                    }
-                }
-
-                if (target)
-                {
-                    AttackStartNoMove(target);
-                    victim = target;
+                AttackStartNoMove(target);
+                victim = target;
+                _artilleryScanTimer = 0;
 
 #ifdef LEGION_SCENARIO_DEBUG_LOG
-                    SC_LOG_INFO("scripts.legion_scenario",
-                        "[{}] artillery: acquired player target '{}' at {:.0f}y (stationary)",
-                        me->GetEntry(), target->GetName(), bestDist);
+                SC_LOG_INFO("scripts.legion_scenario",
+                    "[{}] artillery: acquired player target '{}' at {:.0f}y (stationary)",
+                    me->GetEntry(), target->GetName(), bestDist);
 #endif
-                }
             }
         }
 

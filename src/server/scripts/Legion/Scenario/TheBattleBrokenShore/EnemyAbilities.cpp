@@ -104,10 +104,10 @@ namespace LegionScenario
 
         constexpr AbilityDef BOSS_INFERNAL_ABILITIES[SLOTS] =
         {
-            { 28794, 20000, 0.0f, 900.0f, false, false, false },
-            { 39031, 40000, 0.0f, 0.0f,   false, true,  true  },
-            { 39054,  6000, 0.0f, 900.0f, false, false, false },
-            { 12742,  8000, 0.0f, 900.0f, false, false, false }
+            { 28794, 20000, 0.0f, 50000.0f, false, false, false },
+            { 39031, 40000, 0.0f, 0.0f,     false, true,  true  },
+            { 39054,  6000, 0.0f, 50000.0f, false, false, false },
+            { 12742,  8000, 0.0f, 50000.0f, false, false, false }
         };
 
         AbilityDef const* GetAbilityTable(EnemyArchetype archetype)
