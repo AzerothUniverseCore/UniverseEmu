@@ -27,7 +27,10 @@
 #include "Duration.h"
 #include "Log.h"
 #include "Chat.h"
+#include "WorldSession.h"
 #include <list>
+#include <sstream>
+#include <string>
 #include <unordered_map>
 
 #define LEGION_SCENARIO_DEBUG_LOG
@@ -165,6 +168,66 @@ namespace
         }
         return allyCount;
     }
+
+    bool IsFrenchClient(Player* player)
+    {
+        return player && player->GetSession() && player->GetSession()->GetSessionDbcLocale() == LOCALE_frFR;
+    }
+
+    std::string FormatRestTimeLeft(uint32 secondsLeft, bool frenchLocale)
+    {
+        uint32 minutes = secondsLeft / 60;
+        uint32 seconds = secondsLeft % 60;
+
+        std::ostringstream oss;
+        if (frenchLocale)
+        {
+            oss << "La troupe se repose encore ";
+            if (minutes > 0)
+            {
+                oss << minutes << (minutes > 1 ? " minutes" : " minute");
+                if (seconds > 0)
+                    oss << " " << seconds << (seconds > 1 ? " secondes" : " seconde");
+            }
+            else
+                oss << seconds << (seconds > 1 ? " secondes" : " seconde");
+            oss << " avant de reprendre la marche.";
+        }
+        else
+        {
+            oss << "The company still needs to rest for ";
+            if (minutes > 0)
+            {
+                oss << minutes << (minutes > 1 ? " minutes" : " minute");
+                if (seconds > 0)
+                    oss << " " << seconds << (seconds > 1 ? " seconds" : " second");
+            }
+            else
+                oss << seconds << (seconds > 1 ? " seconds" : " second");
+            oss << " before resuming the march.";
+        }
+        return oss.str();
+    }
+
+    void SendRestCountdown(Player* owner, uint32 secondsLeft)
+    {
+        if (!owner)
+            return;
+
+        std::string text = FormatRestTimeLeft(secondsLeft, IsFrenchClient(owner));
+        ChatHandler(owner->GetSession()).PSendSysMessage("|cff1eff00[Le Rivage Brise]|r %s", text.c_str());
+    }
+
+    void SendRestOver(Player* owner)
+    {
+        if (!owner)
+            return;
+
+        char const* text = IsFrenchClient(owner)
+            ? "La troupe est reposee, c'est repartis pour la marche !"
+            : "The company is rested - back on the march!";
+        ChatHandler(owner->GetSession()).PSendSysMessage("|cff1eff00[Le Rivage Brise]|r %s", text);
+    }
 }
 
 class npc_legion_escort : public CreatureScript
@@ -188,6 +251,7 @@ public:
             resting(false),
             restTimer(0),
             restAnnounceTimer(0),
+            restSecondsLeft(0),
             finalBossEngaged(false),
             finalBossSawAliveViaRescan(false),
             finalBossWatchTimer(0),
@@ -294,6 +358,9 @@ public:
                 resting = true;
                 restTimer = LegionEscort::REST_PAUSE_DURATION_MS;
                 restAnnounceTimer = 0;
+                restSecondsLeft = LegionEscort::REST_PAUSE_DURATION_MS / 1000;
+
+                SendRestCountdown(GetOwningPlayer(), restSecondsLeft);
 
 #ifdef LEGION_SCENARIO_DEBUG_LOG
                 SC_LOG_INFO("scripts.legion_scenario",
@@ -494,17 +561,11 @@ public:
             if (resting)
             {
                 restAnnounceTimer += diff;
-                if (restAnnounceTimer >= 30000)
+                if (restAnnounceTimer >= 30000 && restSecondsLeft > 30)
                 {
-                    restAnnounceTimer = 0;
-
-                    if (Player* owner = GetOwningPlayer())
-                    {
-                        uint32 secondsLeft = (restTimer + 999) / 1000;
-                        ChatHandler(owner->GetSession()).PSendSysMessage(
-                            "|cff1eff00[Le Rivage Brise]|r La troupe se repose encore %u secondes avant de reprendre la marche.",
-                            secondsLeft);
-                    }
+                    restAnnounceTimer -= 30000;
+                    restSecondsLeft -= 30;
+                    SendRestCountdown(GetOwningPlayer(), restSecondsLeft);
                 }
 
                 if (restTimer <= diff)
@@ -512,7 +573,10 @@ public:
                     resting = false;
                     restTimer = 0;
                     restAnnounceTimer = 0;
+                    restSecondsLeft = 0;
                     ++pathIndex;
+
+                    SendRestOver(GetOwningPlayer());
                     StepForward();
 
 #ifdef LEGION_SCENARIO_DEBUG_LOG
@@ -682,6 +746,7 @@ public:
         bool resting;
         uint32 restTimer;
         uint32 restAnnounceTimer;
+        uint32 restSecondsLeft;
         LegionScenario::IllidariCombatKit illidariKit;
 
         bool finalBossEngaged;
