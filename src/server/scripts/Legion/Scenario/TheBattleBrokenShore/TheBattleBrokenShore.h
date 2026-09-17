@@ -20,6 +20,9 @@
 
 #include "Define.h"
 
+class Creature;
+class Player;
+
 namespace LegionScenario
 {
     // Map 833 "The Battle for Broken Shore"
@@ -31,6 +34,9 @@ namespace LegionScenario
     constexpr float ZONE_MAX_Y = 4247.64f;
 
     bool IsInScenarioZone(uint32 mapId, float x, float y);
+
+    bool IsSameScenarioInstance(Creature const* a, Creature const* b);
+    bool BelongsToPlayer(Creature const* creature, Player const* player);
 
     enum Side : uint8
     {

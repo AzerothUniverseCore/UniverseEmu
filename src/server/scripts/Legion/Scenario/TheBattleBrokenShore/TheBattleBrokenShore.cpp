@@ -22,6 +22,7 @@
 #include "ScriptedCreature.h"
 #include "Player.h"
 #include "ObjectAccessor.h"
+#include "TemporarySummon.h"
 #include "Log.h"
 #include <list>
 
@@ -60,6 +61,32 @@ namespace LegionScenario
         for (uint32 e : BOSS_ENTRIES)
             if (e == entry) return true;
         return false;
+    }
+
+    bool IsSameScenarioInstance(Creature const* a, Creature const* b)
+    {
+        if (!a || !b)
+            return false;
+
+        TempSummon const* summonA = a->ToTempSummon();
+        TempSummon const* summonB = b->ToTempSummon();
+
+        if (!summonA || !summonB)
+            return true;
+
+        return summonA->GetSummonerGUID() == summonB->GetSummonerGUID();
+    }
+
+    bool BelongsToPlayer(Creature const* creature, Player const* player)
+    {
+        if (!creature || !player)
+            return false;
+
+        TempSummon const* summon = creature->ToTempSummon();
+        if (!summon)
+            return true;
+
+        return summon->GetSummonerGUID() == player->GetGUID();
     }
 }
 
@@ -222,6 +249,13 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
 
     void JustDied(Unit* /*killer*/) override
     {
+        if (TempSummon* summon = me->ToTempSummon())
+        {
+            if (Player* owner = ObjectAccessor::GetPlayer(*me, summon->GetSummonerGUID()))
+                owner->KilledMonsterCredit(me->GetEntry(), me->GetGUID());
+            return;
+        }
+
         std::list<Player*> nearbyPlayers;
         me->GetPlayerListInGrid(nearbyPlayers, 100.0f);
 
@@ -262,6 +296,8 @@ private:
             for (Player* player : nearbyPlayers)
             {
                 if (!player || !player->IsAlive() || player->IsGameMaster())
+                    continue;
+                if (!LegionScenario::BelongsToPlayer(me, player))
                     continue;
                 if (!me->IsWithinLOSInMap(player))
                     continue;
@@ -305,6 +341,9 @@ private:
         for (Creature* other : nearby)
         {
             if (other == me || !other->IsAlive())
+                continue;
+
+            if (!LegionScenario::IsSameScenarioInstance(me, other))
                 continue;
 
             LegionScenario::Side otherSide = LegionScenario::GetSide(other->GetEntry());

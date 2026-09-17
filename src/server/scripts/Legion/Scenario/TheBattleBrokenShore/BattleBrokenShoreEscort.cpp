@@ -17,6 +17,7 @@
 
 #include "BattleBrokenShoreEscort.h"
 #include "TheBattleBrokenShore.h"
+#include "ScenarioRoster.h"
 #include "IllidariAbilities.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
@@ -32,6 +33,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #define LEGION_SCENARIO_DEBUG_LOG
 
@@ -126,6 +128,9 @@ namespace
             if (other == attacker || !other->IsAlive())
                 continue;
 
+            if (!LegionScenario::IsSameScenarioInstance(attacker, other))
+                continue;
+
             if (LegionScenario::GetSide(other->GetEntry()) != LegionScenario::SIDE_ENEMY)
                 continue;
 
@@ -160,6 +165,8 @@ namespace
         for (Creature* other : nearby)
         {
             if (other == leader || !other->IsAlive())
+                continue;
+            if (!LegionScenario::IsSameScenarioInstance(leader, other))
                 continue;
             if (LegionScenario::GetSide(other->GetEntry()) != LegionScenario::SIDE_ALLIED)
                 continue;
@@ -436,7 +443,7 @@ public:
                 me->GetCreatureListWithEntryInGrid(bossSearch, LegionScenario::BOSS_ENTRIES[2], 150.0f);
                 for (Creature* c : bossSearch)
                 {
-                    if (c->IsAlive())
+                    if (c->IsAlive() && LegionScenario::IsSameScenarioInstance(me, c))
                     {
                         finalBossGuid = c->GetGUID();
                         break;
@@ -616,7 +623,7 @@ public:
                         bool aliveNow = false;
                         for (Creature* c : nearby)
                         {
-                            if (c->IsAlive())
+                            if (c->IsAlive() && LegionScenario::IsSameScenarioInstance(me, c))
                             {
                                 aliveNow = true;
                                 break;
@@ -775,9 +782,43 @@ namespace
         ObjectGuid leader;
         ObjectGuid members[4];
         ObjectGuid questGiver;
+        std::vector<ObjectGuid> rosterGuids;
+        uint32 scenarioPhaseMask = 0;
+        uint32 previousPhaseMask = 0;
     };
 
     std::unordered_map<uint64, EscortParty> g_parties;
+
+    constexpr uint32 SCENARIO_PHASE_POOL_SIZE = 30;
+    bool g_phaseSlotInUse[SCENARIO_PHASE_POOL_SIZE] = {};
+
+    uint32 AllocateScenarioPhase()
+    {
+        for (uint32 i = 0; i < SCENARIO_PHASE_POOL_SIZE; ++i)
+        {
+            if (!g_phaseSlotInUse[i])
+            {
+                g_phaseSlotInUse[i] = true;
+                return 1u << (i + 1);
+            }
+        }
+        return 0;
+    }
+
+    void ReleaseScenarioPhase(uint32 mask)
+    {
+        if (!mask)
+            return;
+
+        for (uint32 i = 0; i < SCENARIO_PHASE_POOL_SIZE; ++i)
+        {
+            if (mask == (1u << (i + 1)))
+            {
+                g_phaseSlotInUse[i] = false;
+                return;
+            }
+        }
+    }
 
     void DespawnParty(Player* player)
     {
@@ -798,6 +839,22 @@ namespace
 
         if (Creature* questGiver = ObjectAccessor::GetCreature(*player, itr->second.questGiver))
             questGiver->DespawnOrUnsummon();
+
+        for (ObjectGuid const& guid : itr->second.rosterGuids)
+            if (Creature* roster = ObjectAccessor::GetCreature(*player, guid))
+                roster->DespawnOrUnsummon();
+
+        if (itr->second.scenarioPhaseMask)
+        {
+            player->SetPhaseMask(itr->second.previousPhaseMask, true);
+            ReleaseScenarioPhase(itr->second.scenarioPhaseMask);
+
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+            SC_LOG_INFO("scripts.legion_scenario",
+                "[escort] DespawnParty: player {} back to phase {} (left private phase {})",
+                player->GetName(), itr->second.previousPhaseMask, itr->second.scenarioPhaseMask);
+#endif
+        }
 
         g_parties.erase(itr);
     }
@@ -834,6 +891,17 @@ namespace
         if (g_parties.find(pguid) != g_parties.end())
             return;
 
+        uint32 previousPhaseMask = player->GetPhaseMask();
+        uint32 scenarioPhaseMask = AllocateScenarioPhase();
+        if (scenarioPhaseMask)
+            player->SetPhaseMask(scenarioPhaseMask, true);
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+        else
+            SC_LOG_INFO("scripts.legion_scenario",
+                "[escort] SpawnParty: private phase pool exhausted for player {} - they will stay visible to other players",
+                player->GetName());
+#endif
+
         bool isHorde = (player->GetTeamId() == TEAM_HORDE);
         uint32 leaderEntry = isHorde ? LegionEscort::HORDE_LEADER : LegionEscort::ALLIANCE_LEADER;
         uint32 const* memberEntries = isHorde ? LegionEscort::HORDE_MEMBERS : LegionEscort::ALLIANCE_MEMBERS;
@@ -844,10 +912,19 @@ namespace
             leaderPoint.x, leaderPoint.y, leaderPoint.z, leaderPoint.o,
             TEMPSUMMON_MANUAL_DESPAWN, 0ms, true);
         if (!leader)
+        {
+            if (scenarioPhaseMask)
+            {
+                player->SetPhaseMask(previousPhaseMask, true);
+                ReleaseScenarioPhase(scenarioPhaseMask);
+            }
             return;
+        }
 
         EscortParty party;
         party.leader = leader->GetGUID();
+        party.previousPhaseMask = previousPhaseMask;
+        party.scenarioPhaseMask = scenarioPhaseMask;
 
         static float const followAngles[4] = { 0.0f, 1.57f, 3.14f, 4.71f };
 
@@ -875,6 +952,32 @@ namespace
                 questGiverAI->SetFollowTarget(leader->GetGUID(), 2.356f);
             party.questGiver = questGiver->GetGUID();
         }
+
+        party.rosterGuids.reserve(LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT + LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT);
+
+        for (uint32 i = 0; i < LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT; ++i)
+        {
+            LegionScenario::RosterSpawn const& s = LegionScenario::ENEMY_ROSTER_SPAWNS[i];
+            if (TempSummon* summon = player->SummonCreature(s.entry, s.x, s.y, s.z, s.o,
+                    TEMPSUMMON_MANUAL_DESPAWN, 0ms, true))
+                party.rosterGuids.push_back(summon->GetGUID());
+        }
+
+        for (uint32 i = 0; i < LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT; ++i)
+        {
+            LegionScenario::RosterSpawn const& s = LegionScenario::ALLIED_AMBIENT_SPAWNS[i];
+            if (TempSummon* summon = player->SummonCreature(s.entry, s.x, s.y, s.z, s.o,
+                    TEMPSUMMON_MANUAL_DESPAWN, 0ms, true))
+                party.rosterGuids.push_back(summon->GetGUID());
+        }
+
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+        SC_LOG_INFO("scripts.legion_scenario",
+            "[escort] SpawnParty: full-phase roster spawned {}/{} creatures for player {} in private phase {}",
+            party.rosterGuids.size(),
+            LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT + LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT,
+            player->GetName(), party.scenarioPhaseMask);
+#endif
 
         g_parties[pguid] = party;
 
