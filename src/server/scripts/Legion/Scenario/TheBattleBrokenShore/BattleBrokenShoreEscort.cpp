@@ -25,6 +25,7 @@
 #include "Player.h"
 #include "ObjectAccessor.h"
 #include "TemporarySummon.h"
+#include "Map.h"
 #include "Duration.h"
 #include "Log.h"
 #include "Chat.h"
@@ -103,6 +104,7 @@ namespace
 
     void DespawnParty(Player* player);
     bool IsPartyInCombat(Player* player);
+    void ResyncScenarioPhase(Player* player);
 
     void SnapIntoMeleeRange(Creature* attacker, Unit* victim)
     {
@@ -269,7 +271,8 @@ public:
             partyPaused(false),
             partyPauseWatchdog(0),
             combatClearTimer(0),
-            stallCheckTimer(0)
+            stallCheckTimer(0),
+            phaseSyncTimer(0)
         {
             me->SetReactState(REACT_AGGRESSIVE);
         }
@@ -569,6 +572,13 @@ public:
             if (!isLeader)
                 return;
 
+            phaseSyncTimer += diff;
+            if (phaseSyncTimer >= 1000)
+            {
+                phaseSyncTimer = 0;
+                ResyncScenarioPhase(GetOwningPlayer());
+            }
+
             if (resting)
             {
                 restAnnounceTimer += diff;
@@ -788,6 +798,7 @@ public:
         uint32 combatClearTimer;
 
         uint32 stallCheckTimer;
+        uint32 phaseSyncTimer;
     };
 
     CreatureAI* GetAI(Creature* creature) const override
@@ -878,6 +889,31 @@ namespace
         }
 
         g_parties.erase(itr);
+    }
+
+    void ResyncScenarioPhase(Player* player)
+    {
+        if (!player || player->IsGameMaster())
+            return;
+
+        uint64 pguid = player->GetGUID().GetRawValue();
+        auto itr = g_parties.find(pguid);
+        if (itr == g_parties.end() || !itr->second.scenarioPhaseMask)
+            return;
+
+        if (player->GetPhaseMask() != itr->second.scenarioPhaseMask)
+        {
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+            SC_LOG_INFO("scripts.legion_scenario",
+                "[escort] ResyncScenarioPhase: player {} phase drifted to {} - restoring private phase {}",
+                player->GetName(), player->GetPhaseMask(), itr->second.scenarioPhaseMask);
+
+            ChatHandler(player->GetSession()).PSendSysMessage(
+                "|cffff6060[LegionDebug]|r ResyncScenarioPhase: phase drifted to %u, restored to %u",
+                player->GetPhaseMask(), itr->second.scenarioPhaseMask);
+#endif
+            player->SetPhaseMask(itr->second.scenarioPhaseMask, true);
+        }
     }
 
     bool IsEscortMemberFighting(Creature* creature)
@@ -998,20 +1034,54 @@ namespace
 
         party.rosterGuids.reserve(LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT + LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT);
 
+        Map* map = player->GetMap();
+
+        uint32 enemySpawned = 0;
+        uint32 enemyFailed = 0;
         for (uint32 i = 0; i < LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT; ++i)
         {
             LegionScenario::RosterSpawn const& s = LegionScenario::ENEMY_ROSTER_SPAWNS[i];
+            if (map)
+                map->LoadGrid(s.x, s.y);
             if (TempSummon* summon = player->SummonCreature(s.entry, s.x, s.y, s.z, s.o,
                     TEMPSUMMON_MANUAL_DESPAWN, 0ms, true))
+            {
                 party.rosterGuids.push_back(summon->GetGUID());
+                ++enemySpawned;
+            }
+            else
+            {
+                ++enemyFailed;
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+                SC_LOG_ERROR("scripts.legion_scenario",
+                    "[escort] SpawnParty: FAILED to summon enemy roster entry {} at ({:.1f}, {:.1f}, {:.1f}) for player {}",
+                    s.entry, s.x, s.y, s.z, player->GetName());
+#endif
+            }
         }
 
+        uint32 alliedSpawned = 0;
+        uint32 alliedFailed = 0;
         for (uint32 i = 0; i < LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT; ++i)
         {
             LegionScenario::RosterSpawn const& s = LegionScenario::ALLIED_AMBIENT_SPAWNS[i];
+            if (map)
+                map->LoadGrid(s.x, s.y);
             if (TempSummon* summon = player->SummonCreature(s.entry, s.x, s.y, s.z, s.o,
                     TEMPSUMMON_MANUAL_DESPAWN, 0ms, true))
+            {
                 party.rosterGuids.push_back(summon->GetGUID());
+                ++alliedSpawned;
+            }
+            else
+            {
+                ++alliedFailed;
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+                SC_LOG_ERROR("scripts.legion_scenario",
+                    "[escort] SpawnParty: FAILED to summon allied-ambient roster entry {} at ({:.1f}, {:.1f}, {:.1f}) for player {}",
+                    s.entry, s.x, s.y, s.z, player->GetName());
+#endif
+            }
         }
 
 #ifdef LEGION_SCENARIO_DEBUG_LOG
@@ -1020,6 +1090,12 @@ namespace
             party.rosterGuids.size(),
             LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT + LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT,
             player->GetName(), party.scenarioPhaseMask);
+
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "|cffff6060[LegionDebug]|r SpawnParty: enemy roster %u/%u spawned (%u failed), allied-ambient %u/%u spawned (%u failed), private phase %u",
+            enemySpawned, LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT, enemyFailed,
+            alliedSpawned, LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT, alliedFailed,
+            party.scenarioPhaseMask);
 #endif
 
         g_parties[pguid] = party;
