@@ -1046,6 +1046,7 @@ namespace
             if (TempSummon* summon = player->SummonCreature(s.entry, s.x, s.y, s.z, s.o,
                     TEMPSUMMON_MANUAL_DESPAWN, 0ms, true))
             {
+                summon->setActive(true);
                 party.rosterGuids.push_back(summon->GetGUID());
                 ++enemySpawned;
             }
@@ -1070,6 +1071,7 @@ namespace
             if (TempSummon* summon = player->SummonCreature(s.entry, s.x, s.y, s.z, s.o,
                     TEMPSUMMON_MANUAL_DESPAWN, 0ms, true))
             {
+                summon->setActive(true);
                 party.rosterGuids.push_back(summon->GetGUID());
                 ++alliedSpawned;
             }
