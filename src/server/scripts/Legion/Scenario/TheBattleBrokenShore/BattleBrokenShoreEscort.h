@@ -197,6 +197,9 @@ namespace LegionEscort
     constexpr uint32 COMBAT_GATE_BOSS1_POINT = 107;
     constexpr uint32 COMBAT_GATE_BOSS2_POINT = 149;
 
+    constexpr uint32 REST_PAUSE_POINT = 33;
+    constexpr uint32 REST_PAUSE_DURATION_MS = 2 * 60 * 1000;
+
     constexpr uint32 HORDE_LEADER = 956655;
     constexpr uint32 HORDE_MEMBERS[2] = { 1505945, 953127 };
 

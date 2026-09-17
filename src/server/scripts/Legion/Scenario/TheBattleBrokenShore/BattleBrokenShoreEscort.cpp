@@ -185,6 +185,8 @@ public:
             meleeStuckTimer(0),
             followRefreshTimer(0),
             followRefreshCount(0),
+            resting(false),
+            restTimer(0),
             finalBossEngaged(false),
             finalBossSawAliveViaRescan(false),
             finalBossWatchTimer(0),
@@ -284,6 +286,19 @@ public:
                     Talk(line.textId);
                     break;
                 }
+            }
+
+            if (reachedPoint == LegionEscort::REST_PAUSE_POINT)
+            {
+                resting = true;
+                restTimer = LegionEscort::REST_PAUSE_DURATION_MS;
+
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+                SC_LOG_INFO("scripts.legion_scenario",
+                    "[escort {}] resting at checkpoint {} for {} ms before continuing",
+                    me->GetEntry(), reachedPoint, LegionEscort::REST_PAUSE_DURATION_MS);
+#endif
+                return;
             }
 
             ++pathIndex;
@@ -474,6 +489,28 @@ public:
             if (!isLeader)
                 return;
 
+            if (resting)
+            {
+                if (restTimer <= diff)
+                {
+                    resting = false;
+                    restTimer = 0;
+                    ++pathIndex;
+                    StepForward();
+
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+                    SC_LOG_INFO("scripts.legion_scenario",
+                        "[escort {}] rest pause over, resuming march at pathIndex {}",
+                        me->GetEntry(), pathIndex);
+#endif
+                }
+                else
+                {
+                    restTimer -= diff;
+                }
+                return;
+            }
+
             if (finalBossEngaged && pathIndex < LegionEscort::PATH_SIZE)
             {
                 finalBossWatchTimer += diff;
@@ -625,6 +662,8 @@ public:
         uint32 meleeStuckTimer;
         uint32 followRefreshTimer;
         uint8 followRefreshCount;
+        bool resting;
+        uint32 restTimer;
         LegionScenario::IllidariCombatKit illidariKit;
 
         bool finalBossEngaged;
