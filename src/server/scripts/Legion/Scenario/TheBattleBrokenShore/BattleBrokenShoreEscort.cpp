@@ -187,6 +187,7 @@ public:
             followRefreshCount(0),
             resting(false),
             restTimer(0),
+            restAnnounceTimer(0),
             finalBossEngaged(false),
             finalBossSawAliveViaRescan(false),
             finalBossWatchTimer(0),
@@ -292,6 +293,7 @@ public:
             {
                 resting = true;
                 restTimer = LegionEscort::REST_PAUSE_DURATION_MS;
+                restAnnounceTimer = 0;
 
 #ifdef LEGION_SCENARIO_DEBUG_LOG
                 SC_LOG_INFO("scripts.legion_scenario",
@@ -491,10 +493,25 @@ public:
 
             if (resting)
             {
+                restAnnounceTimer += diff;
+                if (restAnnounceTimer >= 30000)
+                {
+                    restAnnounceTimer = 0;
+
+                    if (Player* owner = GetOwningPlayer())
+                    {
+                        uint32 secondsLeft = (restTimer + 999) / 1000;
+                        ChatHandler(owner->GetSession()).PSendSysMessage(
+                            "|cff1eff00[Le Rivage Brise]|r La troupe se repose encore %u secondes avant de reprendre la marche.",
+                            secondsLeft);
+                    }
+                }
+
                 if (restTimer <= diff)
                 {
                     resting = false;
                     restTimer = 0;
+                    restAnnounceTimer = 0;
                     ++pathIndex;
                     StepForward();
 
@@ -664,6 +681,7 @@ public:
         uint8 followRefreshCount;
         bool resting;
         uint32 restTimer;
+        uint32 restAnnounceTimer;
         LegionScenario::IllidariCombatKit illidariKit;
 
         bool finalBossEngaged;
