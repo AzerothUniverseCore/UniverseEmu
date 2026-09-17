@@ -37,6 +37,8 @@
 
 #define LEGION_SCENARIO_DEBUG_LOG
 
+constexpr uint32 COMBAT_CLEAR_DEBOUNCE_MS = 3000;
+
 enum LegionEscortMisc
 {
     GOSSIP_ACTION_LAUNCH_COMBAT = 1,
@@ -266,6 +268,7 @@ public:
             ambientScanTimer(0),
             partyPaused(false),
             partyPauseWatchdog(0),
+            combatClearTimer(0),
             stallCheckTimer(0)
         {
             me->SetReactState(REACT_AGGRESSIVE);
@@ -464,6 +467,7 @@ public:
 
             partyPaused = true;
             partyPauseWatchdog = 0;
+            combatClearTimer = 0;
             ++pathIndex;
 
 #ifdef LEGION_SCENARIO_DEBUG_LOG
@@ -677,39 +681,55 @@ public:
 
                     if (anyCombat)
                     {
+                        if (!partyPaused)
+                        {
+                            me->GetMotionMaster()->Clear();
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+                            SC_LOG_INFO("scripts.legion_scenario",
+                                "[escort {}] ambient scan: combat detected nearby, halting march at pathIndex {}",
+                                me->GetEntry(), pathIndex);
+#endif
+                        }
                         partyPaused = true;
                         partyPauseWatchdog = 0;
+                        combatClearTimer = 0;
                     }
                     else if (partyPaused)
                     {
-                        partyPaused = false;
-                        partyPauseWatchdog = 0;
+                        combatClearTimer += 1000;
+                        if (combatClearTimer >= COMBAT_CLEAR_DEBOUNCE_MS)
+                        {
+                            partyPaused = false;
+                            partyPauseWatchdog = 0;
+                            combatClearTimer = 0;
 #ifdef LEGION_SCENARIO_DEBUG_LOG
-                        SC_LOG_INFO("scripts.legion_scenario",
-                            "[escort {}] ambient scan: combat cleared, resuming march at pathIndex {}",
-                            me->GetEntry(), pathIndex);
-                        if (owner)
-                            ChatHandler(owner->GetSession()).PSendSysMessage(
-                                "|cffff6060[LegionDebug]|r ambient scan: combat cleared, resuming march at pathIndex %u",
-                                pathIndex);
+                            SC_LOG_INFO("scripts.legion_scenario",
+                                "[escort {}] ambient scan: combat cleared, resuming march at pathIndex {}",
+                                me->GetEntry(), pathIndex);
+                            if (owner)
+                                ChatHandler(owner->GetSession()).PSendSysMessage(
+                                    "|cffff6060[LegionDebug]|r ambient scan: combat cleared, resuming march at pathIndex %u",
+                                    pathIndex);
 #endif
-                        StepForward();
+                            StepForward();
+                        }
                     }
 
                     if (partyPaused)
                     {
                         partyPauseWatchdog += 1000;
-                        if (partyPauseWatchdog >= 8000)
+                        if (partyPauseWatchdog >= 45000)
                         {
                             partyPaused = false;
                             partyPauseWatchdog = 0;
+                            combatClearTimer = 0;
 #ifdef LEGION_SCENARIO_DEBUG_LOG
                             SC_LOG_INFO("scripts.legion_scenario",
-                                "[escort {}] party-pause watchdog: stuck paused 8s+ with no confirmed combat, forcing resume at pathIndex {}",
+                                "[escort {}] party-pause watchdog: stuck paused 45s+ despite continuous combat, forcing resume at pathIndex {}",
                                 me->GetEntry(), pathIndex);
                             if (owner)
                                 ChatHandler(owner->GetSession()).PSendSysMessage(
-                                    "|cffff6060[LegionDebug]|r party-pause watchdog: forcing resume at pathIndex %u (no real combat detected after 8s)",
+                                    "|cffff6060[LegionDebug]|r party-pause watchdog: forcing resume at pathIndex %u (45s safety timeout)",
                                     pathIndex);
 #endif
                             StepForward();
@@ -718,7 +738,7 @@ public:
                 }
             }
 
-            if (!waitingForGossip && !finalBossEngaged && pathIndex < LegionEscort::PATH_SIZE)
+            if (!waitingForGossip && !finalBossEngaged && !partyPaused && pathIndex < LegionEscort::PATH_SIZE)
             {
                 stallCheckTimer += diff;
                 if (stallCheckTimer >= 1000)
@@ -765,6 +785,7 @@ public:
         uint32 ambientScanTimer;
         bool partyPaused;
         uint32 partyPauseWatchdog;
+        uint32 combatClearTimer;
 
         uint32 stallCheckTimer;
     };
@@ -859,28 +880,50 @@ namespace
         g_parties.erase(itr);
     }
 
+    bool IsEscortMemberFighting(Creature* creature)
+    {
+        return creature && (creature->GetVictim() || creature->IsInCombat());
+    }
+
     bool IsPartyInCombat(Player* player)
     {
         if (!player)
             return false;
+
+        if (player->IsInCombat())
+            return true;
 
         uint64 pguid = player->GetGUID().GetRawValue();
         auto itr = g_parties.find(pguid);
         if (itr == g_parties.end())
             return false;
 
-        if (Creature* leader = ObjectAccessor::GetCreature(*player, itr->second.leader))
-            if (leader->GetVictim())
-                return true;
+        Creature* leader = ObjectAccessor::GetCreature(*player, itr->second.leader);
+        if (IsEscortMemberFighting(leader))
+            return true;
 
         for (ObjectGuid const& guid : itr->second.members)
-            if (Creature* member = ObjectAccessor::GetCreature(*player, guid))
-                if (member->GetVictim())
-                    return true;
-
-        if (Creature* questGiver = ObjectAccessor::GetCreature(*player, itr->second.questGiver))
-            if (questGiver->GetVictim())
+            if (IsEscortMemberFighting(ObjectAccessor::GetCreature(*player, guid)))
                 return true;
+
+        if (IsEscortMemberFighting(ObjectAccessor::GetCreature(*player, itr->second.questGiver)))
+            return true;
+
+        if (leader)
+        {
+            std::list<Creature*> nearby;
+            leader->GetCreatureListWithEntryInGrid(nearby, 0, 30.0f);
+            for (Creature* other : nearby)
+            {
+                if (!other->IsAlive() || !other->IsInCombat())
+                    continue;
+                if (!LegionScenario::IsSameScenarioInstance(leader, other))
+                    continue;
+                if (LegionScenario::GetSide(other->GetEntry()) != LegionScenario::SIDE_ENEMY)
+                    continue;
+                return true;
+            }
+        }
 
         return false;
     }
