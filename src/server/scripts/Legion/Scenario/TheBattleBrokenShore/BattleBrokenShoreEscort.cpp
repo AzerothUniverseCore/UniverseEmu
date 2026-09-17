@@ -161,7 +161,7 @@ namespace
             if (LegionScenario::GetSide(other->GetEntry()) != LegionScenario::SIDE_ALLIED)
                 continue;
             ++allyCount;
-            EngageNearbyEnemy(other, 60.0f);
+            EngageNearbyEnemy(other, 25.0f);
         }
         return allyCount;
     }
@@ -183,6 +183,8 @@ public:
             questsFired(false),
             gateType(GATE_NONE),
             meleeStuckTimer(0),
+            followRefreshTimer(0),
+            followRefreshCount(0),
             finalBossEngaged(false),
             finalBossSawAliveViaRescan(false),
             finalBossWatchTimer(0),
@@ -418,11 +420,55 @@ public:
             }
             meleeStuckTimer = 0;
 
-            if (!isLeader && !leaderGuid.IsEmpty()
-                && me->GetMotionMaster()->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
+            if (!isLeader && !leaderGuid.IsEmpty())
             {
                 if (Unit* leader = ObjectAccessor::GetUnit(*me, leaderGuid))
-                    me->GetMotionMaster()->MoveFollow(leader, 3.0f, followAngle);
+                {
+                    if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
+                        me->GetMotionMaster()->MoveFollow(leader, 3.0f, followAngle);
+
+                    if (me->GetDistance(leader) > 5.0f)
+                    {
+                        followRefreshTimer += diff;
+                        if (followRefreshTimer >= 4000)
+                        {
+                            followRefreshTimer = 0;
+                            ++followRefreshCount;
+
+                            if (followRefreshCount >= 3)
+                            {
+                                followRefreshCount = 0;
+
+                                float x, y, z;
+                                leader->GetNearPoint(me, x, y, z, 3.0f, leader->GetOrientation() + followAngle);
+                                me->NearTeleportTo(x, y, z, me->GetAbsoluteAngle(leader));
+                                me->GetMotionMaster()->MoveFollow(leader, 3.0f, followAngle);
+
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+                                SC_LOG_INFO("scripts.legion_scenario",
+                                    "[escort {}] follow watchdog: still {:.0f}y from leader after 3 forced recomputes (~12s) - snapped into formation",
+                                    me->GetEntry(), me->GetDistance(leader));
+#endif
+                            }
+                            else
+                            {
+                                me->GetMotionMaster()->Clear();
+                                me->GetMotionMaster()->MoveFollow(leader, 3.0f, followAngle);
+
+#ifdef LEGION_SCENARIO_DEBUG_LOG
+                                SC_LOG_INFO("scripts.legion_scenario",
+                                    "[escort {}] follow watchdog: {:.0f}y from leader after 4s - forcing a fresh path recompute (attempt {})",
+                                    me->GetEntry(), me->GetDistance(leader), followRefreshCount);
+#endif
+                            }
+                        }
+                    }
+                    else
+                    {
+                        followRefreshTimer = 0;
+                        followRefreshCount = 0;
+                    }
+                }
             }
 
             if (!isLeader)
@@ -577,6 +623,8 @@ public:
         bool questsFired;
         LegionEscortGateType gateType;
         uint32 meleeStuckTimer;
+        uint32 followRefreshTimer;
+        uint8 followRefreshCount;
         LegionScenario::IllidariCombatKit illidariKit;
 
         bool finalBossEngaged;
