@@ -158,6 +158,12 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
             return;
         }
 
+        if (!me->GetVictim())
+        {
+            if (Unit* attacker = me->SelectVictim())
+                AttackStart(attacker);
+        }
+
         if (Unit* victim = me->GetVictim())
         {
             if (!victim->IsAlive() || !me->IsAlive())
