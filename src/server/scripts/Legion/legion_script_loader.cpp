@@ -31,6 +31,8 @@ void AddSC_instance_thenighthold();
 // TheBattleBrokenShore
 void AddSC_legion_scenario();
 void AddSC_legion_escort();
+// LegionShip Intro
+void AddSC_legion_ship_intro();
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
 void AddLegionScripts()
@@ -50,4 +52,6 @@ void AddLegionScripts()
 	// TheBattleBrokenShore
 	AddSC_legion_scenario();
 	AddSC_legion_escort();
+	// LegionShip Intro
+	AddSC_legion_ship_intro();
 }
