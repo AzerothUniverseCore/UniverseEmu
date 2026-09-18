@@ -729,6 +729,7 @@ ArenaTeam.CharterCost.5v5 = 2000000
 #    MaxWhoListReturns
 #        Description: Set the max number of players returned in the /who list and interface.
 #        Default:     49 - (stable)
+#
 
 MaxWhoListReturns = 49
 
@@ -839,7 +840,7 @@ CharacterCreating.MinLevelForDeathKnight = 0
 #                     1 - (Show intro only for first character of selected race)
 #                     2 - (Disable intro for all classes)
 
-SkipCinematics = 0
+SkipCinematics = 2
 
 #
 #    MaxPlayerLevel
@@ -863,7 +864,7 @@ MinDualSpecLevel = 40
 #        Range:       5-MaxPlayerLevel
 #        Default:     5
 
-StartPlayerLevel = 1
+StartPlayerLevel = 80
 
 #
 #    StartDeathKnightPlayerLevel
@@ -871,7 +872,7 @@ StartPlayerLevel = 1
 #        Range:       1-MaxPlayerLevel
 #        Default:     55
 
-StartDeathKnightPlayerLevel = 55
+StartDeathKnightPlayerLevel = 80
 
 #
 #    StartPlayerMoney
@@ -5861,7 +5862,7 @@ NpcBot.EnrageOnDismiss = 1
 #        Note2:       You must have at least this number of non-spawned bots in creature_template.
 #        Default:     0 - (Disabled)
 
-NpcBot.WanderingBots.Continents.Count = 800
+NpcBot.WanderingBots.Continents.Count = 0
 
 #
 #    NpcBot.WanderingBots.Continents.Levels
