@@ -1028,7 +1028,12 @@ void MotionMaster::MoveTaxiFlight(uint32 path, uint32 pathnode)
 
             // Only one FLIGHT_MOTION_TYPE is allowed
             bool hasExisting = HasMovementGenerator([](MovementGenerator const* gen) { return gen->GetMovementGeneratorType() == FLIGHT_MOTION_TYPE; });
-            ASSERT(!hasExisting, "Duplicate flight path movement generator");
+            if (hasExisting)
+            {
+                SC_LOG_ERROR("movement.motionmaster", "MotionMaster::MoveTaxiFlight: '{}', already had an active flight path movement generator - removing it before starting the new one (path Id: {}, node {}).",
+                    _owner->GetGUID().ToString(), path, pathnode);
+                Remove(FLIGHT_MOTION_TYPE);
+            }
 
             FlightPathMovementGenerator* movement = new FlightPathMovementGenerator(pathnode);
             movement->LoadPath(_owner->ToPlayer());
