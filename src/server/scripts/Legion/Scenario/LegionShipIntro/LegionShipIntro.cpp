@@ -19,7 +19,9 @@
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "Player.h"
+#include "WorldSession.h"
 #include "ObjectAccessor.h"
+#include "ObjectMgr.h"
 #include "TemporarySummon.h"
 #include "GossipDef.h"
 
@@ -43,6 +45,11 @@ namespace
             return false;
 
         return ObjectAccessor::GetCreature(*player, itr->second) != nullptr;
+    }
+
+    char const* LocalizedGossipText(Player* player, uint32 syphrenaStringEntry)
+    {
+        return sObjectMgr->GetSyphrenaString(syphrenaStringEntry, player->GetSession()->GetSessionDbLocaleIndex());
     }
 
     void KickOffGuiding(Creature* escort);
@@ -145,11 +152,11 @@ public:
 
             if (HasActiveEscort(player))
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                    "(Vous explorez deja le vaisseau avec un autre guide.)",
+                    LocalizedGossipText(player, LegionShipIntro::STR_GOSSIP_ALREADY_GUIDING),
                     GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
             else
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                    "Guidez-moi a travers le vaisseau.",
+                    LocalizedGossipText(player, LegionShipIntro::STR_GOSSIP_GUIDE_ME),
                     GOSSIP_SENDER_MAIN, GOSSIP_ACTION_START_INTRO);
 
             SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());

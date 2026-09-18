@@ -38,6 +38,9 @@ namespace LegionShipIntro
 
     constexpr uint32 POST_TOUR_DESPAWN_DELAY_MS = 30000;
 
+    constexpr uint32 STR_GOSSIP_GUIDE_ME = 900021;
+    constexpr uint32 STR_GOSSIP_ALREADY_GUIDING = 900022;
+
     constexpr Point STARR_SPAWN = { -11796.1f, 2544.6f, 2795.65f, 1.6386f };
     constexpr Point STARR_TELEPORT_DESTINATION = { -11762.7f, 2614.63f, 2795.6f, 1.20333f };
 
