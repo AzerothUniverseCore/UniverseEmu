@@ -864,7 +864,7 @@ MinDualSpecLevel = 40
 #        Range:       5-MaxPlayerLevel
 #        Default:     5
 
-StartPlayerLevel = 80
+StartPlayerLevel = 79
 
 #
 #    StartDeathKnightPlayerLevel
@@ -872,7 +872,7 @@ StartPlayerLevel = 80
 #        Range:       1-MaxPlayerLevel
 #        Default:     55
 
-StartDeathKnightPlayerLevel = 80
+StartDeathKnightPlayerLevel = 79
 
 #
 #    StartPlayerMoney
@@ -880,14 +880,14 @@ StartDeathKnightPlayerLevel = 80
 #        Default:     0
 #                     100 - (1 Silver)
 
-StartPlayerMoney = 50000
+StartPlayerMoney = 5000000
 
 #
 #    StartDeathKnightPlayerMoney
 #        Description: Amount of money (in Copper) that a death knight character has after creation.
 #        Default:     2000
 #                     100 - (1 Silver)
-StartDeathKnightPlayerMoney = 50000
+StartDeathKnightPlayerMoney = 5000000
 
 #
 #    MaxHonorPoints
@@ -901,7 +901,7 @@ MaxHonorPoints = 75000
 #        Description: Amount of honor points that characters have after creation.
 #        Default:     0
 
-StartHonorPoints = 0
+StartHonorPoints = 75000
 
 #
 #    MaxArenaPoints
@@ -915,7 +915,7 @@ MaxArenaPoints = 10000
 #        Description: Amount of arena points that characters has after creation.
 #        Default:     0
 
-StartArenaPoints = 0
+StartArenaPoints = 10000
 
 #
 #    RecruitAFriend.MaxLevel
