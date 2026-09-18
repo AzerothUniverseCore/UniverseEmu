@@ -3379,9 +3379,23 @@ bool Map::ShouldBeSpawnedOnGridLoad(SpawnObjectType type, ObjectGuid::LowType sp
     if (GetRespawnTime(type, spawnId))
         return false;
 
-    SpawnMetadata const* spawnData = ASSERT_NOTNULL(sObjectMgr->GetSpawnMetadata(type, spawnId));
+    SpawnMetadata const* spawnData = sObjectMgr->GetSpawnMetadata(type, spawnId);
+    if (!spawnData)
+    {
+        SC_LOG_ERROR("maps", "Map::ShouldBeSpawnedOnGridLoad: no spawn metadata for spawn type {} spawnId {} on map {} (grid cell guid cache is stale - DB row deleted/edited without going through the normal delete path?). Skipping this spawn instead of crashing.",
+            uint32(type), spawnId, GetId());
+        return false;
+    }
+
     // check if the object is part of a spawn group
-    SpawnGroupTemplateData const* spawnGroup = ASSERT_NOTNULL(spawnData->spawnGroupData);
+    SpawnGroupTemplateData const* spawnGroup = spawnData->spawnGroupData;
+    if (!spawnGroup)
+    {
+        SC_LOG_ERROR("maps", "Map::ShouldBeSpawnedOnGridLoad: spawn metadata for spawn type {} spawnId {} on map {} has no spawn group data. Skipping this spawn instead of crashing.",
+            uint32(type), spawnId, GetId());
+        return false;
+    }
+
     if (!(spawnGroup->flags & SPAWNGROUP_FLAG_SYSTEM))
         if (!IsSpawnGroupActive(spawnGroup->groupId))
             return false;
