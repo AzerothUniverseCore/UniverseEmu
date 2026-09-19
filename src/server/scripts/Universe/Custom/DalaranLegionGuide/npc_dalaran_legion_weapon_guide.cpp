@@ -17,6 +17,8 @@
 
 #include "ScriptMgr.h"
 #include "Player.h"
+#include "WorldSession.h"
+#include "ObjectMgr.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "CreatureAI.h"
@@ -32,8 +34,15 @@ enum DalaranWeaponGuideMisc
     SAY_INFO_CRYSTALS      = 2,
     SAY_INFO_COST          = 3,
     SAY_INFO_FARM          = 4,
-    SAY_INFO_ARENA         = 5
+    SAY_INFO_ARENA         = 5,
+
+    STR_GOSSIP_GUIDE_ME    = 900023
 };
+
+static char const* LocalizedGossipText(Player* player, uint32 syphrenaStringEntry)
+{
+    return sObjectMgr->GetSyphrenaString(syphrenaStringEntry, player->GetSession()->GetSessionDbLocaleIndex());
+}
 
 struct GuideDialogueLine { uint32 afterPoint; uint32 textId; };
 static GuideDialogueLine const GuideDialogue[] =
@@ -120,7 +129,7 @@ public:
         bool OnGossipHello(Player* player)
         {
             AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                "Guide-moi vers l'amelioration des armes prodigieuses.",
+                LocalizedGossipText(player, STR_GOSSIP_GUIDE_ME),
                 GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
 
             SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
