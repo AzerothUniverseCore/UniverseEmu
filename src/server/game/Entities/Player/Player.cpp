@@ -40,6 +40,7 @@
 #include "Config.h"
 #include "ConditionMgr.h"
 #include "Containers.h"
+#include "ContinentLockdown.h"
 #include "CreatureAI.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
@@ -1729,6 +1730,16 @@ uint8 Player::GetChatTag() const
 
 bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options)
 {
+    if (!IsGameMaster() && ContinentLockdown::IsLockedMap(mapid))
+    {
+        WorldLocation const& redirect = ContinentLockdown::PickRandomDestination();
+        mapid = redirect.GetMapId();
+        x = redirect.GetPositionX();
+        y = redirect.GetPositionY();
+        z = redirect.GetPositionZ();
+        orientation = redirect.GetOrientation();
+    }
+
     if (!MapManager::IsValidMapCoord(mapid, x, y, z, orientation))
     {
         SC_LOG_ERROR("maps", "Player::TeleportTo: Invalid map ({}) or invalid coordinates (X: {}, Y: {}, Z: {}, O: {}) given when teleporting player '{}' ({}, MapID: {}, X: {}, Y: {}, Z: {}, O: {}).",
