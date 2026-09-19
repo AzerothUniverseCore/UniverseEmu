@@ -17579,6 +17579,15 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     uint32 mapId = fields[20].GetUInt16();
     uint32 instanceId = fields[63].GetUInt32();
 
+    if (ContinentLockdown::IsLockedMap(mapId) && GetSession()->GetSecurity() < SEC_GAMEMASTER)
+    {
+        WorldLocation const& redirect = ContinentLockdown::PickRandomDestination();
+        mapId = redirect.GetMapId();
+        instanceId = 0;
+        transLowGUID = 0;
+        Relocate(&redirect);
+    }
+
     uint32 dungeonDiff = fields[43].GetUInt8() & 0x0F;
     if (dungeonDiff >= MAX_DUNGEON_DIFFICULTY)
         dungeonDiff = DUNGEON_DIFFICULTY_NORMAL;
