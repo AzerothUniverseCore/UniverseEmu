@@ -533,19 +533,19 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     {
         if (Player::TeamForRace(createInfo->Race) == HORDE)
         {
-            startMapId = 861;
-            startX = -1059.47f;
-            startY = -1051.51f;
-            startZ = 8.82241f;
-            startO = 5.49088f;
+            startMapId = 781;
+            startX = -11800.7f;
+            startY = 2555.49f;
+            startZ = 2795.65f;
+            startO = 4.69982f;
         }
         else
         {
-            startMapId = 860;
-            startX = -1069.42f;
-            startY = -1069.43f;
-            startZ = 13.0739f;
-            startO = 0.816743f;
+            startMapId = 781;
+            startX = -11800.7f;
+            startY = 2555.49f;
+            startZ = 2795.65f;
+            startO = 4.69982f;
         }
     }
 
