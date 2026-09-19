@@ -17,6 +17,8 @@
 
 #include "ScriptMgr.h"
 #include "Player.h"
+#include "WorldSession.h"
+#include "ObjectMgr.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "CreatureAI.h"
@@ -30,6 +32,11 @@
 
 namespace
 {
+    char const* LocalizedGossipText(Player* player, uint32 syphrenaStringEntry)
+    {
+        return sObjectMgr->GetSyphrenaString(syphrenaStringEntry, player->GetSession()->GetSessionDbLocaleIndex());
+    }
+
     enum NetherilGuidePhase : uint8
     {
         NETHERIL_GUIDE_PHASE_SHIP = 0,
@@ -86,7 +93,10 @@ namespace
         SAY_CAMP_QUEST2        = 15,
         SAY_CAMP_PVP           = 16,
         SAY_CAMP_QUEST3        = 17,
-        SAY_CAMP_FAREWELL      = 18
+        SAY_CAMP_FAREWELL      = 18,
+
+        STR_GOSSIP_GUIDE_ME          = 900027,
+        STR_GOSSIP_ALREADY_GUIDING   = 900028
     };
 
     // Point de depart
@@ -320,11 +330,11 @@ public:
 
             if (HasActiveGuide(player->GetGUID()))
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                    "(Vous visitez deja le camp de Netheril avec un autre guide.)",
+                    LocalizedGossipText(player, STR_GOSSIP_ALREADY_GUIDING),
                     GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
             else
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                    "Emmenez-moi visiter le camp de Netheril.",
+                    LocalizedGossipText(player, STR_GOSSIP_GUIDE_ME),
                     GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
 
             SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());

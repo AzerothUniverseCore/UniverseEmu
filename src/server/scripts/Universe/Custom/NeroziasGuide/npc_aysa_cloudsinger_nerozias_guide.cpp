@@ -17,6 +17,8 @@
 
 #include "ScriptMgr.h"
 #include "Player.h"
+#include "WorldSession.h"
+#include "ObjectMgr.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "CreatureAI.h"
@@ -31,6 +33,11 @@
 
 namespace
 {
+    char const* LocalizedGossipText(Player* player, uint32 syphrenaStringEntry)
+    {
+        return sObjectMgr->GetSyphrenaString(syphrenaStringEntry, player->GetSession()->GetSessionDbLocaleIndex());
+    }
+
     enum AysaGuidePhase : uint8
     {
         PHASE_SHIP      = 0,
@@ -83,7 +90,10 @@ namespace
         SAY_DREAMWAY_DUNGEON      = 8,
         SAY_DREAMWAY_ALMOST       = 9,
         SAY_DREAMWAY_GOAL         = 10,
-        SAY_DREAMWAY_FAREWELL     = 11
+        SAY_DREAMWAY_FAREWELL     = 11,
+
+        STR_GOSSIP_GUIDE_ME          = 900025,
+        STR_GOSSIP_ALREADY_GUIDING   = 900026
     };
 
     // Points de depart
@@ -288,11 +298,11 @@ public:
 
             if (HasActiveGuide(player->GetGUID()))
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                    "(Vous visitez deja Nerozias avec un autre guide.)",
+                    LocalizedGossipText(player, STR_GOSSIP_ALREADY_GUIDING),
                     GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
             else
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                    "Emmenez-moi visiter Nerozias et le Chemin du Reve d'Emeraude.",
+                    LocalizedGossipText(player, STR_GOSSIP_GUIDE_ME),
                     GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
 
             SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
