@@ -22,13 +22,9 @@
 #include "CreatureAI.h"
 #include "TemporarySummon.h"
 #include "Duration.h"
-#include <unordered_map>
-
-static std::unordered_map<ObjectGuid, uint32> PendingDalaranGuideSummons;
 
 enum DalaranWeaponGuideMisc
 {
-    MAP_DALARAN_LEGION     = 781,
     GOSSIP_ACTION_GUIDE    = 1,
 
     SAY_START              = 0,
@@ -47,8 +43,6 @@ static GuideDialogueLine const GuideDialogue[] =
     { 32, SAY_INFO_FARM     },
     { 42, SAY_INFO_ARENA    },
 };
-
-static float const DalaranArrival[4] = { -11908.8f, 2961.1f, 1857.4f, 5.04f };
 
 struct GuidePoint { float x, y, z; };
 static GuidePoint const WeaponUpgradePath[] =
@@ -126,7 +120,7 @@ public:
         bool OnGossipHello(Player* player)
         {
             AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                "Ramene-moi a Dalaran Legion et guide-moi vers l'amelioration des armes prodigieuses.",
+                "Guide-moi vers l'amelioration des armes prodigieuses.",
                 GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
 
             SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
@@ -141,18 +135,20 @@ public:
             if (action == GOSSIP_ACTION_GUIDE)
             {
                 CloseGossipMenuFor(player);
-                BeginJourney(player);
+                StartPersonalGuide(player);
             }
 
             return true;
         }
 
-        void BeginJourney(Player* player)
+        void StartPersonalGuide(Player* player)
         {
-            PendingDalaranGuideSummons[player->GetGUID()] = me->GetEntry();
-
-            player->TeleportTo(MAP_DALARAN_LEGION, DalaranArrival[0], DalaranArrival[1],
-                DalaranArrival[2], DalaranArrival[3]);
+            if (Creature* guide = player->SummonCreature(me->GetEntry(),
+                    me->GetPositionX() + 1.5f, me->GetPositionY(), me->GetPositionZ(), me->GetOrientation(),
+                    TEMPSUMMON_MANUAL_DESPAWN, 0ms))
+            {
+                ENSURE_AI(npc_dalaran_legion_weapon_guideAI, guide->AI())->StartGuiding();
+            }
         }
 
         void StartGuiding()
@@ -210,34 +206,7 @@ public:
     }
 };
 
-class npc_dalaran_legion_weapon_guide_player : public PlayerScript
-{
-public:
-    npc_dalaran_legion_weapon_guide_player() : PlayerScript("npc_dalaran_legion_weapon_guide_player") { }
-
-    void OnMapChanged(Player* player) override
-    {
-        if (player->GetMapId() != MAP_DALARAN_LEGION)
-            return;
-
-        auto it = PendingDalaranGuideSummons.find(player->GetGUID());
-        if (it == PendingDalaranGuideSummons.end())
-            return;
-
-        uint32 const guideEntry = it->second;
-        PendingDalaranGuideSummons.erase(it);
-
-        if (Creature* guide = player->SummonCreature(guideEntry,
-                DalaranArrival[0] + 1.5f, DalaranArrival[1], DalaranArrival[2], DalaranArrival[3],
-                TEMPSUMMON_MANUAL_DESPAWN, Milliseconds(0)))
-        {
-            ENSURE_AI(npc_dalaran_legion_weapon_guide::npc_dalaran_legion_weapon_guideAI, guide->AI())->StartGuiding();
-        }
-    }
-};
-
 void AddSC_npc_dalaran_legion_weapon_guide()
 {
     new npc_dalaran_legion_weapon_guide();
-    new npc_dalaran_legion_weapon_guide_player();
 }
