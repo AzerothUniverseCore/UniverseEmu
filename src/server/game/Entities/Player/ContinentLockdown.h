@@ -44,6 +44,20 @@ namespace ContinentLockdown
 
         return destinations[urand(0, 1)];
     }
+
+    inline WorldLocation const& GetSubLevel80Destination()
+    {
+        static WorldLocation const destination(781, -11800.7f, 2555.49f, 2795.65f, 4.69982f);
+        return destination;
+    }
+
+    inline WorldLocation const& PickDestination(uint8 level)
+    {
+        if (level < 80)
+            return GetSubLevel80Destination();
+
+        return PickRandomDestination();
+    }
 }
 
 #endif

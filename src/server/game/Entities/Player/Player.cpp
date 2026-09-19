@@ -1732,7 +1732,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
 {
     if (!IsGameMaster() && ContinentLockdown::IsLockedMap(mapid))
     {
-        WorldLocation const& redirect = ContinentLockdown::PickRandomDestination();
+        WorldLocation const& redirect = ContinentLockdown::PickDestination(GetLevel());
         mapid = redirect.GetMapId();
         x = redirect.GetPositionX();
         y = redirect.GetPositionY();
@@ -17581,7 +17581,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
 
     if (ContinentLockdown::IsLockedMap(mapId) && GetSession()->GetSecurity() < SEC_GAMEMASTER)
     {
-        WorldLocation const& redirect = ContinentLockdown::PickRandomDestination();
+        WorldLocation const& redirect = ContinentLockdown::PickDestination(GetLevel());
         mapId = redirect.GetMapId();
         instanceId = 0;
         transLowGUID = 0;
