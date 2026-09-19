@@ -25,6 +25,7 @@
 #include "SharedDefines.h"
 #include "Duration.h"
 #include <unordered_map>
+#include <unordered_set>
 
 // Guide Aysa Cloudsinger
 
@@ -45,6 +46,24 @@ namespace
     };
 
     std::unordered_map<ObjectGuid, PendingAysaGuideInfo> PendingAysaGuideSummons;
+
+    std::unordered_set<ObjectGuid> ActiveAysaGuides;
+
+    bool HasActiveGuide(ObjectGuid playerGuid)
+    {
+        return ActiveAysaGuides.count(playerGuid) != 0;
+    }
+
+    void BeginActiveGuide(ObjectGuid playerGuid)
+    {
+        ActiveAysaGuides.insert(playerGuid);
+    }
+
+    void EndActiveGuide(ObjectGuid playerGuid)
+    {
+        ActiveAysaGuides.erase(playerGuid);
+        PendingAysaGuideSummons.erase(playerGuid);
+    }
 
     enum AysaGuideMisc
     {
@@ -264,9 +283,17 @@ public:
 
         bool OnGossipHello(Player* player)
         {
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                "Emmenez-moi visiter Nerozias et le Chemin du Reve d'Emeraude.",
-                GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
+            if (me->ToTempSummon())
+                return false;
+
+            if (HasActiveGuide(player->GetGUID()))
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT,
+                    "(Vous visitez deja Nerozias avec un autre guide.)",
+                    GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
+            else
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT,
+                    "Emmenez-moi visiter Nerozias et le Chemin du Reve d'Emeraude.",
+                    GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
 
             SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
             return true;
@@ -276,12 +303,10 @@ public:
         {
             uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
             ClearGossipMenuFor(player);
+            CloseGossipMenuFor(player);
 
-            if (action == GOSSIP_ACTION_GUIDE)
-            {
-                CloseGossipMenuFor(player);
+            if (action == GOSSIP_ACTION_GUIDE && !HasActiveGuide(player->GetGUID()))
                 BeginJourney(player);
-            }
 
             return true;
         }
@@ -289,6 +314,11 @@ public:
         // Teleport
         void BeginJourney(Player* player)
         {
+            if (HasActiveGuide(player->GetGUID()))
+                return;
+
+            BeginActiveGuide(player->GetGUID());
+
             uint32 const entry = me->GetEntry();
 
             player->TeleportTo(MAP_LEGION_SHIP, ShipStart[0], ShipStart[1], ShipStart[2], ShipStart[3]);
@@ -431,6 +461,7 @@ public:
                         break;
                     case PHASE_DREAMWAY:
                     default:
+                        EndActiveGuide(followedPlayerGuid);
                         me->DespawnOrUnsummon(Milliseconds(8000));
                         break;
                 }
@@ -524,6 +555,11 @@ class npc_aysa_cloudsinger_nerozias_guide_player : public PlayerScript
 {
 public:
     npc_aysa_cloudsinger_nerozias_guide_player() : PlayerScript("npc_aysa_cloudsinger_nerozias_guide_player") { }
+
+    void OnLogout(Player* player) override
+    {
+        EndActiveGuide(player->GetGUID());
+    }
 
     void OnMapChanged(Player* player) override
     {

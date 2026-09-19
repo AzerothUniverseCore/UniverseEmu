@@ -19,15 +19,18 @@
 #include "Player.h"
 #include "WorldSession.h"
 #include "ObjectMgr.h"
+#include "ObjectAccessor.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "CreatureAI.h"
 #include "TemporarySummon.h"
 #include "Duration.h"
 
+#include <unordered_map>
+
 enum DalaranWeaponGuideMisc
 {
-    GOSSIP_ACTION_GUIDE    = 1,
+    GOSSIP_ACTION_GUIDE          = 1,
 
     SAY_START              = 0,
     SAY_ARRIVED            = 1,
@@ -36,12 +39,47 @@ enum DalaranWeaponGuideMisc
     SAY_INFO_FARM          = 4,
     SAY_INFO_ARENA         = 5,
 
-    STR_GOSSIP_GUIDE_ME    = 900023
+    STR_GOSSIP_GUIDE_ME          = 900023,
+    STR_GOSSIP_ALREADY_GUIDING   = 900024,
+
+    POST_TOUR_DESPAWN_DELAY_MS = 8000
 };
 
 static char const* LocalizedGossipText(Player* player, uint32 syphrenaStringEntry)
 {
     return sObjectMgr->GetSyphrenaString(syphrenaStringEntry, player->GetSession()->GetSessionDbLocaleIndex());
+}
+
+namespace
+{
+    std::unordered_map<uint64, ObjectGuid> g_activeGuides;
+
+    bool HasActiveGuide(Player* player)
+    {
+        if (!player)
+            return false;
+
+        auto itr = g_activeGuides.find(player->GetGUID().GetRawValue());
+        if (itr == g_activeGuides.end())
+            return false;
+
+        return ObjectAccessor::GetCreature(*player, itr->second) != nullptr;
+    }
+
+    void EndPersonalGuide(Player* player)
+    {
+        if (!player)
+            return;
+
+        auto itr = g_activeGuides.find(player->GetGUID().GetRawValue());
+        if (itr == g_activeGuides.end())
+            return;
+
+        if (Creature* guide = ObjectAccessor::GetCreature(*player, itr->second))
+            guide->DespawnOrUnsummon();
+
+        g_activeGuides.erase(itr);
+    }
 }
 
 struct GuideDialogueLine { uint32 afterPoint; uint32 textId; };
@@ -120,17 +158,34 @@ public:
         uint32 pathIndex = 0;
         bool guiding = false;
         bool isTemporaryGuide = false;
+        bool finished = false;
+        uint32 despawnTimer = 0;
 
         void InitializeAI() override
         {
             isTemporaryGuide = me->IsSummon();
         }
 
+        Player* GetOwningPlayer() const
+        {
+            if (TempSummon* summon = me->ToTempSummon())
+                return ObjectAccessor::GetPlayer(*me, summon->GetSummonerGUID());
+            return nullptr;
+        }
+
         bool OnGossipHello(Player* player)
         {
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                LocalizedGossipText(player, STR_GOSSIP_GUIDE_ME),
-                GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
+            if (isTemporaryGuide)
+                return false;
+
+            if (HasActiveGuide(player))
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT,
+                    LocalizedGossipText(player, STR_GOSSIP_ALREADY_GUIDING),
+                    GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
+            else
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT,
+                    LocalizedGossipText(player, STR_GOSSIP_GUIDE_ME),
+                    GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
 
             SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
             return true;
@@ -140,22 +195,24 @@ public:
         {
             uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
             ClearGossipMenuFor(player);
+            CloseGossipMenuFor(player);
 
-            if (action == GOSSIP_ACTION_GUIDE)
-            {
-                CloseGossipMenuFor(player);
+            if (action == GOSSIP_ACTION_GUIDE && !HasActiveGuide(player))
                 StartPersonalGuide(player);
-            }
 
             return true;
         }
 
         void StartPersonalGuide(Player* player)
         {
+            if (!player || HasActiveGuide(player))
+                return;
+
             if (Creature* guide = player->SummonCreature(me->GetEntry(),
                     me->GetPositionX() + 1.5f, me->GetPositionY(), me->GetPositionZ(), me->GetOrientation(),
                     TEMPSUMMON_MANUAL_DESPAWN, 0ms))
             {
+                g_activeGuides[player->GetGUID().GetRawValue()] = guide->GetGUID();
                 ENSURE_AI(npc_dalaran_legion_weapon_guideAI, guide->AI())->StartGuiding();
             }
         }
@@ -177,13 +234,33 @@ public:
                 Talk(SAY_ARRIVED);
 
                 if (isTemporaryGuide)
-                    me->DespawnOrUnsummon(Milliseconds(8000));
+                {
+                    finished = true;
+                    despawnTimer = POST_TOUR_DESPAWN_DELAY_MS;
+                }
 
                 return;
             }
 
             GuidePoint const& pt = WeaponUpgradePath[pathIndex];
             me->GetMotionMaster()->MovePoint(pathIndex, pt.x, pt.y, pt.z);
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            if (!finished)
+                return;
+
+            if (despawnTimer > diff)
+            {
+                despawnTimer -= diff;
+                return;
+            }
+
+            if (Player* owner = GetOwningPlayer())
+                EndPersonalGuide(owner);
+            else
+                me->DespawnOrUnsummon();
         }
 
         void MovementInform(uint32 type, uint32 id) override

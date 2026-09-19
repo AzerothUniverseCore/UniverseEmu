@@ -24,6 +24,7 @@
 #include "ObjectAccessor.h"
 #include "Duration.h"
 #include <unordered_map>
+#include <unordered_set>
 
 // Guide Jaedenar Legionnaire
 
@@ -42,6 +43,24 @@ namespace
     };
 
     std::unordered_map<ObjectGuid, PendingGuideInfo> PendingNetherilGuideSummons;
+
+    std::unordered_set<ObjectGuid> ActiveNetherilGuides;
+
+    bool HasActiveGuide(ObjectGuid playerGuid)
+    {
+        return ActiveNetherilGuides.count(playerGuid) != 0;
+    }
+
+    void BeginActiveGuide(ObjectGuid playerGuid)
+    {
+        ActiveNetherilGuides.insert(playerGuid);
+    }
+
+    void EndActiveGuide(ObjectGuid playerGuid)
+    {
+        ActiveNetherilGuides.erase(playerGuid);
+        PendingNetherilGuideSummons.erase(playerGuid);
+    }
 
     enum NetherilGuideMisc
     {
@@ -296,9 +315,17 @@ public:
 
         bool OnGossipHello(Player* player)
         {
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT,
-                "Emmenez-moi visiter le camp de Netheril.",
-                GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
+            if (me->ToTempSummon())
+                return false;
+
+            if (HasActiveGuide(player->GetGUID()))
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT,
+                    "(Vous visitez deja le camp de Netheril avec un autre guide.)",
+                    GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
+            else
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT,
+                    "Emmenez-moi visiter le camp de Netheril.",
+                    GOSSIP_SENDER_MAIN, GOSSIP_ACTION_GUIDE);
 
             SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
             return true;
@@ -308,18 +335,21 @@ public:
         {
             uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
             ClearGossipMenuFor(player);
+            CloseGossipMenuFor(player);
 
-            if (action == GOSSIP_ACTION_GUIDE)
-            {
-                CloseGossipMenuFor(player);
+            if (action == GOSSIP_ACTION_GUIDE && !HasActiveGuide(player->GetGUID()))
                 BeginJourney(player);
-            }
 
             return true;
         }
 
         void BeginJourney(Player* player)
         {
+            if (HasActiveGuide(player->GetGUID()))
+                return;
+
+            BeginActiveGuide(player->GetGUID());
+
             uint32 const entry = me->GetEntry();
 
             player->TeleportTo(MAP_LEGION_SHIP, ShipStart[0], ShipStart[1], ShipStart[2], ShipStart[3]);
@@ -352,7 +382,7 @@ public:
                     TEMPSUMMON_MANUAL_DESPAWN, Milliseconds(0)))
             {
                 ENSURE_AI(npc_jaedenar_legionnaire_netheril_guideAI, guide->AI())
-                    ->StartCampGuiding();
+                    ->StartCampGuiding(player->GetGUID());
             }
         }
 
@@ -367,8 +397,9 @@ public:
             BeginPause(SHIP_START_PAUSE_MS, false);
         }
 
-        void StartCampGuiding()
+        void StartCampGuiding(ObjectGuid playerGuid)
         {
+            followedPlayerGuid = playerGuid;
             isShipPhase = false;
             pathIndex = 0;
             guiding = true;
@@ -387,7 +418,10 @@ public:
                 if (isShipPhase)
                     TeleportToNetheril();
                 else
+                {
+                    EndActiveGuide(followedPlayerGuid);
                     me->DespawnOrUnsummon(Milliseconds(8000));
+                }
 
                 return;
             }
@@ -457,6 +491,11 @@ class npc_jaedenar_legionnaire_netheril_guide_player : public PlayerScript
 {
 public:
     npc_jaedenar_legionnaire_netheril_guide_player() : PlayerScript("npc_jaedenar_legionnaire_netheril_guide_player") { }
+
+    void OnLogout(Player* player) override
+    {
+        EndActiveGuide(player->GetGUID());
+    }
 
     void OnMapChanged(Player* player) override
     {
