@@ -144,6 +144,7 @@ This project uses scripts, systems and resources publicly shared by various auth
 - **Sephir** - Lua/DB
 - **Clotic** - Author
 - **Raverkai** - Lua/DB/CPP
+- **leewheel** - DB/CPP
 
 ### 3D Models & Client Assets
 
