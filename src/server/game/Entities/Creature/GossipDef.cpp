@@ -38,7 +38,12 @@ GossipMenu::~GossipMenu()
 
 uint32 GossipMenu::AddMenuItem(int32 menuItemId, GossipOptionIcon icon, std::string const& message, uint32 sender, uint32 action, std::string const& boxMessage, uint32 boxMoney, bool coded /*= false*/)
 {
-    ASSERT(_menuItems.size() <= GOSSIP_MAX_MENU_ITEMS);
+    if (_menuItems.size() >= GOSSIP_MAX_MENU_ITEMS)
+    {
+        SC_LOG_ERROR("misc", "GossipMenu::AddMenuItem: menu {} already has the maximum of {} items, ignoring extra item (sender {}, action {}, message '{}').",
+            _menuId, GOSSIP_MAX_MENU_ITEMS, sender, action, message);
+        return 0;
+    }
 
     // Find a free new id - script case
     if (menuItemId == -1)
@@ -302,7 +307,12 @@ void QuestMenu::AddMenuItem(uint32 QuestId, uint8 Icon)
     if (!sObjectMgr->GetQuestTemplate(QuestId))
         return;
 
-    ASSERT(_questMenuItems.size() <= GOSSIP_MAX_MENU_ITEMS);
+    if (_questMenuItems.size() >= GOSSIP_MAX_MENU_ITEMS)
+    {
+        SC_LOG_ERROR("misc", "QuestMenu::AddMenuItem: already has the maximum of {} quests, ignoring extra quest {}.",
+            GOSSIP_MAX_MENU_ITEMS, QuestId);
+        return;
+    }
 
     QuestMenuItem questMenuItem;
 
