@@ -1730,7 +1730,22 @@ uint8 Player::GetChatTag() const
 
 bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options)
 {
-    if (!IsGameMaster() && !(options & TELE_TO_BYPASS_CONTINENT_LOCKDOWN) && ContinentLockdown::IsLockedMap(mapid))
+    // Death Knights have their own isolated area on map 0 (Ebon Hold, reached via Death
+    // Gate), unreachable from the rest of that map - any teleport landing a DK there
+    // (spell, portal, area trigger, ...) must go through, whatever triggered it.
+    bool const isDeathKnightRealm = mapid == 0 && GetClass() == CLASS_DEATH_KNIGHT;
+
+    // Access to the DK domain itself is gated behind the "A Vessel Torn from the Legion"
+    // questline - block the teleport (whatever triggered it: Death Gate, the floor
+    // portals, or anything added later) and warn the player instead of letting them in.
+    uint32 const DK_DOMAIN_ACCESS_QUEST = 900020; // "A Vessel Torn from the Legion" / "Un vaisseau arraché à la Légion"
+    if (isDeathKnightRealm && !IsGameMaster() && !GetQuestRewardStatus(DK_DOMAIN_ACCESS_QUEST))
+    {
+        GetSession()->SendAreaTriggerMessage("%s", GetSession()->GetSyphrenaString(LANG_DK_DOMAIN_QUEST_REQUIRED));
+        return false;
+    }
+
+    if (!IsGameMaster() && !isDeathKnightRealm && !(options & TELE_TO_BYPASS_CONTINENT_LOCKDOWN) && ContinentLockdown::IsLockedMap(mapid))
     {
         WorldLocation const& redirect = ContinentLockdown::PickDestination(GetLevel());
         mapid = redirect.GetMapId();
