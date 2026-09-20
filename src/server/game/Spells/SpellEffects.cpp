@@ -1215,7 +1215,18 @@ void Spell::EffectTeleportUnits()
     if (targetDest.GetMapId() == unitTarget->GetMapId())
         unitTarget->NearTeleportTo(targetDest, unitTarget == m_caster);
     else if (unitTarget->GetTypeId() == TYPEID_PLAYER)
-        unitTarget->ToPlayer()->TeleportTo(targetDest, unitTarget == m_caster ? TELE_TO_SPELL : 0);
+    {
+        uint32 teleOptions = unitTarget == m_caster ? TELE_TO_SPELL : 0;
+
+        // Death Gate: destination is the Death Knight starting area, which sits on a
+        // locked map (Eastern Kingdoms) but is otherwise unreachable/isolated, so it
+        // must bypass the continent lockdown redirect instead of landing on a random point.
+        // 50977 is the cast spell; the actual teleport effect fires under 53822 (its trigger spell).
+        if ((m_spellInfo->Id == 50977 || m_spellInfo->Id == 53822) && unitTarget->ToPlayer()->GetClass() == CLASS_DEATH_KNIGHT)
+            teleOptions |= TELE_TO_BYPASS_CONTINENT_LOCKDOWN;
+
+        unitTarget->ToPlayer()->TeleportTo(targetDest, teleOptions);
+    }
     else
     {
         SC_LOG_ERROR("spells", "Spell::EffectTeleportUnits - spellId {} attempted to teleport creature to a different map.", m_spellInfo->Id);

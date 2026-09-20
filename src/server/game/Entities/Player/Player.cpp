@@ -1730,7 +1730,7 @@ uint8 Player::GetChatTag() const
 
 bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options)
 {
-    if (!IsGameMaster() && ContinentLockdown::IsLockedMap(mapid))
+    if (!IsGameMaster() && !(options & TELE_TO_BYPASS_CONTINENT_LOCKDOWN) && ContinentLockdown::IsLockedMap(mapid))
     {
         WorldLocation const& redirect = ContinentLockdown::PickDestination(GetLevel());
         mapid = redirect.GetMapId();
@@ -17579,7 +17579,12 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     uint32 mapId = fields[20].GetUInt16();
     uint32 instanceId = fields[63].GetUInt32();
 
-    if (ContinentLockdown::IsLockedMap(mapId) && GetSession()->GetSecurity() < SEC_GAMEMASTER)
+    // A Death Knight can legitimately be saved on map 0 (their starting area, Ebon Hold,
+    // reached via Death Gate) - don't bounce them out of it on login like any other
+    // locked-map position.
+    bool const isDeathKnightHome = mapId == 0 && GetClass() == CLASS_DEATH_KNIGHT;
+
+    if (ContinentLockdown::IsLockedMap(mapId) && GetSession()->GetSecurity() < SEC_GAMEMASTER && !isDeathKnightHome)
     {
         WorldLocation const& redirect = ContinentLockdown::PickDestination(GetLevel());
         mapId = redirect.GetMapId();
