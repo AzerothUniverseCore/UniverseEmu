@@ -872,7 +872,7 @@ StartPlayerLevel = 79
 #        Range:       1-MaxPlayerLevel
 #        Default:     55
 
-StartDeathKnightPlayerLevel = 79
+StartDeathKnightPlayerLevel = 55
 
 #
 #    StartPlayerMoney
