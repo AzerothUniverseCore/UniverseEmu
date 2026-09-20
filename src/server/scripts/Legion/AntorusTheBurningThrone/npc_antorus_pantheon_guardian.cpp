@@ -18,7 +18,6 @@
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "AntorusArgus.h"
-#include "Log.h"
 
 using namespace AntorusArgus;
 
@@ -43,9 +42,6 @@ public:
 
         void EnterEvadeMode(EvadeReason why) override
         {
-            SC_LOG_ERROR("server", "[Antorus] EnterEvadeMode on '{}' (entry {}, why={}, inCombat={}, hasVictim={}, activeParticipant={}) - resets ALL 7 to full health. Instance {}.",
-                me->GetName(), me->GetEntry(), uint32(why), me->IsInCombat(), me->GetVictim() != nullptr,
-                IsActiveParticipant(me->GetInstanceId(), me->GetEntry()), me->GetInstanceId());
             ResetEncounter(me->GetInstanceId());
             ScriptedAI::EnterEvadeMode(why);
         }

@@ -19,7 +19,7 @@
 #include "Creature.h"
 #include "Unit.h"
 #include "SpellDefines.h"
-#include "Log.h"
+#include "CreatureTextMgr.h"
 
 #include <array>
 #include <unordered_map>
@@ -118,6 +118,8 @@ namespace AntorusArgus
                     return false;
             }
         }
+
+        constexpr uint8 RETREAT_TEXT_GROUP[PARTICIPANT_COUNT] = { 2, 0, 0, 0, 0, 0, 0 };
     }
 
     int32 IndexOfEntry(uint32 entry)
@@ -152,19 +154,12 @@ namespace AntorusArgus
 
         int32 const idx = IndexOfEntry(creature->GetEntry());
         if (idx < 0)
-        {
-            SC_LOG_ERROR("server", "[Antorus] '{}' (entry {}) called RegisterParticipant but its entry isn't in ROTATION_ORDER - misconfigured spawn, ignored.",
-                creature->GetName(), creature->GetEntry());
             return;
-        }
 
         EncounterState& st = g_state[instanceId];
         st.participants[idx] = creature;
         st.alive[idx] = true;
         st.warnedSwapFailure = false;
-
-        SC_LOG_INFO("server", "[Antorus] Registered '{}' (entry {}) as rotation slot {} for instance {}.",
-            creature->GetName(), creature->GetEntry(), idx, instanceId);
 
         creature->GetMotionMaster()->Clear();
         creature->ClearUnitState(UNIT_STATE_EVADE);
@@ -251,12 +246,7 @@ namespace AntorusArgus
         Creature* incoming = nextIdx >= 0 ? st.participants[nextIdx] : nullptr;
         if (!incoming)
         {
-            if (!st.warnedSwapFailure)
-            {
-                st.warnedSwapFailure = true;
-                SC_LOG_ERROR("server", "[Antorus] Swap-out blocked for slot {} (instance {}): next slot {} has no registered creature yet.",
-                    idx, instanceId, nextIdx);
-            }
+            st.warnedSwapFailure = true;
             return false;
         }
 
@@ -265,10 +255,7 @@ namespace AntorusArgus
 
         Unit* previousVictim = me->GetVictim();
 
-        SC_LOG_INFO("server", "[Antorus] Swap: '{}' (slot {}) retreats, '{}' (slot {}) becomes active. Instance {}.",
-            me->GetName(), idx, incoming->GetName(), nextIdx, instanceId);
-
-        me->Yell("Rest now - another shall take my place!", LANG_UNIVERSAL);
+        sCreatureTextMgr->SendChat(me, RETREAT_TEXT_GROUP[idx]);
 
         ApplyPhysicalState(me, false, outgoingDestination);
         st.frozenHealth[idx] = me->GetHealth();
@@ -303,7 +290,6 @@ namespace AntorusArgus
             return;
 
         st.alive[idx] = false;
-        SC_LOG_INFO("server", "[Antorus] Slot {} (entry {}) died. Instance {}.", idx, entry, instanceId);
 
         if (st.activeIndex != uint32(idx))
             return;
@@ -314,17 +300,10 @@ namespace AntorusArgus
 
         Creature* incoming = st.participants[nextIdx];
         if (!incoming)
-        {
-            SC_LOG_ERROR("server", "[Antorus] '{}' (slot {}) died while active but next slot {} has no registered creature - rotation stuck. Instance {}.",
-                ROTATION_ORDER[idx], idx, nextIdx, instanceId);
             return;
-        }
 
         Creature* argus = st.participants[0];
         Position const centrePosition = argus ? argus->GetHomePosition() : incoming->GetHomePosition();
-
-        SC_LOG_INFO("server", "[Antorus] Slot {} died while active - '{}' (slot {}) steps up to take its place. Instance {}.",
-            idx, incoming->GetName(), nextIdx, instanceId);
 
         ApplyPhysicalState(incoming, true, centrePosition);
         incoming->SetHealth(st.frozenHealth[uint32(nextIdx)]);

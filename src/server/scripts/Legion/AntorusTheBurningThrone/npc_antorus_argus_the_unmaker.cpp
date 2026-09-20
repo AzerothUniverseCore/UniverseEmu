@@ -18,9 +18,15 @@
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "AntorusArgus.h"
-#include "Log.h"
 
 using namespace AntorusArgus;
+
+enum ArgusTextGroups
+{
+    TEXT_ARGUS_ENGAGE  = 0,
+    TEXT_ARGUS_DEATH   = 1,
+    TEXT_ARGUS_RETREAT = 2
+};
 
 class npc_antorus_argus_the_unmaker : public CreatureScript
 {
@@ -44,14 +50,11 @@ public:
         void JustEngagedWith(Unit* /*who*/) override
         {
             NotifyEngaged(me->GetInstanceId());
-            me->Yell("The Pantheon's light will not save you here!", LANG_UNIVERSAL);
+            Talk(TEXT_ARGUS_ENGAGE);
         }
 
         void EnterEvadeMode(EvadeReason why) override
         {
-            SC_LOG_ERROR("server", "[Antorus] EnterEvadeMode on '{}' (entry {}, why={}, inCombat={}, hasVictim={}, activeParticipant={}) - resets ALL 7 to full health. Instance {}.",
-                me->GetName(), me->GetEntry(), uint32(why), me->IsInCombat(), me->GetVictim() != nullptr,
-                IsActiveParticipant(me->GetInstanceId(), me->GetEntry()), me->GetInstanceId());
             ResetEncounter(me->GetInstanceId());
             ScriptedAI::EnterEvadeMode(why);
         }
@@ -59,7 +62,7 @@ public:
         void JustDied(Unit* killer) override
         {
             NotifyDeath(me->GetInstanceId(), me->GetEntry(), killer);
-            me->Yell("Im...possible...", LANG_UNIVERSAL);
+            Talk(TEXT_ARGUS_DEATH);
         }
 
         void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo*/) override
@@ -69,11 +72,7 @@ public:
 
             uint32 const curHealth = me->GetHealth();
             if (damage >= curHealth)
-            {
-                SC_LOG_INFO("server", "[Antorus] Clamped a lethal hit on Argus (would-be {} dmg vs {} hp) - Pantheon still alive. Instance {}.",
-                    damage, curHealth, me->GetInstanceId());
                 damage = curHealth > 1 ? curHealth - 1 : 0;
-            }
         }
 
         void UpdateAI(uint32 diff) override
