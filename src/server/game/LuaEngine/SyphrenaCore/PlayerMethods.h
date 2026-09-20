@@ -3475,6 +3475,22 @@ namespace LuaPlayer
     }
 
     /**
+     * Resends the [Player]'s full spell/skill/profession list to their client
+     * (SMSG_INITIAL_SPELLS) - the same packet sent at login.
+     *
+     * Learning individual spells (LearnSpell) or bumping a skill (SetSkill)
+     * already updates an EXISTING profession's numbers live. But a skill
+     * line the player never had before (a brand new profession granted by
+     * script) needs this to make the client's Professions pane pick it up
+     * immediately, instead of only showing up after the player relogs.
+     */
+    int SendInitialSpells(lua_State* /*L*/, Player* player)
+    {
+        player->SendInitialSpells();
+        return 0;
+    }
+
+    /**
      * Resurrects the [Player].
      *
      * @param float healthPercent = 100.0f
@@ -4375,6 +4391,7 @@ namespace LuaPlayer
         { "SendNotification", &LuaPlayer::SendNotification },
         { "SendPacket", &LuaPlayer::SendPacket },
         { "SendAddonMessage", &LuaPlayer::SendAddonMessage },
+        { "SendInitialSpells", &LuaPlayer::SendInitialSpells },
         { "GetFullWhoList", &LuaPlayer::GetFullWhoList },
         { "ModifyMoney", &LuaPlayer::ModifyMoney },
         { "LearnSpell", &LuaPlayer::LearnSpell },
