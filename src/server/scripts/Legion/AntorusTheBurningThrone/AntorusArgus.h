@@ -64,19 +64,32 @@ namespace AntorusArgus
     };
 
     constexpr float ROTATION_ABILITY_DAMAGE_PCT_OF_MAX_HEALTH = 0.02f;
+
     constexpr uint32 ROTATION_ABILITY_COOLDOWN_MS = 5000;
+
     constexpr float SWAP_HEALTH_LOSS_PCT = 30.0f;
+
     constexpr float LEASH_RADIUS = 60.0f;
+
+    constexpr float PANTHEON_SCALE_SEATED = 1.4f;
+    constexpr float PANTHEON_SCALE_ACTIVE = 1.0f;
 
     int32 IndexOfEntry(uint32 entry);
 
     void CastRotationAbility(Creature* me, Unit* victim, uint32 slotIdx, uint32 cycleIndex);
+
     void RegisterParticipant(uint32 instanceId, Creature* creature);
+
     bool IsActiveParticipant(uint32 instanceId, uint32 entry);
+
     bool IsSafeForArgusToDie(uint32 instanceId);
+
     bool CheckSwapOut(uint32 instanceId, Creature* me);
+
     void NotifyEngaged(uint32 instanceId);
+
     void NotifyDeath(uint32 instanceId, uint32 entry, Unit* killer);
+
     void ResetEncounter(uint32 instanceId);
 }
 

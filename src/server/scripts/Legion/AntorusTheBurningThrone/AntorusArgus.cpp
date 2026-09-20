@@ -57,6 +57,9 @@ namespace AntorusArgus
             creature->NearTeleportTo(pos);
             creature->SetRegenerateHealth(false);
 
+            if (creature->GetEntry() != NPC_ARGUS_THE_UNMAKER)
+                creature->SetObjectScale(active ? PANTHEON_SCALE_ACTIVE : PANTHEON_SCALE_SEATED);
+
             if (active)
             {
                 creature->SetStandState(UNIT_STAND_STATE_STAND);
@@ -179,6 +182,7 @@ namespace AntorusArgus
         }
         else
         {
+            creature->SetObjectScale(PANTHEON_SCALE_SEATED);
             creature->SetStandState(UNIT_STAND_STATE_SIT);
             creature->SetImmuneToPC(true, false);
             creature->SetReactState(REACT_PASSIVE);
