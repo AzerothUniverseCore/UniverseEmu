@@ -23,10 +23,7 @@
 #include "Player.h"
 #include "ObjectAccessor.h"
 #include "TemporarySummon.h"
-#include "Log.h"
 #include <list>
-
-#define LEGION_SCENARIO_DEBUG_LOG
 
 namespace LegionScenario
 {
@@ -117,12 +114,6 @@ namespace
         float x, y, z;
         victim->GetContactPoint(attacker, x, y, z);
         attacker->NearTeleportTo(x, y, z, attacker->GetAbsoluteAngle(victim));
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-        SC_LOG_INFO("scripts.legion_scenario",
-            "[{}] stuck out of melee range of {} for 3s+ (pathing issue on map 833?) - snapped into range",
-            attacker->GetEntry(), victim->GetEntry());
-#endif
     }
 }
 
@@ -141,9 +132,6 @@ public:
         g_advancingSide = (g_advancingSide == LegionScenario::SIDE_ENEMY)
             ? LegionScenario::SIDE_ALLIED
             : LegionScenario::SIDE_ENEMY;
-
-        SC_LOG_INFO("scripts.legion_scenario", "7th Legion Scenario: {} side is now on the advance.",
-            g_advancingSide == LegionScenario::SIDE_ENEMY ? "Enemy" : "Allied");
     }
 
 private:
@@ -315,12 +303,6 @@ private:
                 AttackStartNoMove(target);
                 victim = target;
                 _artilleryScanTimer = 0;
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                SC_LOG_INFO("scripts.legion_scenario",
-                    "[{}] artillery: acquired player target '{}' at {:.0f}y (stationary)",
-                    me->GetEntry(), target->GetName(), bestDist);
-#endif
             }
         }
 
@@ -358,22 +340,9 @@ private:
             }
         }
 
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-        SC_LOG_INFO("scripts.legion_scenario",
-            "[{}] seek: {} scenario creatures in {:.0f}y, target={}",
-            me->GetEntry(), nearby.size(), range, target ? target->GetEntry() : 0);
-#endif
-
         if (target)
         {
             AttackStart(target);
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-            SC_LOG_INFO("scripts.legion_scenario",
-                "[{}] AttackStart({}) -> GetVictim()={}, IsInCombat()={}",
-                me->GetEntry(), target->GetEntry(),
-                me->GetVictim() ? me->GetVictim()->GetEntry() : 0, me->IsInCombat());
-#endif
         }
     }
 

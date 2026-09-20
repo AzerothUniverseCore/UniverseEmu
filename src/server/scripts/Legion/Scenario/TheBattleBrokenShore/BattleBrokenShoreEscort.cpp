@@ -27,7 +27,6 @@
 #include "TemporarySummon.h"
 #include "Map.h"
 #include "Duration.h"
-#include "Log.h"
 #include "Chat.h"
 #include "WorldSession.h"
 #include <list>
@@ -35,8 +34,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#define LEGION_SCENARIO_DEBUG_LOG
 
 constexpr uint32 COMBAT_CLEAR_DEBOUNCE_MS = 3000;
 
@@ -111,12 +108,6 @@ namespace
         float x, y, z;
         victim->GetContactPoint(attacker, x, y, z);
         attacker->NearTeleportTo(x, y, z, attacker->GetAbsoluteAngle(victim));
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-        SC_LOG_INFO("scripts.legion_scenario",
-            "[escort {}] stuck out of melee range of {} for 3s+ (pathing issue on map 833?) - snapped into range",
-            attacker->GetEntry(), victim->GetEntry());
-#endif
     }
 
     Creature* EngageNearbyEnemy(Creature* attacker, float range)
@@ -145,12 +136,6 @@ namespace
                 target = other;
             }
         }
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-        SC_LOG_INFO("scripts.legion_scenario",
-            "[escort {}] EngageNearbyEnemy: {} scenario creatures in {:.0f}y, target={}",
-            attacker->GetEntry(), nearby.size(), range, target ? target->GetEntry() : 0);
-#endif
 
         if (target && attacker->AI())
         {
@@ -374,12 +359,6 @@ public:
                 restSecondsLeft = LegionEscort::REST_PAUSE_DURATION_MS / 1000;
 
                 SendRestCountdown(GetOwningPlayer(), restSecondsLeft);
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                SC_LOG_INFO("scripts.legion_scenario",
-                    "[escort {}] resting at checkpoint {} for {} ms before continuing",
-                    me->GetEntry(), reachedPoint, LegionEscort::REST_PAUSE_DURATION_MS);
-#endif
                 return;
             }
 
@@ -422,21 +401,8 @@ public:
 
         void LaunchCombat()
         {
-            Creature* primaryTarget = EngageNearbyEnemy(me, 60.0f);
-            uint32 allyCount = WakeNearbyAllies(me, 15.0f);
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-            SC_LOG_INFO("scripts.legion_scenario",
-                "[escort {}] LaunchCombat: {} allied escorts found within 15y to wake up (gate={})",
-                me->GetEntry(), allyCount, static_cast<uint32>(gateType));
-
-            if (Player* owner = GetOwningPlayer())
-            {
-                ChatHandler(owner->GetSession()).PSendSysMessage(
-                    "|cffff6060[LegionDebug]|r LaunchCombat called (gate=%u): primaryTarget=%u, %u allies woken",
-                    static_cast<uint32>(gateType), primaryTarget ? primaryTarget->GetEntry() : 0, allyCount);
-            }
-#endif
+            EngageNearbyEnemy(me, 60.0f);
+            WakeNearbyAllies(me, 15.0f);
 
             waitingForGossip = false;
 
@@ -459,12 +425,6 @@ public:
                 finalBossSawAliveViaRescan = !finalBossGuid.IsEmpty();
                 finalBossWatchTimer = 0;
                 finalBossWaitElapsedMs = 0;
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                SC_LOG_INFO("scripts.legion_scenario",
-                    "[escort {}] LaunchCombat: final boss engaged (captured guid empty={}), waiting for it to die",
-                    me->GetEntry(), finalBossGuid.IsEmpty());
-#endif
                 return;
             }
 
@@ -472,19 +432,6 @@ public:
             partyPauseWatchdog = 0;
             combatClearTimer = 0;
             ++pathIndex;
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-            SC_LOG_INFO("scripts.legion_scenario",
-                "[escort {}] LaunchCombat: gate combat started (gate={}), pathIndex advanced to {} but walk stays paused until combat clears",
-                me->GetEntry(), static_cast<uint32>(gateType), pathIndex);
-
-            if (Player* owner = GetOwningPlayer())
-            {
-                ChatHandler(owner->GetSession()).PSendSysMessage(
-                    "|cffff6060[LegionDebug]|r LaunchCombat: pathIndex advanced to %u, march paused until combat clears",
-                    pathIndex);
-            }
-#endif
         }
 
         void UpdateAI(uint32 diff) override
@@ -541,23 +488,11 @@ public:
                                 leader->GetNearPoint(me, x, y, z, 3.0f, leader->GetOrientation() + followAngle);
                                 me->NearTeleportTo(x, y, z, me->GetAbsoluteAngle(leader));
                                 me->GetMotionMaster()->MoveFollow(leader, 3.0f, followAngle);
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                                SC_LOG_INFO("scripts.legion_scenario",
-                                    "[escort {}] follow watchdog: still {:.0f}y from leader after 3 forced recomputes (~12s) - snapped into formation",
-                                    me->GetEntry(), me->GetDistance(leader));
-#endif
                             }
                             else
                             {
                                 me->GetMotionMaster()->Clear();
                                 me->GetMotionMaster()->MoveFollow(leader, 3.0f, followAngle);
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                                SC_LOG_INFO("scripts.legion_scenario",
-                                    "[escort {}] follow watchdog: {:.0f}y from leader after 4s - forcing a fresh path recompute (attempt {})",
-                                    me->GetEntry(), me->GetDistance(leader), followRefreshCount);
-#endif
                             }
                         }
                     }
@@ -599,12 +534,6 @@ public:
 
                     SendRestOver(GetOwningPlayer());
                     StepForward();
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                    SC_LOG_INFO("scripts.legion_scenario",
-                        "[escort {}] rest pause over, resuming march at pathIndex {}",
-                        me->GetEntry(), pathIndex);
-#endif
                 }
                 else
                 {
@@ -650,20 +579,7 @@ public:
                     }
 
                     if (!confirmedDead && finalBossWaitElapsedMs >= 20u * 60u * 1000u)
-                    {
                         confirmedDead = true;
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                        SC_LOG_INFO("scripts.legion_scenario",
-                            "[escort {}] final boss watchdog: 20-minute safety timeout reached, forcing completion",
-                            me->GetEntry());
-#endif
-                    }
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                    SC_LOG_INFO("scripts.legion_scenario",
-                        "[escort {}] final boss watchdog tick: confirmedDead={}, sawAliveViaRescan={}",
-                        me->GetEntry(), confirmedDead, finalBossSawAliveViaRescan);
-#endif
 
                     if (confirmedDead)
                     {
@@ -692,14 +608,7 @@ public:
                     if (anyCombat)
                     {
                         if (!partyPaused)
-                        {
                             me->GetMotionMaster()->Clear();
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                            SC_LOG_INFO("scripts.legion_scenario",
-                                "[escort {}] ambient scan: combat detected nearby, halting march at pathIndex {}",
-                                me->GetEntry(), pathIndex);
-#endif
-                        }
                         partyPaused = true;
                         partyPauseWatchdog = 0;
                         combatClearTimer = 0;
@@ -712,15 +621,6 @@ public:
                             partyPaused = false;
                             partyPauseWatchdog = 0;
                             combatClearTimer = 0;
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                            SC_LOG_INFO("scripts.legion_scenario",
-                                "[escort {}] ambient scan: combat cleared, resuming march at pathIndex {}",
-                                me->GetEntry(), pathIndex);
-                            if (owner)
-                                ChatHandler(owner->GetSession()).PSendSysMessage(
-                                    "|cffff6060[LegionDebug]|r ambient scan: combat cleared, resuming march at pathIndex %u",
-                                    pathIndex);
-#endif
                             StepForward();
                         }
                     }
@@ -733,15 +633,6 @@ public:
                             partyPaused = false;
                             partyPauseWatchdog = 0;
                             combatClearTimer = 0;
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                            SC_LOG_INFO("scripts.legion_scenario",
-                                "[escort {}] party-pause watchdog: stuck paused 45s+ despite continuous combat, forcing resume at pathIndex {}",
-                                me->GetEntry(), pathIndex);
-                            if (owner)
-                                ChatHandler(owner->GetSession()).PSendSysMessage(
-                                    "|cffff6060[LegionDebug]|r party-pause watchdog: forcing resume at pathIndex %u (45s safety timeout)",
-                                    pathIndex);
-#endif
                             StepForward();
                         }
                     }
@@ -757,14 +648,7 @@ public:
 
                     LegionEscort::Point const& target = LegionEscort::PATH[pathIndex];
                     if (me->GetDistance(target.x, target.y, target.z) <= 5.0f)
-                    {
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                        SC_LOG_INFO("scripts.legion_scenario",
-                            "[escort {}] stall watchdog: within 5y of checkpoint {} but MovementInform never fired - forcing arrival",
-                            me->GetEntry(), pathIndex + 1);
-#endif
                         HandleReachedPoint(pathIndex + 1);
-                    }
                 }
             }
         }
@@ -880,12 +764,6 @@ namespace
         {
             player->SetPhaseMask(itr->second.previousPhaseMask, true);
             ReleaseScenarioPhase(itr->second.scenarioPhaseMask);
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-            SC_LOG_INFO("scripts.legion_scenario",
-                "[escort] DespawnParty: player {} back to phase {} (left private phase {})",
-                player->GetName(), itr->second.previousPhaseMask, itr->second.scenarioPhaseMask);
-#endif
         }
 
         g_parties.erase(itr);
@@ -902,18 +780,7 @@ namespace
             return;
 
         if (player->GetPhaseMask() != itr->second.scenarioPhaseMask)
-        {
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-            SC_LOG_INFO("scripts.legion_scenario",
-                "[escort] ResyncScenarioPhase: player {} phase drifted to {} - restoring private phase {}",
-                player->GetName(), player->GetPhaseMask(), itr->second.scenarioPhaseMask);
-
-            ChatHandler(player->GetSession()).PSendSysMessage(
-                "|cffff6060[LegionDebug]|r ResyncScenarioPhase: phase drifted to %u, restored to %u",
-                player->GetPhaseMask(), itr->second.scenarioPhaseMask);
-#endif
             player->SetPhaseMask(itr->second.scenarioPhaseMask, true);
-        }
     }
 
     bool IsEscortMemberFighting(Creature* creature)
@@ -974,12 +841,6 @@ namespace
         uint32 scenarioPhaseMask = AllocateScenarioPhase();
         if (scenarioPhaseMask)
             player->SetPhaseMask(scenarioPhaseMask, true);
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-        else
-            SC_LOG_INFO("scripts.legion_scenario",
-                "[escort] SpawnParty: private phase pool exhausted for player {} - they will stay visible to other players",
-                player->GetName());
-#endif
 
         bool isHorde = (player->GetTeamId() == TEAM_HORDE);
         uint32 leaderEntry = isHorde ? LegionEscort::HORDE_LEADER : LegionEscort::ALLIANCE_LEADER;
@@ -1036,8 +897,6 @@ namespace
 
         Map* map = player->GetMap();
 
-        uint32 enemySpawned = 0;
-        uint32 enemyFailed = 0;
         for (uint32 i = 0; i < LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT; ++i)
         {
             LegionScenario::RosterSpawn const& s = LegionScenario::ENEMY_ROSTER_SPAWNS[i];
@@ -1048,21 +907,9 @@ namespace
             {
                 summon->setActive(true);
                 party.rosterGuids.push_back(summon->GetGUID());
-                ++enemySpawned;
-            }
-            else
-            {
-                ++enemyFailed;
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                SC_LOG_ERROR("scripts.legion_scenario",
-                    "[escort] SpawnParty: FAILED to summon enemy roster entry {} at ({:.1f}, {:.1f}, {:.1f}) for player {}",
-                    s.entry, s.x, s.y, s.z, player->GetName());
-#endif
             }
         }
 
-        uint32 alliedSpawned = 0;
-        uint32 alliedFailed = 0;
         for (uint32 i = 0; i < LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT; ++i)
         {
             LegionScenario::RosterSpawn const& s = LegionScenario::ALLIED_AMBIENT_SPAWNS[i];
@@ -1073,32 +920,8 @@ namespace
             {
                 summon->setActive(true);
                 party.rosterGuids.push_back(summon->GetGUID());
-                ++alliedSpawned;
-            }
-            else
-            {
-                ++alliedFailed;
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-                SC_LOG_ERROR("scripts.legion_scenario",
-                    "[escort] SpawnParty: FAILED to summon allied-ambient roster entry {} at ({:.1f}, {:.1f}, {:.1f}) for player {}",
-                    s.entry, s.x, s.y, s.z, player->GetName());
-#endif
             }
         }
-
-#ifdef LEGION_SCENARIO_DEBUG_LOG
-        SC_LOG_INFO("scripts.legion_scenario",
-            "[escort] SpawnParty: full-phase roster spawned {}/{} creatures for player {} in private phase {}",
-            party.rosterGuids.size(),
-            LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT + LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT,
-            player->GetName(), party.scenarioPhaseMask);
-
-        ChatHandler(player->GetSession()).PSendSysMessage(
-            "|cffff6060[LegionDebug]|r SpawnParty: enemy roster %u/%u spawned (%u failed), allied-ambient %u/%u spawned (%u failed), private phase %u",
-            enemySpawned, LegionScenario::ENEMY_ROSTER_SPAWNS_COUNT, enemyFailed,
-            alliedSpawned, LegionScenario::ALLIED_AMBIENT_SPAWNS_COUNT, alliedFailed,
-            party.scenarioPhaseMask);
-#endif
 
         g_parties[pguid] = party;
 
