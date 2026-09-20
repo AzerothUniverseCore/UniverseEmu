@@ -72,7 +72,7 @@ namespace AntorusArgus
     constexpr float LEASH_RADIUS = 60.0f;
 
     constexpr float PANTHEON_SCALE_SEATED = 1.4f;
-    constexpr float PANTHEON_SCALE_ACTIVE = 1.0f;
+    constexpr float PANTHEON_SCALE_ACTIVE = 0.9f;
 
     int32 IndexOfEntry(uint32 entry);
 
