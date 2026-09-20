@@ -20,6 +20,8 @@
 		/* <Legion> */
 // AntorusTheBurningThrone
 void AddSC_instance_antorustheburningthrone();
+void AddSC_npc_antorus_argus_the_unmaker();
+void AddSC_npc_antorus_pantheon_guardian();
 // DalaranLegion
 void AddSC_dalaran_legion();
 // HallsOfValor
@@ -41,6 +43,8 @@ void AddLegionScripts()
 		/* <Legion> */
     // AntorusTheBurningThrone
     AddSC_instance_antorustheburningthrone();
+    AddSC_npc_antorus_argus_the_unmaker();
+    AddSC_npc_antorus_pantheon_guardian();
     // DalaranLegion
     AddSC_dalaran_legion();
 	// HallsOfValor
