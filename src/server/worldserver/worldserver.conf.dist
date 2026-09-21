@@ -2221,7 +2221,7 @@ GM.InWhoList.Level = 3
 #        Description: GM character starting level.
 #        Default:     5
 
-GM.StartLevel = 1
+GM.StartLevel = 79
 
 #
 #    GM.AllowInvite
