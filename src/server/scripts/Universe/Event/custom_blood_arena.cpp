@@ -48,12 +48,12 @@ namespace BloodArena
     // Arène
     // -------------------------------------------------------------------------
 
-    static uint32 const ARENA_MAP_ID = 530;
+    static uint32 const ARENA_MAP_ID = 868;
 
-    static float const ARENA_CENTER_X = 2841.776367f;
-    static float const ARENA_CENTER_Y = 5925.458496f;
-    static float const ARENA_CENTER_Z = 11.317265f;
-    static float const ARENA_CENTER_O = 0.833710f;
+    static float const ARENA_CENTER_X = 977.935f;
+    static float const ARENA_CENTER_Y = -341.829f;
+    static float const ARENA_CENTER_Z = 0.942115f;
+    static float const ARENA_CENTER_O = 0.283849f;
 
     static float const PLAYER_START_RADIUS = 5.0f;
     static float const REQUIRED_GROUP_RANGE = 60.0f;
@@ -75,8 +75,8 @@ namespace BloodArena
     // Portes relevées en jeu avec .gps.
     static ArenaDoor const ARENA_DOORS[] =
     {
-        { 2884.213867f, 5945.374512f, 4.469271f, 0.875168f },
-        { 2792.034668f, 5912.339355f, 4.315041f, 3.993200f }
+        { 965.913f, -291.916f, 3.28355f, 5.24364f },
+        { 1051.8f, -363.338f, 1.83889f, 1.96586f }
     };
 
     static uint32 const ARENA_DOOR_COUNT =
