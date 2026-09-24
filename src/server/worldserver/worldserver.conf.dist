@@ -56,6 +56,7 @@
 #    BATTLE PET SYSTEM
 #    STARTING PET
 # 	 VISUAL WEAPON
+#    NPC ENCHANTER
 #
 ###################################################################################################
 
@@ -6139,3 +6140,69 @@ VisualWeapon.AnnounceEnable = 1
 
 #
 ###################################################################################################
+
+###################################################################################################
+# NPC ENCHANTER
+###################################################################################################
+
+# -------------------------------------------------------------------------------------
+#  Active le module
+#  Active  : 1
+#  Desactive: 0
+# -------------------------------------------------------------------------------------
+EnchanterStats.Enable = 1
+
+# -------------------------------------------------------------------------------------
+#  Annonce le module a la connexion du joueur ? (message bilingue frFR/enUS automatique)
+#  Active  : 1
+#  Desactive: 0
+# -------------------------------------------------------------------------------------
+EnchanterStats.Announce = 1
+
+# -------------------------------------------------------------------------------------
+#  A quelle frequence (en millisecondes) le PNJ parle-t-il tout seul ?
+#  Valeur tiree aleatoirement entre ce minimum et 300000 (5 minutes, max)
+#  Defaut  : 60000 (1 minute, minimum)
+#  Desactive: 0
+# -------------------------------------------------------------------------------------
+EnchanterStats.MessageTimer = 60000
+
+# -------------------------------------------------------------------------------------
+#  Combien de phrases (paires FR/EN) le PNJ connait-il ?
+#  Defaut  : 3
+#  Desactive: 0
+# -------------------------------------------------------------------------------------
+EnchanterStats.NumPhrases = 3
+
+# -------------------------------------------------------------------------------------
+#  Phrases du PNJ - ajoute les tiennes !
+#  A chaque fois qu'il parle, le PNJ tire au sort une phrase ET une langue
+#  (50% frFR, 50% enUS), car un seul message est envoye a tous les joueurs
+#  proches en meme temps (impossible de cibler la langue de chacun).
+# -------------------------------------------------------------------------------------
+EST.P1.FR = "Je peux infuser tes armes d'energie magique."
+EST.P1.EN = "I can infuse your weapons with magical energy."
+EST.P2.FR = "Mes enchantements sont connus dans tout Azeroth !"
+EST.P2.EN = "My enchantments are known across all of Azeroth!"
+EST.P3.FR = "Salutations, voyageur. Envie de voir ce que j'ai a offrir ?"
+EST.P3.EN = "Greetings traveller. Care to see my wares?"
+
+# -------------------------------------------------------------------------------------
+#  Sort lance pour attirer l'attention des joueurs proches
+#  Defaut  : 0 (desactive)
+# -------------------------------------------------------------------------------------
+EnchanterStats.EmoteSpell = 0
+
+# -------------------------------------------------------------------------------------
+#  Emote joue en meme temps que la phrase
+#  Defaut  : 3 (Salut de la main)
+# -------------------------------------------------------------------------------------
+#  0  - AUCUN
+#  1  - PARLER
+#  2  - SALUER
+#  3  - SALUT DE LA MAIN
+#  4  - ACCLAMER
+#  11 - RIRE
+#  25 - POINTER DU DOIGT
+# -------------------------------------------------------------------------------------
+EnchanterStats.EmoteCommand = 3
