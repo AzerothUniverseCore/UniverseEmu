@@ -40,6 +40,7 @@ void AddLfgSoloScripts();
 void AddSC_TemplateNPC();
 void AddSC_npc_1v1arena();
 void AddSolocraftScripts();
+void AddSC_npc_visual_enchant();
 void AddSC_XpWeekend();
 void AddSC_accountachievement();
 void AddSC_AccountCompanions();
@@ -94,6 +95,7 @@ void AddUniverseScripts()
 	AddSC_TemplateNPC();
 	AddSC_npc_1v1arena();
 	AddSolocraftScripts();
+	AddSC_npc_visual_enchant();
 	AddSC_XpWeekend();
 	AddSC_accountachievement();
 	AddSC_AccountCompanions();
