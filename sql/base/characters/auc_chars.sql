@@ -70071,6 +70071,19 @@ CREATE TABLE `custom_item_enchant_visuals` (
 
 /*Data for the table `custom_item_enchant_visuals` */
 
+/*Table structure for table `custom_legendary_obtained` */
+
+DROP TABLE IF EXISTS `custom_legendary_obtained`;
+
+CREATE TABLE `custom_legendary_obtained` (
+  `guid` int(10) unsigned NOT NULL,
+  `item_entry` int(10) unsigned NOT NULL,
+  `obtained_at` int(10) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`guid`,`item_entry`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `custom_legendary_obtained` */
+
 /*Table structure for table `custom_netheril_progress` */
 
 DROP TABLE IF EXISTS `custom_netheril_progress`;
@@ -70113,6 +70126,19 @@ CREATE TABLE `custom_solocraft_character_stats` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ROW_FORMAT=DYNAMIC;
 
 /*Data for the table `custom_solocraft_character_stats` */
+
+/*Table structure for table `custom_tomefelsecrets_obtained` */
+
+DROP TABLE IF EXISTS `custom_tomefelsecrets_obtained`;
+
+CREATE TABLE `custom_tomefelsecrets_obtained` (
+  `guid` int(10) unsigned NOT NULL,
+  `item_entry` int(10) unsigned NOT NULL,
+  `obtained_at` int(10) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`guid`,`item_entry`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `custom_tomefelsecrets_obtained` */
 
 /*Table structure for table `custom_transmog` */
 
@@ -84776,6 +84802,18 @@ CREATE TABLE `mail_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 /*Data for the table `mail_items` */
+
+/*Table structure for table `mod_weapon_visual_effect` */
+
+DROP TABLE IF EXISTS `mod_weapon_visual_effect`;
+
+CREATE TABLE `mod_weapon_visual_effect` (
+  `item_guid` int(10) unsigned NOT NULL,
+  `enchant_visual_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`item_guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Visuel d''enchantement (PNJ 2000001) - stocke uniquement un ID visuel par objet, aucun effet de jeu';
+
+/*Data for the table `mod_weapon_visual_effect` */
 
 /*Table structure for table `mythic_loot` */
 
