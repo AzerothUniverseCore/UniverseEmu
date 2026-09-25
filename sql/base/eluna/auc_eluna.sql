@@ -93,6 +93,18 @@ CREATE TABLE `characters_exp_rates` (
 
 /*Data for the table `characters_exp_rates` */
 
+/*Table structure for table `characters_legendary_wings_pref` */
+
+DROP TABLE IF EXISTS `characters_legendary_wings_pref`;
+
+CREATE TABLE `characters_legendary_wings_pref` (
+  `guid` int(10) unsigned NOT NULL,
+  `hide_effect` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+/*Data for the table `characters_legendary_wings_pref` */
+
 /*Table structure for table `characters_parangon` */
 
 DROP TABLE IF EXISTS `characters_parangon`;
