@@ -463,12 +463,6 @@ namespace BloodArena
                     // Évite qu'une faute de frappe SQL provoque des vagues vides.
                     if (!sObjectMgr->GetCreatureTemplate(poolEntry.creatureEntry))
                     {
-                        SC_LOG_INFO(
-                            "server.worldserver",
-                            "[BloodArena] Pool ignore : creature_template {} inexistante (ligne {}).",
-                            poolEntry.creatureEntry,
-                            poolEntry.id);
-
                         continue;
                     }
 
@@ -503,12 +497,6 @@ namespace BloodArena
 
             _trashPool.swap(newTrashPool);
             _bossPool.swap(newBossPool);
-
-            SC_LOG_INFO(
-                "server.worldserver",
-                "[BloodArena] Pool recharge : {} trash(s), {} boss.",
-                uint32(_trashPool.size()),
-                uint32(_bossPool.size()));
 
             return !_trashPool.empty() && !_bossPool.empty();
         }
@@ -1734,11 +1722,6 @@ namespace BloodArena
                 "UPDATE `blood_arena_state` "
                 "SET `current_season`='{}' "
                 "WHERE `id`=1",
-                currentSeason);
-
-            SC_LOG_INFO(
-                "server.worldserver",
-                "[BloodArena] Nouveau mois : classement {} initialise.",
                 currentSeason);
         }
 
@@ -3706,10 +3689,6 @@ namespace BloodArena
 
 void AddSC_custom_blood_arena()
 {
-    SC_LOG_INFO(
-        "server.loading",
-        "[BloodArena] Chargement du script Blood Arena V1.6.");
-
     new BloodArena::
         npc_blood_arena_master();
 

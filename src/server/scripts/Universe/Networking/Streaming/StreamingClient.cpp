@@ -689,7 +689,7 @@ public:
     {
         if (!sConfigMgr->GetBoolDefault("StreamingClient.Enabled", true))
         {
-            SC_LOG_INFO("custom.streamingclient", "StreamingClient is disabled via config.");
+            SC_LOG_INFO("custom.streamingclient", "StreamingClient is disabled.");
             return;
         }
 

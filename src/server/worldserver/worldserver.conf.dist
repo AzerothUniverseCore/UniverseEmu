@@ -3079,7 +3079,7 @@ Network.TcpNodelay = 1
 #        Description: Enable the streaming client HTTP file-server.
 #        Default:     1 (enabled)
 
-StreamingClient.Enabled = 1
+StreamingClient.Enabled = 0
 
 #    ModStreamingClient.Port
 #        Description: TCP port to listen on for incoming HTTP connections.
@@ -3098,7 +3098,7 @@ StreamingClient.BuildNumber = 12340
 #
 #        Default: 3, Console Server
 
-Logger.custom.streamingclient = 3, Console Server
+#Logger.custom.streamingclient = 3, Console Server
 
 #
 ###################################################################################################
