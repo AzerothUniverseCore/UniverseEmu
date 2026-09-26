@@ -33,11 +33,13 @@
 #include "ScriptMgr.h"
 #include "Config.h"
 #include "Log.h"
+#include "CryptoHash.h"
 
 #include <boost/asio.hpp>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 #include <memory>
 #include <vector>
 #include <thread>
@@ -49,7 +51,7 @@ namespace fs = std::filesystem;
 using boost::asio::ip::tcp;
 
 static constexpr size_t   MAX_HEADER_BYTES = 8192;
-static constexpr uintmax_t MAX_FILE_SIZE   = 5ULL * 1024 * 1024 * 1024;
+static constexpr uintmax_t MAX_FILE_SIZE   = 32ULL * 1024 * 1024 * 1024;
 static constexpr size_t   FILE_CHUNK_BYTES = 256 * 1024;
 static constexpr int      ACCEPT_BACKLOG   = boost::asio::socket_base::max_listen_connections;
 static std::regex const   s_rangeRe(R"(bytes=(\d+)-(\d*))");
@@ -67,6 +69,65 @@ static fs::path SafeJoin(fs::path const& root, std::string const& target)
         return {};
 
     return candidate;
+}
+
+static std::string g_signatureFileContent;
+
+static std::string BuildSignatureFile(fs::path const& cdnRoot)
+{
+    std::ostringstream header;
+    size_t fileCount = 0;
+
+    std::error_code ec;
+    for (auto const& entry : fs::recursive_directory_iterator(cdnRoot, ec))
+    {
+        if (ec || !entry.is_regular_file())
+            continue;
+
+        fs::path relative = fs::relative(entry.path(), cdnRoot, ec);
+        if (ec)
+            continue;
+
+        std::string relStr = relative.generic_string();
+
+        std::string scope = "base";
+        auto slashPos = relStr.find('/');
+        if (slashPos != std::string::npos && slashPos == 4)
+            scope = relStr.substr(0, slashPos);
+
+        std::ifstream file(entry.path(), std::ios::binary);
+        if (!file.is_open())
+            continue;
+
+        Syphrena::Crypto::MD5 hash;
+        std::vector<char> buffer(1 * 1024 * 1024);
+        while (file)
+        {
+            file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+            std::streamsize got = file.gcount();
+            if (got <= 0)
+                break;
+            hash.UpdateData(reinterpret_cast<uint8 const*>(buffer.data()), static_cast<size_t>(got));
+        }
+        hash.Finalize();
+
+        std::ostringstream hex;
+        hex << std::uppercase << std::hex << std::setfill('0');
+        for (uint8 b : hash.GetDigest())
+            hex << std::setw(2) << static_cast<unsigned int>(b);
+
+        header << scope << ";c;" << hex.str() << ";Data/" << relStr << "\r\n";
+        ++fileCount;
+    }
+
+    SC_LOG_INFO("streamingclient",
+                "Signature file built ({} file(s) hashed under '{}').",
+                fileCount, cdnRoot.string());
+
+    std::string result = header.str();
+    result += "NGIS";
+    result.append(32, '\0');
+    return result;
 }
 
 class HttpServer
@@ -231,14 +292,12 @@ private:
 
             if (target.empty())
             {
-                // Decommenter pour verifier que le serveur tourne @ http://localhost:1119
-                //HelloWorld(isHead);
                 return;
             }
 
             if (target == "signaturefile")
             {
-                SendText("", "application/octet-stream", isHead);
+                SendText(g_signatureFileContent, "application/octet-stream", isHead);
                 return;
             }
 
@@ -459,6 +518,9 @@ public:
             sConfigMgr->GetIntDefault("ThreadPool", 2));
         if (threads < 2)
             threads = 2;
+
+        SC_LOG_INFO("streamingclient", "Building signature file (hashing cdn content, may take a moment)...");
+        g_signatureFileContent = BuildSignatureFile(cdnPath);
 
         g_streamingServer = std::make_unique<HttpServer>(
             static_cast<unsigned short>(cfgPort),
