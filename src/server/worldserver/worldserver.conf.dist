@@ -3088,6 +3088,18 @@ StreamingClient.Enabled = 1
 
 StreamingClient.Port = 1119
 
+#    StreamingClient.BuildNumber
+#
+#        Default: 12340 (WotLK 3.3.5a)
+
+StreamingClient.BuildNumber = 12340
+
+#    Logger.custom.streamingclient
+#
+#        Default: 3, Console Server
+
+Logger.custom.streamingclient = 3, Console Server
+
 #
 ###################################################################################################
 
