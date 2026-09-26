@@ -52,6 +52,7 @@ void AddSC_minelevationtrigger();
 void AddSC_npc_dalaran_legion_weapon_guide();
 void AddSC_npc_jaedenar_legionnaire_netheril_guide();
 void AddSC_npc_aysa_cloudsinger_nerozias_guide();
+void AddSC_StreamingClient();
 /* ######################## > */
 
 /* ######### Event ######## > */
@@ -108,6 +109,7 @@ void AddUniverseScripts()
 	AddSC_npc_dalaran_legion_weapon_guide();
 	AddSC_npc_jaedenar_legionnaire_netheril_guide();
 	AddSC_npc_aysa_cloudsinger_nerozias_guide();
+	AddSC_StreamingClient();
 /* ######################## > */
 
 /* ######### Event ######## > */
