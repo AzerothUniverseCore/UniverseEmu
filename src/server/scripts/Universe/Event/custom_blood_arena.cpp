@@ -92,6 +92,31 @@ namespace BloodArena
         { -1888.26f, 1256.06f, 43.6914f, 2.32351f }
     };
 
+    // Coordonnées de game_tele_Blood_Arena.sql (StartGeorgeCreatureSpawn1-4),
+    // map 864 -- Gorge de Vent-Caverneux / Cavewind Gorge.
+    static ArenaDoor const ARENA_DOORS_864[] =
+    {
+        { -190.502f, 456.255f, 109.265f, 1.20859f },
+        { -141.604f, 455.968f, 109.294f, 1.9233f },
+        { -142.685f, 543.735f, 109.034f, 4.39337f },
+        { -191.061f, 543.004f, 109.202f, 5.10117f }
+    };
+
+    // Coordonnées de game_tele_Blood_Arena.sql (StartCreusetCreatureSpawn),
+    // map 867 -- Creuset des Énigmes / Crucible of Riddles. Une seule porte.
+    static ArenaDoor const ARENA_DOORS_867[] =
+    {
+        { 324.956f, 265.456f, 90.0673f, 3.15069f }
+    };
+
+    // Coordonnées de game_tele_Blood_Arena.sql
+    // (StartMaldraxxusCreatureSpawn1/2), map 866 -- Maldraxxus Coliseum.
+    static ArenaDoor const ARENA_DOORS_866[] =
+    {
+        { 2855.77f, 2327.91f, 3259.75f, 4.49703f },
+        { 2854.98f, 2184.32f, 3259.97f, 1.85416f }
+    };
+
     struct ArenaVariant
     {
         uint32 mapId;
@@ -124,6 +149,30 @@ namespace BloodArena
             sizeof(ARENA_DOORS_869) / sizeof(ARENA_DOORS_869[0]),
             "Mugambala",
             "Mugambala"
+        },
+        {
+            // Coordonnées StartGeorgePlayerSpawn de game_tele_Blood_Arena.sql.
+            864, -196.089f, 500.68f, 109.996f, 6.28226f,
+            ARENA_DOORS_864,
+            sizeof(ARENA_DOORS_864) / sizeof(ARENA_DOORS_864[0]),
+            "Gorge de Vent-Caverneux",
+            "Cavewind Gorge"
+        },
+        {
+            // Coordonnées StartCreusetplayerSpawn de game_tele_Blood_Arena.sql.
+            867, 208.727f, 266.658f, 90.0672f, 6.2805f,
+            ARENA_DOORS_867,
+            sizeof(ARENA_DOORS_867) / sizeof(ARENA_DOORS_867[0]),
+            "Creuset des Enigmes",
+            "Crucible of Riddles"
+        },
+        {
+            // Coordonnées StartMaldraxxusPlayerSpawn de game_tele_Blood_Arena.sql.
+            866, 2785.9f, 2254.49f, 3260.38f, 6.27596f,
+            ARENA_DOORS_866,
+            sizeof(ARENA_DOORS_866) / sizeof(ARENA_DOORS_866[0]),
+            "Maldraxxus Coliseum",
+            "Maldraxxus Coliseum"
         },
     };
 
@@ -375,21 +424,11 @@ namespace BloodArena
 
     enum GossipActions : uint32
     {
-        // Choix de la map d'arène (écran d'accueil du PNJ) --
-        // mène au sous-menu des 4 modes ci-dessous pour la map choisie.
-        ACTION_CHOOSE_ARENA_868 = 900,
-        ACTION_CHOOSE_ARENA_869 = 901,
-
-        ACTION_INFINITE_LAST_KILL_868 = 1001,
-        ACTION_INFINITE_FIXED_868     = 1002,
-        ACTION_TIMER_LAST_KILL_868    = 1003,
-        ACTION_TIMER_FIXED_868        = 1004,
-
-        ACTION_INFINITE_LAST_KILL_869 = 1011,
-        ACTION_INFINITE_FIXED_869     = 1012,
-        ACTION_TIMER_LAST_KILL_869    = 1013,
-        ACTION_TIMER_FIXED_869        = 1014,
-
+        // Choix de la map d'arène (écran d'accueil du PNJ) -- mène au
+        // sous-menu des 4 modes ci-dessous pour la map choisie. Les actions
+        // réelles sont calculées dynamiquement par variante, voir
+        // ACTION_CHOOSE_ARENA_BASE / ACTION_MODE_BASE plus bas : on évite
+        // ainsi d'avoir à ajouter 5 constantes ici à chaque nouvelle arène.
         ACTION_LEADERBOARD_MENU     = 1100,
         ACTION_LEADERBOARD_INFINITE = 1101,
         ACTION_LEADERBOARD_TIMER    = 1102,
@@ -398,6 +437,112 @@ namespace BloodArena
         ACTION_ADMIN_MENU             = 1200,
         ACTION_ADMIN_RELOAD_CREATURES = 1201
     };
+
+    // -------------------------------------------------------------------------
+    // Actions de gossip par variante d'arène (calculées, pas énumérées)
+    // -------------------------------------------------------------------------
+    //
+    // Écran d'accueil : une action "choisir cette arène" par variante,
+    // ACTION_CHOOSE_ARENA_BASE + index (868 -> 900, 869 -> 901, etc, dans
+    // l'ordre du tableau ARENA_VARIANTS).
+    //
+    // Sous-menu des modes : une action par (variante, mode), ACTION_MODE_BASE
+    // + index*10 + offset, où offset identifie le mode (voir MODE_OFFSET_*).
+    // Pour 868 (index 0) ça retombe exactement sur les anciennes valeurs
+    // 1001-1004, et pour 869 (index 1) sur 1011-1014.
+
+    static uint32 const ACTION_CHOOSE_ARENA_BASE = 900;
+    static uint32 const ACTION_MODE_BASE = 1000;
+
+    static uint32 const MODE_OFFSET_INFINITE_LAST_KILL = 1;
+    static uint32 const MODE_OFFSET_INFINITE_FIXED     = 2;
+    static uint32 const MODE_OFFSET_TIMER_LAST_KILL    = 3;
+    static uint32 const MODE_OFFSET_TIMER_FIXED        = 4;
+
+    static uint32 GetArenaVariantIndex(uint32 mapId)
+    {
+        for (uint32 i = 0; i < ARENA_VARIANT_COUNT; ++i)
+            if (ARENA_VARIANTS[i].mapId == mapId)
+                return i;
+
+        return 0;
+    }
+
+    static uint32 GetChooseArenaAction(uint32 mapId)
+    {
+        return ACTION_CHOOSE_ARENA_BASE + GetArenaVariantIndex(mapId);
+    }
+
+    static uint32 GetArenaModeAction(uint32 mapId, uint32 modeOffset)
+    {
+        return ACTION_MODE_BASE +
+            GetArenaVariantIndex(mapId) * 10 +
+            modeOffset;
+    }
+
+    // Si `action` est un choix d'arène valide (écran d'accueil), renvoie
+    // true et place le mapId correspondant dans outMapId.
+    static bool IsChooseArenaAction(uint32 action, uint32& outMapId)
+    {
+        if (action < ACTION_CHOOSE_ARENA_BASE)
+            return false;
+
+        uint32 variantIndex = action - ACTION_CHOOSE_ARENA_BASE;
+
+        if (variantIndex >= ARENA_VARIANT_COUNT)
+            return false;
+
+        outMapId = ARENA_VARIANTS[variantIndex].mapId;
+        return true;
+    }
+
+    // Si `action` est un choix de mode valide (sous-menu d'une arène),
+    // renvoie true et place la map/le mode/la progression correspondants
+    // dans les paramètres de sortie.
+    static bool DecodeArenaModeAction(
+        uint32 action,
+        uint32& outMapId,
+        ArenaMode& outMode,
+        WaveProgression& outProgression)
+    {
+        if (action < ACTION_MODE_BASE)
+            return false;
+
+        uint32 offset = action - ACTION_MODE_BASE;
+        uint32 variantIndex = offset / 10;
+        uint32 modeOffset = offset % 10;
+
+        if (variantIndex >= ARENA_VARIANT_COUNT)
+            return false;
+
+        if (modeOffset == MODE_OFFSET_INFINITE_LAST_KILL)
+        {
+            outMode = MODE_INFINITE;
+            outProgression = PROGRESSION_LAST_KILL;
+        }
+        else if (modeOffset == MODE_OFFSET_INFINITE_FIXED)
+        {
+            outMode = MODE_INFINITE;
+            outProgression = PROGRESSION_FIXED_2_MINUTES;
+        }
+        else if (modeOffset == MODE_OFFSET_TIMER_LAST_KILL)
+        {
+            outMode = MODE_TIMER;
+            outProgression = PROGRESSION_LAST_KILL;
+        }
+        else if (modeOffset == MODE_OFFSET_TIMER_FIXED)
+        {
+            outMode = MODE_TIMER;
+            outProgression = PROGRESSION_FIXED_2_MINUTES;
+        }
+        else
+        {
+            return false;
+        }
+
+        outMapId = ARENA_VARIANTS[variantIndex].mapId;
+        return true;
+    }
 
     // -------------------------------------------------------------------------
     // Structures de session
@@ -3633,23 +3778,17 @@ namespace BloodArena
 
                 ClearGossipMenuFor(player);
 
-                AddGossipItemFor(
-                    player,
-                    GOSSIP_ICON_CHAT,
-                    L(player,
-                        GetArenaVariant(868)->labelFr,
-                        GetArenaVariant(868)->labelEn),
-                    GOSSIP_SENDER_MAIN,
-                    ACTION_CHOOSE_ARENA_868);
+                for (uint32 i = 0; i < ARENA_VARIANT_COUNT; ++i)
+                {
+                    ArenaVariant const& variant = ARENA_VARIANTS[i];
 
-                AddGossipItemFor(
-                    player,
-                    GOSSIP_ICON_CHAT,
-                    L(player,
-                        GetArenaVariant(869)->labelFr,
-                        GetArenaVariant(869)->labelEn),
-                    GOSSIP_SENDER_MAIN,
-                    ACTION_CHOOSE_ARENA_869);
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        L(player, variant.labelFr, variant.labelEn),
+                        GOSSIP_SENDER_MAIN,
+                        GetChooseArenaAction(variant.mapId));
+                }
 
                 AddGossipItemFor(
                     player,
@@ -3703,13 +3842,11 @@ namespace BloodArena
                 if (action == ACTION_BACK_MAIN)
                     return OnGossipHello(player);
 
-                if (action == ACTION_CHOOSE_ARENA_868 ||
-                    action == ACTION_CHOOSE_ARENA_869)
+                uint32 chosenMapId = 0;
+
+                if (IsChooseArenaAction(action, chosenMapId))
                 {
                     ClearGossipMenuFor(player);
-
-                    bool isMugambala =
-                        (action == ACTION_CHOOSE_ARENA_869);
 
                     AddGossipItemFor(
                         player,
@@ -3718,9 +3855,7 @@ namespace BloodArena
                             "Infini - vague suivante au dernier ennemi",
                             "Infinite - next wave on last enemy killed"),
                         GOSSIP_SENDER_MAIN,
-                        isMugambala
-                            ? ACTION_INFINITE_LAST_KILL_869
-                            : ACTION_INFINITE_LAST_KILL_868);
+                        GetArenaModeAction(chosenMapId, MODE_OFFSET_INFINITE_LAST_KILL));
 
                     AddGossipItemFor(
                         player,
@@ -3729,9 +3864,7 @@ namespace BloodArena
                             "Infini - nouvelle vague toutes les 2 minutes",
                             "Infinite - new wave every 2 minutes"),
                         GOSSIP_SENDER_MAIN,
-                        isMugambala
-                            ? ACTION_INFINITE_FIXED_869
-                            : ACTION_INFINITE_FIXED_868);
+                        GetArenaModeAction(chosenMapId, MODE_OFFSET_INFINITE_FIXED));
 
                     AddGossipItemFor(
                         player,
@@ -3740,9 +3873,7 @@ namespace BloodArena
                             "Timer 30 min - vague suivante au dernier ennemi",
                             "Timer 30 min - next wave on last enemy killed"),
                         GOSSIP_SENDER_MAIN,
-                        isMugambala
-                            ? ACTION_TIMER_LAST_KILL_869
-                            : ACTION_TIMER_LAST_KILL_868);
+                        GetArenaModeAction(chosenMapId, MODE_OFFSET_TIMER_LAST_KILL));
 
                     AddGossipItemFor(
                         player,
@@ -3751,9 +3882,7 @@ namespace BloodArena
                             "Timer 30 min - nouvelle vague toutes les 2 minutes",
                             "Timer 30 min - new wave every 2 minutes"),
                         GOSSIP_SENDER_MAIN,
-                        isMugambala
-                            ? ACTION_TIMER_FIXED_869
-                            : ACTION_TIMER_FIXED_868);
+                        GetArenaModeAction(chosenMapId, MODE_OFFSET_TIMER_FIXED));
 
                     AddGossipItemFor(
                         player,
@@ -3926,110 +4055,32 @@ namespace BloodArena
                     return true;
                 }
 
-                switch (action)
+                uint32 startMapId = 0;
+                ArenaMode startMode = MODE_INFINITE;
+                WaveProgression startProgression = PROGRESSION_LAST_KILL;
+
+                if (DecodeArenaModeAction(
+                        action,
+                        startMapId,
+                        startMode,
+                        startProgression))
                 {
-                    case ACTION_INFINITE_LAST_KILL_868:
-                        started =
-                            ArenaManager::Instance().
-                            StartSession(
-                                player,
-                                me,
-                                MODE_INFINITE,
-                                PROGRESSION_LAST_KILL,
-                                868,
-                                error);
-                        break;
-
-                    case ACTION_INFINITE_FIXED_868:
-                        started =
-                            ArenaManager::Instance().
-                            StartSession(
-                                player,
-                                me,
-                                MODE_INFINITE,
-                                PROGRESSION_FIXED_2_MINUTES,
-                                868,
-                                error);
-                        break;
-
-                    case ACTION_TIMER_LAST_KILL_868:
-                        started =
-                            ArenaManager::Instance().
-                            StartSession(
-                                player,
-                                me,
-                                MODE_TIMER,
-                                PROGRESSION_LAST_KILL,
-                                868,
-                                error);
-                        break;
-
-                    case ACTION_TIMER_FIXED_868:
-                        started =
-                            ArenaManager::Instance().
-                            StartSession(
-                                player,
-                                me,
-                                MODE_TIMER,
-                                PROGRESSION_FIXED_2_MINUTES,
-                                868,
-                                error);
-                        break;
-
-                    case ACTION_INFINITE_LAST_KILL_869:
-                        started =
-                            ArenaManager::Instance().
-                            StartSession(
-                                player,
-                                me,
-                                MODE_INFINITE,
-                                PROGRESSION_LAST_KILL,
-                                869,
-                                error);
-                        break;
-
-                    case ACTION_INFINITE_FIXED_869:
-                        started =
-                            ArenaManager::Instance().
-                            StartSession(
-                                player,
-                                me,
-                                MODE_INFINITE,
-                                PROGRESSION_FIXED_2_MINUTES,
-                                869,
-                                error);
-                        break;
-
-                    case ACTION_TIMER_LAST_KILL_869:
-                        started =
-                            ArenaManager::Instance().
-                            StartSession(
-                                player,
-                                me,
-                                MODE_TIMER,
-                                PROGRESSION_LAST_KILL,
-                                869,
-                                error);
-                        break;
-
-                    case ACTION_TIMER_FIXED_869:
-                        started =
-                            ArenaManager::Instance().
-                            StartSession(
-                                player,
-                                me,
-                                MODE_TIMER,
-                                PROGRESSION_FIXED_2_MINUTES,
-                                869,
-                                error);
-                        break;
-
-                    default:
-                        error =
-                            L(player,
-                                "Choix d'arene inconnu.",
-                                "Unknown arena choice.");
-                        break;
+                    started =
+                        ArenaManager::Instance().
+                        StartSession(
+                            player,
+                            me,
+                            startMode,
+                            startProgression,
+                            startMapId,
+                            error);
+                }
+                else
+                {
+                    error =
+                        L(player,
+                            "Choix d'arene inconnu.",
+                            "Unknown arena choice.");
                 }
 
                 CloseGossipMenuFor(player);
