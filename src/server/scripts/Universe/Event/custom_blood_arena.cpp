@@ -48,13 +48,6 @@ namespace BloodArena
     // Arène
     // -------------------------------------------------------------------------
 
-    static uint32 const ARENA_MAP_ID = 868;
-
-    static float const ARENA_CENTER_X = 977.935f;
-    static float const ARENA_CENTER_Y = -341.829f;
-    static float const ARENA_CENTER_Z = 0.942115f;
-    static float const ARENA_CENTER_O = 0.283849f;
-
     static float const PLAYER_START_RADIUS = 5.0f;
     static float const REQUIRED_GROUP_RANGE = 60.0f;
 
@@ -72,15 +65,133 @@ namespace BloodArena
         float o;
     };
 
-    // Portes relevées en jeu avec .gps.
-    static ArenaDoor const ARENA_DOORS[] =
+    // -------------------------------------------------------------------------
+    // Variantes d'arène (choix de map côté gossip)
+    // -------------------------------------------------------------------------
+    //
+    // Chaque variante regroupe : la map, le point d'apparition des joueurs
+    // (centre) et les "portes" -- qui servent une double fonction dans ce
+    // système : point de spawn des créatures à chaque vague (voir
+    // GetMobSpawnPosition) ET zone de sortie volontaire (voir
+    // IsPlayerAtExitDoor). Pour ajouter une nouvelle variante, il suffit
+    // d'ajouter un tableau ARENA_DOORS_xxx et une entrée dans ARENA_VARIANTS.
+
+    // Portes relevées en jeu avec .gps (arène originale, map 868).
+    static ArenaDoor const ARENA_DOORS_868[] =
     {
         { 965.913f, -291.916f, 3.28355f, 5.24364f },
         { 1051.8f, -363.338f, 1.83889f, 1.96586f }
     };
 
-    static uint32 const ARENA_DOOR_COUNT =
-        sizeof(ARENA_DOORS) / sizeof(ARENA_DOORS[0]);
+    // Points de spawn créatures relevés via game_tele_Mugambala.sql
+    // (StartSpawnCreatureMugambala1/2), réutilisés comme "portes" pour
+    // la seconde variante, map 869 (Mugambala).
+    static ArenaDoor const ARENA_DOORS_869[] =
+    {
+        { -1889.58f, 1342.25f, 43.6913f, 3.95714f },
+        { -1888.26f, 1256.06f, 43.6914f, 2.32351f }
+    };
+
+    struct ArenaVariant
+    {
+        uint32 mapId;
+        float centerX;
+        float centerY;
+        float centerZ;
+        float centerO;
+        ArenaDoor const* doors;
+        uint32 doorCount;
+        // Nom de la zone tel qu'affiché dans le gossip -- certains noms
+        // sont des toponymes propres et restent identiques dans les deux
+        // langues (ex : "Mugambala").
+        char const* labelFr;
+        char const* labelEn;
+    };
+
+    static ArenaVariant const ARENA_VARIANTS[] =
+    {
+        {
+            868, 977.935f, -341.829f, 0.942115f, 0.283849f,
+            ARENA_DOORS_868,
+            sizeof(ARENA_DOORS_868) / sizeof(ARENA_DOORS_868[0]),
+            "Pointe du Crochet",
+            "Hook Point"
+        },
+        {
+            // Coordonnées StartSpawnPlayerMugambala de game_tele_Mugambala.sql.
+            869, -1936.9f, 1299.95f, 34.4307f, 3.17567f,
+            ARENA_DOORS_869,
+            sizeof(ARENA_DOORS_869) / sizeof(ARENA_DOORS_869[0]),
+            "Mugambala",
+            "Mugambala"
+        },
+    };
+
+    static uint32 const ARENA_VARIANT_COUNT =
+        sizeof(ARENA_VARIANTS) / sizeof(ARENA_VARIANTS[0]);
+
+    static ArenaVariant const* GetArenaVariant(uint32 mapId)
+    {
+        for (uint32 i = 0; i < ARENA_VARIANT_COUNT; ++i)
+            if (ARENA_VARIANTS[i].mapId == mapId)
+                return &ARENA_VARIANTS[i];
+
+        // Ne devrait jamais arriver (mapId vient toujours d'un choix de
+        // gossip valide) -- on retombe sur la première variante plutôt que
+        // de renvoyer un pointeur nul.
+        return &ARENA_VARIANTS[0];
+    }
+
+    static bool IsArenaMap(uint32 mapId)
+    {
+        for (uint32 i = 0; i < ARENA_VARIANT_COUNT; ++i)
+            if (ARENA_VARIANTS[i].mapId == mapId)
+                return true;
+
+        return false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Localisation (enUS / frFR selon la langue du client de chaque joueur)
+    // -------------------------------------------------------------------------
+
+    static LocaleConstant GetPlayerLocale(Player const* player)
+    {
+        if (!player || !player->GetSession())
+            return LOCALE_enUS;
+
+        return player->GetSession()->GetSessionDbcLocale();
+    }
+
+    static LocaleConstant GetSessionLocale(WorldSession* session)
+    {
+        if (!session)
+            return LOCALE_enUS;
+
+        return session->GetSessionDbcLocale();
+    }
+
+    // Renvoie frText si le joueur est en client frFR, enText sinon (par
+    // défaut/repli : anglais).
+    static std::string L(Player const* player, char const* frText, char const* enText)
+    {
+        return (GetPlayerLocale(player) == LOCALE_frFR) ? frText : enText;
+    }
+
+    static std::string L(Player const* player, std::string const& frText, std::string const& enText)
+    {
+        return (GetPlayerLocale(player) == LOCALE_frFR) ? frText : enText;
+    }
+
+    static std::string L(WorldSession* session, char const* frText, char const* enText)
+    {
+        return (GetSessionLocale(session) == LOCALE_frFR) ? frText : enText;
+    }
+
+    static std::string L(WorldSession* session, std::string const& frText, std::string const& enText)
+    {
+        return (GetSessionLocale(session) == LOCALE_frFR) ? frText : enText;
+    }
 
     // -------------------------------------------------------------------------
     // Timers
@@ -211,12 +322,73 @@ namespace BloodArena
         PROGRESSION_FIXED_2_MINUTES = 2
     };
 
+    // Raisons de fin de session : le texte réel (FR/EN) est résolu par
+    // joueur au moment de l'envoi, via GetEndReasonText() + L().
+    enum class EndReason : uint8
+    {
+        Victory,
+        FailArrival,
+        FailConfigError,
+        FailAllQuit,
+        FailAllDead,
+        FailTimerExpired
+    };
+
+    static void GetEndReasonText(
+        EndReason reason,
+        std::string& outFr,
+        std::string& outEn)
+    {
+        switch (reason)
+        {
+            case EndReason::Victory:
+                outFr = "Victoire !";
+                outEn = "Victory!";
+                break;
+
+            case EndReason::FailArrival:
+                outFr = "Echec : un participant n'a pas pu rejoindre l'arene.";
+                outEn = "Failure: a participant could not reach the arena.";
+                break;
+
+            case EndReason::FailConfigError:
+                outFr = "Erreur de configuration : aucun monstre valide n'est disponible pour cette vague.";
+                outEn = "Configuration error: no valid monster is available for this wave.";
+                break;
+
+            case EndReason::FailAllQuit:
+                outFr = "Tous les joueurs ont quitte la session.";
+                outEn = "All players have left the session.";
+                break;
+
+            case EndReason::FailAllDead:
+                outFr = "Defaite : tous les participants sont morts ou ont quitte l'arene.";
+                outEn = "Defeat: all participants are dead or have left the arena.";
+                break;
+
+            case EndReason::FailTimerExpired:
+                outFr = "Defaite : les 30 minutes sont ecoulees.";
+                outEn = "Defeat: the 30 minutes have run out.";
+                break;
+        }
+    }
+
     enum GossipActions : uint32
     {
-        ACTION_INFINITE_LAST_KILL = 1001,
-        ACTION_INFINITE_FIXED     = 1002,
-        ACTION_TIMER_LAST_KILL    = 1003,
-        ACTION_TIMER_FIXED        = 1004,
+        // Choix de la map d'arène (écran d'accueil du PNJ) --
+        // mène au sous-menu des 4 modes ci-dessous pour la map choisie.
+        ACTION_CHOOSE_ARENA_868 = 900,
+        ACTION_CHOOSE_ARENA_869 = 901,
+
+        ACTION_INFINITE_LAST_KILL_868 = 1001,
+        ACTION_INFINITE_FIXED_868     = 1002,
+        ACTION_TIMER_LAST_KILL_868    = 1003,
+        ACTION_TIMER_FIXED_868        = 1004,
+
+        ACTION_INFINITE_LAST_KILL_869 = 1011,
+        ACTION_INFINITE_FIXED_869     = 1012,
+        ACTION_TIMER_LAST_KILL_869    = 1013,
+        ACTION_TIMER_FIXED_869        = 1014,
 
         ACTION_LEADERBOARD_MENU     = 1100,
         ACTION_LEADERBOARD_INFINITE = 1101,
@@ -247,6 +419,10 @@ namespace BloodArena
     struct Session
     {
         uint64 id = 0;
+
+        // Map d'arène utilisée par cette session (868 = Blood Arena
+        // d'origine, 869 = Mugambala) -- voir ARENA_VARIANTS.
+        uint32 mapId = 868;
 
         ArenaMode mode = MODE_INFINITE;
         WaveProgression progression = PROGRESSION_LAST_KILL;
@@ -566,8 +742,12 @@ namespace BloodArena
             std::string season = GetCurrentSeasonKey();
             std::string title =
                 mode == MODE_INFINITE
-                    ? "Top 10 - Vagues infinies - " + GetSeasonLabel(season)
-                    : "Top 10 - Timer - " + GetSeasonLabel(season);
+                    ? L(player,
+                        "Top 10 - Vagues infinies - " + GetSeasonLabel(season),
+                        "Top 10 - Infinite Waves - " + GetSeasonLabel(season))
+                    : L(player,
+                        "Top 10 - Timer - " + GetSeasonLabel(season),
+                        "Top 10 - Timer - " + GetSeasonLabel(season));
 
             AddGossipItemFor(
                 player,
@@ -626,7 +806,7 @@ namespace BloodArena
 
                     if (mode == MODE_INFINITE)
                     {
-                        row << "Vague " << score;
+                        row << L(player, "Vague ", "Wave ") << score;
                     }
                     else
                     {
@@ -635,8 +815,8 @@ namespace BloodArena
 
                     row << " ["
                         << (progression == PROGRESSION_FIXED_2_MINUTES
-                            ? "2 min"
-                            : "Dernier mob")
+                            ? L(player, "2 min", "2 min")
+                            : L(player, "Dernier mob", "Last enemy"))
                         << "]";
 
                     AddGossipItemFor(
@@ -658,7 +838,9 @@ namespace BloodArena
                 AddGossipItemFor(
                     player,
                     GOSSIP_ICON_CHAT,
-                    "Aucun score enregistre pour ce mois.",
+                    L(player,
+                        "Aucun score enregistre pour ce mois.",
+                        "No score recorded for this month."),
                     GOSSIP_SENDER_MAIN,
                     mode == MODE_INFINITE
                         ? ACTION_LEADERBOARD_INFINITE
@@ -668,7 +850,7 @@ namespace BloodArena
             AddGossipItemFor(
                 player,
                 GOSSIP_ICON_CHAT,
-                "< Retour au menu principal",
+                L(player, "< Retour au menu principal", "< Back to main menu"),
                 GOSSIP_SENDER_MAIN,
                 ACTION_BACK_MAIN);
 
@@ -683,8 +865,11 @@ namespace BloodArena
             Creature* arenaMaster,
             ArenaMode mode,
             WaveProgression progression,
+            uint32 mapId,
             std::string& error)
         {
+            ArenaVariant const& variant = *GetArenaVariant(mapId);
+
             if (!starter)
             {
                 error = "Joueur invalide.";
@@ -693,13 +878,19 @@ namespace BloodArena
 
             if (!arenaMaster)
             {
-                error = "Maitre de l'Arene invalide.";
+                error =
+                    L(starter,
+                        "Maitre de l'Arene invalide.",
+                        "Invalid Arena Master.");
                 return false;
             }
 
             if (IsPlayerInArena(starter))
             {
-                error = "Tu participes deja a une arene.";
+                error =
+                    L(starter,
+                        "Tu participes deja a une arene.",
+                        "You are already taking part in an arena.");
                 return false;
             }
 
@@ -713,13 +904,16 @@ namespace BloodArena
             if (phaseMask == 0)
             {
                 error =
-                    "Toutes les phases de l'arene sont actuellement utilisees.";
+                    L(starter,
+                        "Toutes les phases de l'arene sont actuellement utilisees.",
+                        "All arena phases are currently in use.");
                 return false;
             }
 
             Session session;
 
             session.id = ++_nextSessionId;
+            session.mapId = variant.mapId;
             session.mode = mode;
             session.progression = progression;
 
@@ -802,7 +996,7 @@ namespace BloodArena
             for (Player* member : members)
             {
                 Position startPosition =
-                    GetPlayerStartPosition(index, total);
+                    GetPlayerStartPosition(variant, index, total);
 
                 ++index;
 
@@ -810,53 +1004,61 @@ namespace BloodArena
                 // on ne change PAS la phase avant le TeleportTo.
                 // Le joueur garde sa phase actuelle pendant le chargement.
                 member->TeleportTo(
-                    ARENA_MAP_ID,
+                    variant.mapId,
                     startPosition.GetPositionX(),
                     startPosition.GetPositionY(),
                     startPosition.GetPositionZ(),
                     startPosition.GetOrientation());
 
-                SendMessage(
+                SendLocalized(
                     member,
-                    "|cff00ff00[Blood Arena]|r Session creee.");
+                    "|cff00ff00[Blood Arena]|r Session creee.",
+                    "|cff00ff00[Blood Arena]|r Session created.");
 
                 if (mode == MODE_INFINITE)
                 {
-                    SendMessage(
+                    SendLocalized(
                         member,
-                        "|cff00ff00[Blood Arena]|r Mode : vagues infinies.");
+                        "|cff00ff00[Blood Arena]|r Mode : vagues infinies.",
+                        "|cff00ff00[Blood Arena]|r Mode: infinite waves.");
                 }
                 else
                 {
-                    SendMessage(
+                    SendLocalized(
                         member,
-                        "|cff00ff00[Blood Arena]|r Mode : 30 minutes / 15 vagues.");
+                        "|cff00ff00[Blood Arena]|r Mode : 30 minutes / 15 vagues.",
+                        "|cff00ff00[Blood Arena]|r Mode: 30 minutes / 15 waves.");
                 }
 
                 if (progression == PROGRESSION_LAST_KILL)
                 {
-                    SendMessage(
+                    SendLocalized(
                         member,
-                        "|cff00ff00[Blood Arena]|r Vague suivante a la mort du dernier ennemi.");
+                        "|cff00ff00[Blood Arena]|r Vague suivante a la mort du dernier ennemi.",
+                        "|cff00ff00[Blood Arena]|r Next wave when the last enemy dies.");
                 }
                 else
                 {
-                    SendMessage(
+                    SendLocalized(
                         member,
-                        "|cff00ff00[Blood Arena]|r Nouvelle vague toutes les 2 minutes.");
+                        "|cff00ff00[Blood Arena]|r Nouvelle vague toutes les 2 minutes.",
+                        "|cff00ff00[Blood Arena]|r New wave every 2 minutes.");
                 }
 
-                SendMessage(
+                SendLocalized(
                     member,
-                    "|cffff0000[Blood Arena]|r Aucun point d'experience pendant l'evenement.");
+                    "|cffff0000[Blood Arena]|r Aucun point d'experience pendant l'evenement.",
+                    "|cffff0000[Blood Arena]|r No experience points during the event.");
 
-                SendMessage(
+                SendLocalized(
                     member,
-                    "|cff00ffff[Blood Arena]|r Transfert vers l'arene en cours...");
+                    "|cff00ffff[Blood Arena]|r Transfert vers l'arene en cours...",
+                    "|cff00ffff[Blood Arena]|r Transferring to the arena...");
 
-                SendMessage(
+                SendLocalized(
                     member,
-                    "|cffff8000[Blood Arena]|r Pour abandonner l'evenement, emprunte l'une des deux portes : tout le groupe sera renvoye devant le Maitre de l'Arene.");
+                    "|cffff8000[Blood Arena]|r Pour abandonner l'evenement, emprunte l'une des deux portes : tout le groupe sera renvoye devant le Maitre de l'Arene.",
+                    "|cffff8000[Blood Arena]|r To abandon the event, take one of the two doors: the whole group will be sent back in front of the Arena Master.");
             }
 
             return true;
@@ -869,7 +1071,7 @@ namespace BloodArena
             std::vector<uint64> victories;
 
             std::vector<
-                std::pair<uint64, std::string>
+                std::pair<uint64, EndReason>
             > failures;
 
             // Sorties volontaires par les portes. Elles sont traitées
@@ -909,7 +1111,7 @@ namespace BloodArena
                         }
 
                         if (player->GetMapId() !=
-                            ARENA_MAP_ID)
+                            session.mapId)
                         {
                             allArrived = false;
                             continue;
@@ -934,9 +1136,10 @@ namespace BloodArena
                         session.nextWaveDelayMs =
                             START_DELAY_MS;
 
-                        Broadcast(
+                        BroadcastLocalized(
                             session.id,
-                            "|cff00ff00[Blood Arena]|r Tous les participants sont arrives. Debut dans 3 secondes.");
+                            "|cff00ff00[Blood Arena]|r Tous les participants sont arrives. Debut dans 3 secondes.",
+                            "|cff00ff00[Blood Arena]|r All participants have arrived. Starting in 3 seconds.");
                     }
                     else
                     {
@@ -948,7 +1151,7 @@ namespace BloodArena
                             failures.push_back(
                                 std::make_pair(
                                     session.id,
-                                    "Echec : un participant n'a pas pu rejoindre l'arene."));
+                                    EndReason::FailArrival));
                         }
                         else
                         {
@@ -971,7 +1174,7 @@ namespace BloodArena
                     failures.push_back(
                         std::make_pair(
                             session.id,
-                            "Erreur de configuration : aucun monstre valide n'est disponible pour cette vague."));
+                            EndReason::FailConfigError));
 
                     continue;
                 }
@@ -987,13 +1190,13 @@ namespace BloodArena
                     if (!player || !player->IsInWorld())
                         continue;
 
-                    if (player->GetMapId() != ARENA_MAP_ID)
+                    if (player->GetMapId() != session.mapId)
                         continue;
 
                     if (player->GetPhaseMask() != session.phaseMask)
                         continue;
 
-                    if (IsPlayerAtExitDoor(player))
+                    if (IsPlayerAtExitDoor(player, *GetArenaVariant(session.mapId)))
                     {
                         // Une seule personne à la porte suffit :
                         // tout le groupe quitte l'évènement.
@@ -1008,7 +1211,7 @@ namespace BloodArena
                     failures.push_back(
                         std::make_pair(
                             session.id,
-                            "Tous les joueurs ont quitte la session."));
+                            EndReason::FailAllQuit));
 
                     continue;
                 }
@@ -1019,7 +1222,7 @@ namespace BloodArena
                     failures.push_back(
                         std::make_pair(
                             session.id,
-                            "Defaite : tous les participants sont morts ou ont quitte l'arene."));
+                            EndReason::FailAllDead));
 
                     continue;
                 }
@@ -1033,7 +1236,7 @@ namespace BloodArena
                         failures.push_back(
                             std::make_pair(
                                 session.id,
-                                "Defaite : les 30 minutes sont ecoulees."));
+                                EndReason::FailTimerExpired));
 
                         continue;
                     }
@@ -1104,7 +1307,7 @@ namespace BloodArena
                 EndSession(
                     sessionId,
                     true,
-                    "Victoire !");
+                    EndReason::Victory);
             }
 
             for (auto const& failure :
@@ -1125,8 +1328,16 @@ namespace BloodArena
         void EndSession(
             uint64 sessionId,
             bool success,
-            std::string const& reason)
+            EndReason reason)
         {
+            std::string reasonFr;
+            std::string reasonEn;
+
+            GetEndReasonText(
+                reason,
+                reasonFr,
+                reasonEn);
+
             auto sessionIt =
                 _sessions.find(sessionId);
 
@@ -1194,7 +1405,8 @@ namespace BloodArena
                         player,
                         ITEM_INFUSION_CRYSTAL,
                         timerReward,
-                        "Cristaux d'infusion");
+                        "Cristaux d'infusion",
+                        "Infusion Crystals");
 
                     uint32 elapsedSeconds =
                         elapsedMs / 1000;
@@ -1205,9 +1417,9 @@ namespace BloodArena
                     uint32 elapsedRemainder =
                         elapsedSeconds % 60;
 
-                    std::ostringstream message;
+                    std::ostringstream messageFr;
 
-                    message
+                    messageFr
                         << "|cff00ff00[Blood Arena]|r Defi Timer termine en "
                         << elapsedMinutes
                         << "m "
@@ -1216,9 +1428,21 @@ namespace BloodArena
                         << timerReward
                         << " Cristaux d'infusion.";
 
-                    SendMessage(
+                    std::ostringstream messageEn;
+
+                    messageEn
+                        << "|cff00ff00[Blood Arena]|r Timer Challenge completed in "
+                        << elapsedMinutes
+                        << "m "
+                        << elapsedRemainder
+                        << "s: +"
+                        << timerReward
+                        << " Infusion Crystals.";
+
+                    SendLocalized(
                         player,
-                        message.str());
+                        messageFr.str(),
+                        messageEn.str());
                 }
 
                 uint32 restorePhase =
@@ -1239,17 +1463,17 @@ namespace BloodArena
 
                 if (success)
                 {
-                    SendMessage(
+                    SendLocalized(
                         player,
-                        "|cff00ff00[Blood Arena]|r " +
-                        reason);
+                        "|cff00ff00[Blood Arena]|r " + reasonFr,
+                        "|cff00ff00[Blood Arena]|r " + reasonEn);
                 }
                 else
                 {
-                    SendMessage(
+                    SendLocalized(
                         player,
-                        "|cffff0000[Blood Arena]|r " +
-                        reason);
+                        "|cffff0000[Blood Arena]|r " + reasonFr,
+                        "|cffff0000[Blood Arena]|r " + reasonEn);
                 }
             }
 
@@ -1537,7 +1761,8 @@ namespace BloodArena
 
         void NotifyOnlineGms(
             std::string const& seasonKey,
-            std::string const& noticeText)
+            std::string const& noticeTextFr,
+            std::string const& noticeTextEn)
         {
             for (auto const& pair :
                  sWorld->GetAllSessions())
@@ -1552,7 +1777,7 @@ namespace BloodArena
 
                 ChatHandler(session).
                     SendSysMessage(
-                        noticeText.c_str());
+                        L(session, noticeTextFr, noticeTextEn).c_str());
 
                 MarkGmNoticeRead(
                     seasonKey,
@@ -1632,11 +1857,17 @@ namespace BloodArena
             }
 
             std::ostringstream notice;
+            std::ostringstream noticeEn;
 
             notice
                 << "|cffff8000[Blood Arena - GM]|r Classement du mois "
                 << GetSeasonLabel(seasonKey)
                 << " termine. Merci d'attribuer manuellement la recompense aux meilleurs groupes.";
+
+            noticeEn
+                << "|cffff8000[Blood Arena - GM]|r Monthly ranking for "
+                << GetSeasonLabel(seasonKey)
+                << " is over. Please manually grant the reward to the best groups.";
 
             if (!infiniteNames.empty())
             {
@@ -1646,11 +1877,21 @@ namespace BloodArena
                     << " - vague "
                     << infiniteWave
                     << ".";
+
+                noticeEn
+                    << " | Infinite #1: "
+                    << infiniteNames
+                    << " - wave "
+                    << infiniteWave
+                    << ".";
             }
             else
             {
                 notice
                     << " | Infini : aucun score.";
+
+                noticeEn
+                    << " | Infinite: no score.";
             }
 
             if (!timerNames.empty())
@@ -1661,14 +1902,28 @@ namespace BloodArena
                     << " - "
                     << FormatDuration(timerTime)
                     << ".";
+
+                noticeEn
+                    << " | Timer #1: "
+                    << timerNames
+                    << " - "
+                    << FormatDuration(timerTime)
+                    << ".";
             }
             else
             {
                 notice
                     << " | Timer : aucun score.";
+
+                noticeEn
+                    << " | Timer: no score.";
             }
 
+            // Le texte persisté en base (relu par NotifyUnreadGmNotices pour
+            // les GMs hors-ligne au moment du rollover) reste en français ;
+            // seule la notification immédiate ci-dessous est localisée.
             std::string noticeText = notice.str();
+            std::string noticeTextEn = noticeEn.str();
             std::string escapedNotice = noticeText;
 
             WorldDatabase.EscapeString(escapedNotice);
@@ -1681,7 +1936,8 @@ namespace BloodArena
 
             NotifyOnlineGms(
                 seasonKey,
-                noticeText);
+                noticeText,
+                noticeTextEn);
         }
 
         void CheckMonthlyRollover()
@@ -1760,6 +2016,18 @@ namespace BloodArena
                     message.c_str());
         }
 
+        // Envoie un message localisé (frText si le client du joueur est en
+        // frFR, enText sinon).
+        void SendLocalized(
+            Player* player,
+            std::string const& frText,
+            std::string const& enText) const
+        {
+            SendMessage(
+                player,
+                L(player, frText, enText));
+        }
+
         void Broadcast(
             uint64 sessionId,
             std::string const& message) const
@@ -1785,6 +2053,34 @@ namespace BloodArena
             }
         }
 
+        // Diffuse un message localisé à chaque joueur de la session, selon
+        // la langue de son propre client.
+        void BroadcastLocalized(
+            uint64 sessionId,
+            std::string const& frText,
+            std::string const& enText) const
+        {
+            auto sessionIt =
+                _sessions.find(sessionId);
+
+            if (sessionIt ==
+                _sessions.end())
+            {
+                return;
+            }
+
+            for (ObjectGuid const& guid :
+                 sessionIt->second.players)
+            {
+                Player* player =
+                    ObjectAccessor::FindConnectedPlayer(
+                        guid);
+
+                if (player)
+                    SendLocalized(player, frText, enText);
+            }
+        }
+
         // ---------------------------------------------------------------------
         // Récompenses
         // ---------------------------------------------------------------------
@@ -1793,7 +2089,8 @@ namespace BloodArena
             Player* player,
             uint32 itemId,
             uint64 amount,
-            char const* rewardName) const
+            char const* rewardNameFr,
+            char const* rewardNameEn) const
         {
             if (!player ||
                 amount == 0)
@@ -1821,18 +2118,14 @@ namespace BloodArena
                 amount -= chunk;
             }
 
-            if (rewardName)
+            if (rewardNameFr && rewardNameEn)
             {
-                std::ostringstream message;
-
-                message
-                    << "|cff00ff00[Blood Arena]|r Recompense recue : "
-                    << rewardName
-                    << ".";
-
-                SendMessage(
+                SendLocalized(
                     player,
-                    message.str());
+                    std::string("|cff00ff00[Blood Arena]|r Recompense recue : ") +
+                        rewardNameFr + ".",
+                    std::string("|cff00ff00[Blood Arena]|r Reward received: ") +
+                        rewardNameEn + ".");
             }
         }
 
@@ -1926,7 +2219,8 @@ namespace BloodArena
                     player,
                     ITEM_INFUSION_CRYSTAL,
                     crystalReward,
-                    "Cristaux d'infusion");
+                    "Cristaux d'infusion",
+                    "Infusion Crystals");
 
                 if (shardReward > 0)
                 {
@@ -1934,14 +2228,16 @@ namespace BloodArena
                         player,
                         ITEM_STONE_KEEPER_SHARD,
                         shardReward,
-                        "Eclats du gardien des pierres");
+                        "Eclats du gardien des pierres",
+                        "Stone Keeper Shards");
                 }
 
-                std::ostringstream message;
+                std::ostringstream messageFr;
+                std::ostringstream messageEn;
 
                 if (bossWave)
                 {
-                    message
+                    messageFr
                         << "|cffff8000[Blood Arena]|r Boss de la vague "
                         << wave
                         << " vaincu : +"
@@ -1949,20 +2245,37 @@ namespace BloodArena
                         << " Cristaux d'infusion et +"
                         << shardReward
                         << " Eclats du gardien des pierres.";
+
+                    messageEn
+                        << "|cffff8000[Blood Arena]|r Wave "
+                        << wave
+                        << " boss defeated: +"
+                        << crystalReward
+                        << " Infusion Crystals and +"
+                        << shardReward
+                        << " Stone Keeper Shards.";
                 }
                 else
                 {
-                    message
+                    messageFr
                         << "|cff00ff00[Blood Arena]|r Vague "
                         << wave
                         << " terminee : +"
                         << crystalReward
                         << " Cristaux d'infusion.";
+
+                    messageEn
+                        << "|cff00ff00[Blood Arena]|r Wave "
+                        << wave
+                        << " completed: +"
+                        << crystalReward
+                        << " Infusion Crystals.";
                 }
 
-                SendMessage(
+                SendLocalized(
                     player,
-                    message.str());
+                    messageFr.str(),
+                    messageEn.str());
             }
         }
 
@@ -1970,17 +2283,17 @@ namespace BloodArena
         // Sortie volontaire par les portes
         // ---------------------------------------------------------------------
 
-        bool IsPlayerAtExitDoor(Player* player) const
+        bool IsPlayerAtExitDoor(Player* player, ArenaVariant const& variant) const
         {
             if (!player)
                 return false;
 
-            for (uint32 i = 0; i < ARENA_DOOR_COUNT; ++i)
+            for (uint32 i = 0; i < variant.doorCount; ++i)
             {
-                ArenaDoor const& door = ARENA_DOORS[i];
+                ArenaDoor const& door = variant.doors[i];
 
-                float dx = door.x - ARENA_CENTER_X;
-                float dy = door.y - ARENA_CENTER_Y;
+                float dx = door.x - variant.centerX;
+                float dy = door.y - variant.centerY;
                 float length = std::sqrt(dx * dx + dy * dy);
 
                 if (length <= 0.001f)
@@ -2088,9 +2401,10 @@ namespace BloodArena
                     session.returnZ,
                     session.returnO);
 
-                SendMessage(
+                SendLocalized(
                     player,
-                    "|cffff8000[Blood Arena]|r Le groupe a quitte l'evenement et a ete renvoye devant le Maitre de l'Arene.");
+                    "|cffff8000[Blood Arena]|r Le groupe a quitte l'evenement et a ete renvoye devant le Maitre de l'Arene.",
+                    "|cffff8000[Blood Arena]|r The group has left the event and been sent back in front of the Arena Master.");
 
                 ++index;
             }
@@ -2120,7 +2434,9 @@ namespace BloodArena
                 starter->GetGUID())
             {
                 error =
-                    "Seul le chef du groupe peut lancer l'evenement.";
+                    L(starter,
+                        "Seul le chef du groupe peut lancer l'evenement.",
+                        "Only the group leader can start the event.");
 
                 return false;
             }
@@ -2139,7 +2455,9 @@ namespace BloodArena
                 if (!member->IsInWorld())
                 {
                     error =
-                        "Tous les membres du groupe doivent etre connectes.";
+                        L(starter,
+                            "Tous les membres du groupe doivent etre connectes.",
+                            "All group members must be online.");
 
                     return false;
                 }
@@ -2150,7 +2468,9 @@ namespace BloodArena
                     starter->GetMapId())
                 {
                     error =
-                        "Tous les membres doivent etre sur la meme carte que le chef.";
+                        L(starter,
+                            "Tous les membres doivent etre sur la meme carte que le chef.",
+                            "All members must be on the same map as the leader.");
 
                     return false;
                 }
@@ -2160,7 +2480,9 @@ namespace BloodArena
                         REQUIRED_GROUP_RANGE))
                 {
                     error =
-                        "Tous les membres doivent etre proches du Maitre de l'Arene.";
+                        L(starter,
+                            "Tous les membres doivent etre proches du Maitre de l'Arene.",
+                            "All members must be close to the Arena Master.");
 
                     return false;
                 }
@@ -2168,7 +2490,9 @@ namespace BloodArena
                 if (IsPlayerInArena(member))
                 {
                     error =
-                        "Un membre du groupe participe deja a une arene.";
+                        L(starter,
+                            "Un membre du groupe participe deja a une arene.",
+                            "A group member is already in an arena.");
 
                     return false;
                 }
@@ -2179,7 +2503,9 @@ namespace BloodArena
             if (members.empty())
             {
                 error =
-                    "Aucun participant valide.";
+                    L(starter,
+                        "Aucun participant valide.",
+                        "No valid participant.");
 
                 return false;
             }
@@ -2225,6 +2551,7 @@ namespace BloodArena
         // ---------------------------------------------------------------------
 
         Position GetPlayerStartPosition(
+            ArenaVariant const& variant,
             uint32 index,
             uint32 total) const
         {
@@ -2241,13 +2568,13 @@ namespace BloodArena
             Position position;
 
             position.Relocate(
-                ARENA_CENTER_X +
+                variant.centerX +
                     std::cos(angle) *
                     PLAYER_START_RADIUS,
-                ARENA_CENTER_Y +
+                variant.centerY +
                     std::sin(angle) *
                     PLAYER_START_RADIUS,
-                ARENA_CENTER_Z,
+                variant.centerZ,
                 angle +
                     3.14159265359f);
 
@@ -2255,23 +2582,24 @@ namespace BloodArena
         }
 
         Position GetMobSpawnPosition(
+            ArenaVariant const& variant,
             uint32 index,
             uint32 wave) const
         {
             uint32 doorIndex =
-                ARENA_DOOR_COUNT > 0
+                variant.doorCount > 0
                     ? (wave + index) %
-                        ARENA_DOOR_COUNT
+                        variant.doorCount
                     : 0;
 
             ArenaDoor const& door =
-                ARENA_DOORS[doorIndex];
+                variant.doors[doorIndex];
 
             // Dispersion latérale.
             int32 lane =
                 static_cast<int32>(
                     (index /
-                     ARENA_DOOR_COUNT) %
+                     variant.doorCount) %
                     5) -
                 2;
 
@@ -2347,7 +2675,7 @@ namespace BloodArena
                 }
 
                 if (player->GetMapId() !=
-                    ARENA_MAP_ID)
+                    session.mapId)
                 {
                     continue;
                 }
@@ -2391,7 +2719,7 @@ namespace BloodArena
                 }
 
                 if (player->GetMapId() !=
-                    ARENA_MAP_ID)
+                    session.mapId)
                 {
                     continue;
                 }
@@ -2835,18 +3163,27 @@ namespace BloodArena
                 }
             }
 
-            std::ostringstream waveMessage;
+            std::ostringstream waveMessageFr;
+            std::ostringstream waveMessageEn;
 
-            waveMessage
+            waveMessageFr
                 << "|cffffff00[Blood Arena]|r Vague "
                 << session.wave;
 
-            if (bossWave)
-                waveMessage << " - BOSS";
+            waveMessageEn
+                << "|cffffff00[Blood Arena]|r Wave "
+                << session.wave;
 
-            Broadcast(
+            if (bossWave)
+            {
+                waveMessageFr << " - BOSS";
+                waveMessageEn << " - BOSS";
+            }
+
+            BroadcastLocalized(
                 session.id,
-                waveMessage.str());
+                waveMessageFr.str(),
+                waveMessageEn.str());
 
             uint32 successfulSpawns = 0;
 
@@ -2866,6 +3203,7 @@ namespace BloodArena
 
                 Position spawnPosition =
                     GetMobSpawnPosition(
+                        *GetArenaVariant(session.mapId),
                         i,
                         session.wave);
 
@@ -2932,18 +3270,20 @@ namespace BloodArena
             {
                 session.configurationError = true;
 
-                Broadcast(
+                BroadcastLocalized(
                     session.id,
-                    "|cffff0000[Blood Arena]|r ERREUR : aucun creature_entry valide dans le pool SQL pour cette vague.");
+                    "|cffff0000[Blood Arena]|r ERREUR : aucun creature_entry valide dans le pool SQL pour cette vague.",
+                    "|cffff0000[Blood Arena]|r ERROR: no valid creature_entry in the SQL pool for this wave.");
 
                 return;
             }
 
             if (spawnCount == 0)
             {
-                Broadcast(
+                BroadcastLocalized(
                     session.id,
-                    "|cffff8000[Blood Arena]|r Limite de creatures actives atteinte.");
+                    "|cffff8000[Blood Arena]|r Limite de creatures actives atteinte.",
+                    "|cffff8000[Blood Arena]|r Active creature limit reached.");
             }
 
             if (session.progression ==
@@ -2966,18 +3306,28 @@ namespace BloodArena
                 uint32 remainingSeconds =
                     seconds % 60;
 
-                std::ostringstream message;
+                std::ostringstream messageFr;
 
-                message
+                messageFr
                     << "|cff00ffff[Blood Arena]|r Temps restant : "
                     << minutes
                     << "m "
                     << remainingSeconds
                     << "s.";
 
-                Broadcast(
+                std::ostringstream messageEn;
+
+                messageEn
+                    << "|cff00ffff[Blood Arena]|r Time remaining: "
+                    << minutes
+                    << "m "
+                    << remainingSeconds
+                    << "s.";
+
+                BroadcastLocalized(
                     session.id,
-                    message.str());
+                    messageFr.str(),
+                    messageEn.str());
             }
         }
 
@@ -2996,9 +3346,10 @@ namespace BloodArena
             session.nextWaveDelayMs =
                 INTERWAVE_DELAY_MS;
 
-            Broadcast(
+            BroadcastLocalized(
                 session.id,
-                "|cffffff00[Blood Arena]|r Prochaine vague dans 5 secondes.");
+                "|cffffff00[Blood Arena]|r Prochaine vague dans 5 secondes.",
+                "|cffffff00[Blood Arena]|r Next wave in 5 seconds.");
         }
 
         // ---------------------------------------------------------------------
@@ -3285,35 +3636,27 @@ namespace BloodArena
                 AddGossipItemFor(
                     player,
                     GOSSIP_ICON_CHAT,
-                    "Infini - vague suivante au dernier ennemi",
+                    L(player,
+                        GetArenaVariant(868)->labelFr,
+                        GetArenaVariant(868)->labelEn),
                     GOSSIP_SENDER_MAIN,
-                    ACTION_INFINITE_LAST_KILL);
+                    ACTION_CHOOSE_ARENA_868);
 
                 AddGossipItemFor(
                     player,
                     GOSSIP_ICON_CHAT,
-                    "Infini - nouvelle vague toutes les 2 minutes",
+                    L(player,
+                        GetArenaVariant(869)->labelFr,
+                        GetArenaVariant(869)->labelEn),
                     GOSSIP_SENDER_MAIN,
-                    ACTION_INFINITE_FIXED);
+                    ACTION_CHOOSE_ARENA_869);
 
                 AddGossipItemFor(
                     player,
                     GOSSIP_ICON_CHAT,
-                    "Timer 30 min - vague suivante au dernier ennemi",
-                    GOSSIP_SENDER_MAIN,
-                    ACTION_TIMER_LAST_KILL);
-
-                AddGossipItemFor(
-                    player,
-                    GOSSIP_ICON_CHAT,
-                    "Timer 30 min - nouvelle vague toutes les 2 minutes",
-                    GOSSIP_SENDER_MAIN,
-                    ACTION_TIMER_FIXED);
-
-                AddGossipItemFor(
-                    player,
-                    GOSSIP_ICON_CHAT,
-                    "Classement mensuel de l'Arene",
+                    L(player,
+                        "Classement mensuel de l'Arene",
+                        "Monthly Arena Leaderboard"),
                     GOSSIP_SENDER_MAIN,
                     ACTION_LEADERBOARD_MENU);
 
@@ -3323,7 +3666,9 @@ namespace BloodArena
                     AddGossipItemFor(
                         player,
                         GOSSIP_ICON_CHAT,
-                        "|cffff8000Administration Blood Arena|r",
+                        L(player,
+                            "|cffff8000Administration Blood Arena|r",
+                            "|cffff8000Blood Arena Administration|r"),
                         GOSSIP_SENDER_MAIN,
                         ACTION_ADMIN_MENU);
                 }
@@ -3358,6 +3703,73 @@ namespace BloodArena
                 if (action == ACTION_BACK_MAIN)
                     return OnGossipHello(player);
 
+                if (action == ACTION_CHOOSE_ARENA_868 ||
+                    action == ACTION_CHOOSE_ARENA_869)
+                {
+                    ClearGossipMenuFor(player);
+
+                    bool isMugambala =
+                        (action == ACTION_CHOOSE_ARENA_869);
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        L(player,
+                            "Infini - vague suivante au dernier ennemi",
+                            "Infinite - next wave on last enemy killed"),
+                        GOSSIP_SENDER_MAIN,
+                        isMugambala
+                            ? ACTION_INFINITE_LAST_KILL_869
+                            : ACTION_INFINITE_LAST_KILL_868);
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        L(player,
+                            "Infini - nouvelle vague toutes les 2 minutes",
+                            "Infinite - new wave every 2 minutes"),
+                        GOSSIP_SENDER_MAIN,
+                        isMugambala
+                            ? ACTION_INFINITE_FIXED_869
+                            : ACTION_INFINITE_FIXED_868);
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        L(player,
+                            "Timer 30 min - vague suivante au dernier ennemi",
+                            "Timer 30 min - next wave on last enemy killed"),
+                        GOSSIP_SENDER_MAIN,
+                        isMugambala
+                            ? ACTION_TIMER_LAST_KILL_869
+                            : ACTION_TIMER_LAST_KILL_868);
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        L(player,
+                            "Timer 30 min - nouvelle vague toutes les 2 minutes",
+                            "Timer 30 min - new wave every 2 minutes"),
+                        GOSSIP_SENDER_MAIN,
+                        isMugambala
+                            ? ACTION_TIMER_FIXED_869
+                            : ACTION_TIMER_FIXED_868);
+
+                    AddGossipItemFor(
+                        player,
+                        GOSSIP_ICON_CHAT,
+                        L(player, "< Retour", "< Back"),
+                        GOSSIP_SENDER_MAIN,
+                        ACTION_BACK_MAIN);
+
+                    SendGossipMenuFor(
+                        player,
+                        68,
+                        me->GetGUID());
+
+                    return true;
+                }
+
                 if (action == ACTION_ADMIN_MENU)
                 {
                     if (!player->GetSession() ||
@@ -3370,7 +3782,7 @@ namespace BloodArena
 
                     std::ostringstream trashInfo;
                     trashInfo
-                        << "Trash charges : "
+                        << L(player, "Trash charges : ", "Trash loaded: ")
                         << ArenaManager::Instance().
                             GetLoadedTrashCount();
 
@@ -3383,7 +3795,7 @@ namespace BloodArena
 
                     std::ostringstream bossInfo;
                     bossInfo
-                        << "Boss charges : "
+                        << L(player, "Boss charges : ", "Bosses loaded: ")
                         << ArenaManager::Instance().
                             GetLoadedBossCount();
 
@@ -3397,14 +3809,16 @@ namespace BloodArena
                     AddGossipItemFor(
                         player,
                         GOSSIP_ICON_CHAT,
-                        "Recharger les monstres depuis la base SQL",
+                        L(player,
+                            "Recharger les monstres depuis la base SQL",
+                            "Reload monsters from the SQL database"),
                         GOSSIP_SENDER_MAIN,
                         ACTION_ADMIN_RELOAD_CREATURES);
 
                     AddGossipItemFor(
                         player,
                         GOSSIP_ICON_CHAT,
-                        "< Retour",
+                        L(player, "< Retour", "< Back"),
                         GOSSIP_SENDER_MAIN,
                         ACTION_BACK_MAIN);
 
@@ -3431,18 +3845,22 @@ namespace BloodArena
                     std::ostringstream message;
 
                     message
-                        << "|cff00ffff[Blood Arena]|r Pool SQL recharge : "
+                        << L(player,
+                            "|cff00ffff[Blood Arena]|r Pool SQL recharge : ",
+                            "|cff00ffff[Blood Arena]|r SQL pool reloaded: ")
                         << ArenaManager::Instance().
                             GetLoadedTrashCount()
-                        << " trash(s), "
+                        << L(player, " trash(s), ", " trash mob(s), ")
                         << ArenaManager::Instance().
                             GetLoadedBossCount()
-                        << " boss.";
+                        << L(player, " boss.", " boss(es).");
 
                     if (!valid)
                     {
                         message
-                            << " |cffff0000ATTENTION : le pool doit contenir au moins un trash et un boss valides.|r";
+                            << L(player,
+                                " |cffff0000ATTENTION : le pool doit contenir au moins un trash et un boss valides.|r",
+                                " |cffff0000WARNING: the pool must contain at least one valid trash mob and one valid boss.|r");
                     }
 
                     ChatHandler(
@@ -3460,7 +3878,7 @@ namespace BloodArena
                     AddGossipItemFor(
                         player,
                         GOSSIP_ICON_CHAT,
-                        "Top 10 - Vagues infinies",
+                        L(player, "Top 10 - Vagues infinies", "Top 10 - Infinite Waves"),
                         GOSSIP_SENDER_MAIN,
                         ACTION_LEADERBOARD_INFINITE);
 
@@ -3474,7 +3892,7 @@ namespace BloodArena
                     AddGossipItemFor(
                         player,
                         GOSSIP_ICON_CHAT,
-                        "< Retour",
+                        L(player, "< Retour", "< Back"),
                         GOSSIP_SENDER_MAIN,
                         ACTION_BACK_MAIN);
 
@@ -3510,7 +3928,7 @@ namespace BloodArena
 
                 switch (action)
                 {
-                    case ACTION_INFINITE_LAST_KILL:
+                    case ACTION_INFINITE_LAST_KILL_868:
                         started =
                             ArenaManager::Instance().
                             StartSession(
@@ -3518,10 +3936,11 @@ namespace BloodArena
                                 me,
                                 MODE_INFINITE,
                                 PROGRESSION_LAST_KILL,
+                                868,
                                 error);
                         break;
 
-                    case ACTION_INFINITE_FIXED:
+                    case ACTION_INFINITE_FIXED_868:
                         started =
                             ArenaManager::Instance().
                             StartSession(
@@ -3529,10 +3948,11 @@ namespace BloodArena
                                 me,
                                 MODE_INFINITE,
                                 PROGRESSION_FIXED_2_MINUTES,
+                                868,
                                 error);
                         break;
 
-                    case ACTION_TIMER_LAST_KILL:
+                    case ACTION_TIMER_LAST_KILL_868:
                         started =
                             ArenaManager::Instance().
                             StartSession(
@@ -3540,10 +3960,11 @@ namespace BloodArena
                                 me,
                                 MODE_TIMER,
                                 PROGRESSION_LAST_KILL,
+                                868,
                                 error);
                         break;
 
-                    case ACTION_TIMER_FIXED:
+                    case ACTION_TIMER_FIXED_868:
                         started =
                             ArenaManager::Instance().
                             StartSession(
@@ -3551,12 +3972,63 @@ namespace BloodArena
                                 me,
                                 MODE_TIMER,
                                 PROGRESSION_FIXED_2_MINUTES,
+                                868,
+                                error);
+                        break;
+
+                    case ACTION_INFINITE_LAST_KILL_869:
+                        started =
+                            ArenaManager::Instance().
+                            StartSession(
+                                player,
+                                me,
+                                MODE_INFINITE,
+                                PROGRESSION_LAST_KILL,
+                                869,
+                                error);
+                        break;
+
+                    case ACTION_INFINITE_FIXED_869:
+                        started =
+                            ArenaManager::Instance().
+                            StartSession(
+                                player,
+                                me,
+                                MODE_INFINITE,
+                                PROGRESSION_FIXED_2_MINUTES,
+                                869,
+                                error);
+                        break;
+
+                    case ACTION_TIMER_LAST_KILL_869:
+                        started =
+                            ArenaManager::Instance().
+                            StartSession(
+                                player,
+                                me,
+                                MODE_TIMER,
+                                PROGRESSION_LAST_KILL,
+                                869,
+                                error);
+                        break;
+
+                    case ACTION_TIMER_FIXED_869:
+                        started =
+                            ArenaManager::Instance().
+                            StartSession(
+                                player,
+                                me,
+                                MODE_TIMER,
+                                PROGRESSION_FIXED_2_MINUTES,
+                                869,
                                 error);
                         break;
 
                     default:
                         error =
-                            "Choix d'arene inconnu.";
+                            L(player,
+                                "Choix d'arene inconnu.",
+                                "Unknown arena choice.");
                         break;
                 }
 
@@ -3657,8 +4129,8 @@ namespace BloodArena
                 return;
             }
 
-            if (player->GetMapId() !=
-                ARENA_MAP_ID)
+            if (!IsArenaMap(
+                    player->GetMapId()))
             {
                 return;
             }
@@ -3676,7 +4148,10 @@ namespace BloodArena
                 ChatHandler(
                     player->GetSession()).
                     SendSysMessage(
-                        "|cffff8000[Blood Arena]|r Phase d'arene orpheline detectee : retour en phase 1.");
+                        L(player,
+                            "|cffff8000[Blood Arena]|r Phase d'arene orpheline detectee : retour en phase 1.",
+                            "|cffff8000[Blood Arena]|r Orphaned arena phase detected: reverting to phase 1.").
+                            c_str());
             }
         }
     };
