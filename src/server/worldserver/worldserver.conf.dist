@@ -58,6 +58,7 @@
 #    STARTING PET
 # 	 VISUAL WEAPON
 #    NPC ENCHANTER
+# 	 BLOOD ARENA
 #
 ###################################################################################################
 
@@ -6260,6 +6261,33 @@ EnchanterStats.EmoteSpell = 0
 # -------------------------------------------------------------------------------------  
 
 EnchanterStats.EmoteCommand = 3
+
+#
+###################################################################################################
+
+###################################################################################################
+# BLOOD ARENA
+###################################################################################################
+#    BloodArena.Enable.<mapId>
+#        Description: Active ou desactive une arene precise du systeme Blood Arena (custom_blood_arena.cpp).
+#                     Une arene desactivee n'apparait plus dans le menu du Maitre de l'Arene et ne peut
+#                     plus etre lancee, meme via une ancienne action de gossip encore en memoire cote
+#                     client. Une session deja en cours au moment de la desactivation n'est pas interrompue.
+#                     Pris en compte au demarrage du serveur et via la commande ".reload config".
+#        Default:     1 - Active
+#                     0 - Desactive
+
+# 868 Pointe du Crochet / Hook Point
+# 869 Mugambala
+# 864 Gorge de Vent-Caverneux / Cavewind Gorge
+# 867 Creuset des Enigmes / Crucible of Riddles
+# 866 Maldraxxus Coliseum
+
+BloodArena.Enable.868 = 1
+BloodArena.Enable.869 = 0
+BloodArena.Enable.864 = 1
+BloodArena.Enable.867 = 1
+BloodArena.Enable.866 = 1
 
 #
 ###################################################################################################

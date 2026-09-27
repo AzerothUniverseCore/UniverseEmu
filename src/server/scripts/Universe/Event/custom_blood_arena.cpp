@@ -32,6 +32,7 @@
 #include "DatabaseEnv.h"
 #include "World.h"
 #include "Common.h"
+#include "Config.h"
 
 #include <algorithm>
 #include <cmath>
@@ -198,6 +199,45 @@ namespace BloodArena
                 return true;
 
         return false;
+    }
+
+    static uint32 GetArenaVariantIndex(uint32 mapId)
+    {
+        for (uint32 i = 0; i < ARENA_VARIANT_COUNT; ++i)
+            if (ARENA_VARIANTS[i].mapId == mapId)
+                return i;
+
+        return 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // Activation par arène (worldserver.conf, clé BloodArena.Enable.<mapId>)
+    // -------------------------------------------------------------------------
+    //
+    // Une arène désactivée disparaît du menu gossip et ne peut plus être
+    // lancée (StartSession la refuse aussi, au cas où une action de gossip
+    // périmée serait encore en mémoire côté client). Une session déjà en
+    // cours n'est pas coupée : on ne fait que bloquer les nouveaux départs.
+    // Rechargé au démarrage et via ".reload config" (WorldScript::OnConfigLoad).
+
+    static bool s_arenaEnabled[ARENA_VARIANT_COUNT] = {};
+
+    static bool IsArenaVariantEnabled(uint32 mapId)
+    {
+        return s_arenaEnabled[GetArenaVariantIndex(mapId)];
+    }
+
+    static void LoadArenaEnabledConfig()
+    {
+        for (uint32 i = 0; i < ARENA_VARIANT_COUNT; ++i)
+        {
+            std::string const configKey =
+                "BloodArena.Enable." +
+                std::to_string(ARENA_VARIANTS[i].mapId);
+
+            s_arenaEnabled[i] =
+                sConfigMgr->GetBoolDefault(configKey, true);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -458,15 +498,6 @@ namespace BloodArena
     static uint32 const MODE_OFFSET_INFINITE_FIXED     = 2;
     static uint32 const MODE_OFFSET_TIMER_LAST_KILL    = 3;
     static uint32 const MODE_OFFSET_TIMER_FIXED        = 4;
-
-    static uint32 GetArenaVariantIndex(uint32 mapId)
-    {
-        for (uint32 i = 0; i < ARENA_VARIANT_COUNT; ++i)
-            if (ARENA_VARIANTS[i].mapId == mapId)
-                return i;
-
-        return 0;
-    }
 
     static uint32 GetChooseArenaAction(uint32 mapId)
     {
@@ -1027,6 +1058,18 @@ namespace BloodArena
                     L(starter,
                         "Maitre de l'Arene invalide.",
                         "Invalid Arena Master.");
+                return false;
+            }
+
+            // Filet de sécurité : refuse même si le client a encore une
+            // ancienne action de gossip en mémoire pointant vers une arène
+            // désactivée depuis (BloodArena.Enable.<mapId> = 0).
+            if (!IsArenaVariantEnabled(mapId))
+            {
+                error =
+                    L(starter,
+                        "Cette arene est actuellement desactivee.",
+                        "This arena is currently disabled.");
                 return false;
             }
 
@@ -3782,6 +3825,9 @@ namespace BloodArena
                 {
                     ArenaVariant const& variant = ARENA_VARIANTS[i];
 
+                    if (!IsArenaVariantEnabled(variant.mapId))
+                        continue;
+
                     AddGossipItemFor(
                         player,
                         GOSSIP_ICON_CHAT,
@@ -4125,6 +4171,14 @@ namespace BloodArena
         {
             ArenaManager::Instance().
                 InitializeDatabase();
+        }
+
+        // Lu au démarrage et à chaque ".reload config", donc une
+        // arène peut être activée/désactivée sans redémarrer le worldserver.
+        void OnConfigLoad(
+            bool /*reload*/) override
+        {
+            LoadArenaEnabledConfig();
         }
 
         void OnUpdate(
