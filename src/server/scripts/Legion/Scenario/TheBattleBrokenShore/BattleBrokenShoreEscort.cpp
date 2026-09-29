@@ -468,22 +468,27 @@ public:
         // Players reported enemies attacking an escort NPC (often one of the
         // Demon Hunter allies) while it just stands there and never fights
         // back - only in some fights, not every one, which points at an
-        // edge case rather than a systematic block: most likely a stale
-        // GetVictim() (e.g. left over from an evaded/out-of-range target)
-        // that makes the engine's default "someone attacked me, go fight
-        // them" reaction (CreatureAI::AttackedBy) refuse to switch onto the
-        // real attacker because it thinks it's already got a target. Force
-        // the switch here instead of trusting that default.
-        void AttackedBy(Unit* attacker) override
+        // edge case rather than a systematic block. This core's AI is
+        // threat-list-based: JustStartedThreateningMe() is what fires the
+        // moment a new hostile lands on our threat list (its default just
+        // marks us engaged via EngagementStart(), it doesn't touch
+        // GetVictim()/AttackStart() at all), and nothing else in this
+        // custom UpdateAI ever calls UpdateVictim()/SelectVictim() to pull
+        // a victim back off that threat list - so a creature can end up
+        // engaged, being hit, and simply never told who to swing at. Force
+        // that here instead of relying on it happening elsewhere.
+        void JustStartedThreateningMe(Unit* who) override
         {
-            if (!attacker || !attacker->IsAlive())
+            CreatureAI::JustStartedThreateningMe(who);
+
+            if (!who || !who->IsAlive())
                 return;
-            if (LegionScenario::GetSide(attacker->GetEntry()) != LegionScenario::SIDE_ENEMY)
+            if (LegionScenario::GetSide(who->GetEntry()) != LegionScenario::SIDE_ENEMY)
                 return;
-            if (me->GetVictim() == attacker)
+            if (me->GetVictim() == who)
                 return;
 
-            AttackStart(attacker);
+            AttackStart(who);
         }
 
         void UpdateAI(uint32 diff) override
