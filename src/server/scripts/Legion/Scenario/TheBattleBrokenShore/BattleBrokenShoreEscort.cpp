@@ -41,6 +41,8 @@ constexpr uint32 COMBAT_CLEAR_DEBOUNCE_MS = 3000;
 constexpr uint32 MELEE_SNAP_THRESHOLD_MIN_MS = 3000;
 constexpr uint32 MELEE_SNAP_THRESHOLD_JITTER_MS = 1500;
 
+constexpr uint32 WIPE_RECOVERY_DELAY_MS = 8000;
+
 enum LegionEscortMisc
 {
     GOSSIP_ACTION_LAUNCH_COMBAT = 1,
@@ -439,6 +441,19 @@ public:
             ++pathIndex;
         }
 
+        void RecoverFromWipe()
+        {
+            partyPaused = false;
+            partyPauseWatchdog = 0;
+            combatClearTimer = 0;
+
+            if (!waitingForGossip && !finalBossEngaged && !resting && pathIndex < LegionEscort::PATH_SIZE)
+            {
+                me->GetMotionMaster()->Clear();
+                StepForward();
+            }
+        }
+
         void UpdateAI(uint32 diff) override
         {
             if (Unit* victim = me->GetVictim())
@@ -710,6 +725,7 @@ namespace
         std::vector<ObjectGuid> rosterGuids;
         uint32 scenarioPhaseMask = 0;
         uint32 previousPhaseMask = 0;
+        uint32 wipeRecoveryTimer = 0;
     };
 
     std::unordered_map<uint64, EscortParty> g_parties;
@@ -941,6 +957,80 @@ namespace
                 ENSURE_AI(npc_legion_escort::npc_legion_escortAI, leader->AI()))
             ai->StartGuiding();
     }
+
+    void ReviveEscortMember(Creature* creature)
+    {
+        if (!creature || creature->IsAlive())
+            return;
+
+        creature->setDeathState(JUST_RESPAWNED);
+        creature->SetFullHealth();
+        creature->SetVisible(true);
+        creature->GetMotionMaster()->Clear();
+    }
+
+    void AnnouncePartyRevived(Player* player)
+    {
+        if (!player)
+            return;
+
+        char const* text = IsFrenchClient(player)
+            ? "Votre troupe se releve et repart au combat !"
+            : "Your company gets back up and rejoins the fight!";
+        ChatHandler(player->GetSession()).PSendSysMessage("|cff1eff00[Le Rivage Brise]|r %s", text);
+    }
+
+    void MaintainPartyWipeRecovery(Player* player, EscortParty& party, uint32 diff)
+    {
+        Creature* leader = ObjectAccessor::GetCreature(*player, party.leader);
+
+        bool anyDead = !leader || !leader->IsAlive();
+
+        if (!anyDead)
+        {
+            for (ObjectGuid const& guid : party.members)
+            {
+                Creature* member = ObjectAccessor::GetCreature(*player, guid);
+                if (member && !member->IsAlive())
+                {
+                    anyDead = true;
+                    break;
+                }
+            }
+        }
+
+        if (!anyDead)
+        {
+            if (Creature* questGiver = ObjectAccessor::GetCreature(*player, party.questGiver))
+                anyDead = !questGiver->IsAlive();
+        }
+
+        if (!anyDead || IsPartyInCombat(player))
+        {
+            party.wipeRecoveryTimer = 0;
+            return;
+        }
+
+        party.wipeRecoveryTimer += diff;
+        if (party.wipeRecoveryTimer < WIPE_RECOVERY_DELAY_MS)
+            return;
+
+        party.wipeRecoveryTimer = 0;
+
+        ReviveEscortMember(leader);
+        for (ObjectGuid const& guid : party.members)
+            ReviveEscortMember(ObjectAccessor::GetCreature(*player, guid));
+        ReviveEscortMember(ObjectAccessor::GetCreature(*player, party.questGiver));
+
+        if (leader)
+        {
+            if (npc_legion_escort::npc_legion_escortAI* ai =
+                    ENSURE_AI(npc_legion_escort::npc_legion_escortAI, leader->AI()))
+                ai->RecoverFromWipe();
+        }
+
+        AnnouncePartyRevived(player);
+    }
 }
 
 class legion_escort_world : public WorldScript
@@ -985,8 +1075,12 @@ public:
                 continue;
             }
 
-            if (g_parties.find(pguid) != g_parties.end())
+            auto partyItr = g_parties.find(pguid);
+            if (partyItr != g_parties.end())
+            {
+                MaintainPartyWipeRecovery(player, partyItr->second, elapsed);
                 continue;
+            }
 
             if (g_respawnLockouts.find(pguid) != g_respawnLockouts.end())
                 continue;
