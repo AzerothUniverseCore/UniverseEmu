@@ -29,6 +29,7 @@
 #include "Duration.h"
 #include "Chat.h"
 #include "WorldSession.h"
+#include "Random.h"
 #include <list>
 #include <sstream>
 #include <string>
@@ -36,6 +37,9 @@
 #include <vector>
 
 constexpr uint32 COMBAT_CLEAR_DEBOUNCE_MS = 3000;
+
+constexpr uint32 MELEE_SNAP_THRESHOLD_MIN_MS = 3000;
+constexpr uint32 MELEE_SNAP_THRESHOLD_JITTER_MS = 1500;
 
 enum LegionEscortMisc
 {
@@ -242,6 +246,7 @@ public:
             questsFired(false),
             gateType(GATE_NONE),
             meleeStuckTimer(0),
+            meleeSnapThreshold(MELEE_SNAP_THRESHOLD_MIN_MS + urand(0, MELEE_SNAP_THRESHOLD_JITTER_MS)),
             followRefreshTimer(0),
             followRefreshCount(0),
             resting(false),
@@ -443,10 +448,13 @@ public:
                     if (!me->IsWithinMeleeRange(victim))
                     {
                         meleeStuckTimer += diff;
-                        if (meleeStuckTimer >= 3000)
+                        if (meleeStuckTimer >= meleeSnapThreshold)
                         {
                             meleeStuckTimer = 0;
+                            meleeSnapThreshold = MELEE_SNAP_THRESHOLD_MIN_MS + urand(0, MELEE_SNAP_THRESHOLD_JITTER_MS);
                             SnapIntoMeleeRange(me, victim);
+							
+                            return;
                         }
                     }
                     else
@@ -662,6 +670,7 @@ public:
         bool questsFired;
         LegionEscortGateType gateType;
         uint32 meleeStuckTimer;
+        uint32 meleeSnapThreshold;
         uint32 followRefreshTimer;
         uint8 followRefreshCount;
         bool resting;
@@ -704,6 +713,9 @@ namespace
     };
 
     std::unordered_map<uint64, EscortParty> g_parties;
+
+    constexpr uint32 RESPAWN_LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes
+    std::unordered_map<uint64, uint32> g_respawnLockouts;
 
     constexpr uint32 SCENARIO_PHASE_POOL_SIZE = 30;
     bool g_phaseSlotInUse[SCENARIO_PHASE_POOL_SIZE] = {};
@@ -941,7 +953,19 @@ public:
         _ticker += diff;
         if (_ticker < 1000)
             return;
+        uint32 elapsed = _ticker;
         _ticker = 0;
+
+        for (auto lockItr = g_respawnLockouts.begin(); lockItr != g_respawnLockouts.end(); )
+        {
+            if (lockItr->second <= elapsed)
+                lockItr = g_respawnLockouts.erase(lockItr);
+            else
+            {
+                lockItr->second -= elapsed;
+                ++lockItr;
+            }
+        }
 
         for (auto const& itr : ObjectAccessor::GetPlayers())
         {
@@ -949,14 +973,22 @@ public:
             if (!player || !player->IsInWorld())
                 continue;
 
+            uint64 pguid = player->GetGUID().GetRawValue();
+
             if (player->GetMapId() != LegionEscort::MAP_ID)
             {
-                DespawnParty(player);
+                if (g_parties.find(pguid) != g_parties.end())
+                {
+                    DespawnParty(player);
+                    g_respawnLockouts[pguid] = RESPAWN_LOCKOUT_MS;
+                }
                 continue;
             }
 
-            uint64 pguid = player->GetGUID().GetRawValue();
             if (g_parties.find(pguid) != g_parties.end())
+                continue;
+
+            if (g_respawnLockouts.find(pguid) != g_respawnLockouts.end())
                 continue;
 
             if (player->GetDistance2d(LegionEscort::START_POINT.x, LegionEscort::START_POINT.y)

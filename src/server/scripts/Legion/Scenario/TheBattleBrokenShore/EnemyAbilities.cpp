@@ -177,6 +177,9 @@ namespace LegionScenario
             if (def.lowHealthOnly && !lowHealth)
                 continue;
 
+            if (def.lowHealthOnly && def.selfCast && me->HasAura(def.spellId))
+                continue;
+
             if (_cooldowns[slot] > 0)
                 continue;
 

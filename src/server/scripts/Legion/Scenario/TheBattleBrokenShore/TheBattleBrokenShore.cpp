@@ -23,6 +23,7 @@
 #include "Player.h"
 #include "ObjectAccessor.h"
 #include "TemporarySummon.h"
+#include "Random.h"
 #include <list>
 
 namespace LegionScenario
@@ -98,6 +99,11 @@ namespace
 
     constexpr float LEGION_LEASH_RANGE = 60.0f;
 
+    constexpr uint32 EVADE_REENGAGE_GUARD_MS = 5000;
+
+    constexpr uint32 MELEE_SNAP_THRESHOLD_MIN_MS = 3000;
+    constexpr uint32 MELEE_SNAP_THRESHOLD_JITTER_MS = 1500;
+
     constexpr float ARTILLERY_SEEK_RANGE = 50000.0f;
     constexpr float ARTILLERY_MAX_RANGE = 50000.0f;
     constexpr uint32 ARTILLERY_SCAN_INTERVAL = 2000; // 2 s
@@ -147,7 +153,9 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
         _isRangedArtillery(LegionScenario::GetEnemyArchetype(creature->GetEntry()) == LegionScenario::EnemyArchetype::BOSS_INFERNAL),
         _seekTimer(LEGION_SEEK_INTERVAL),
         _meleeStuckTimer(0),
-        _artilleryScanTimer(0)
+        _artilleryScanTimer(0),
+        _evadeGuardTimer(0),
+        _meleeSnapThreshold(MELEE_SNAP_THRESHOLD_MIN_MS + urand(0, MELEE_SNAP_THRESHOLD_JITTER_MS))
     {
         me->SetReactState(REACT_AGGRESSIVE);
         _enemyKit.Init(creature->GetEntry());
@@ -161,6 +169,8 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
         _seekTimer = LEGION_SEEK_INTERVAL;
         _meleeStuckTimer = 0;
         _artilleryScanTimer = 0;
+        _evadeGuardTimer = 0;
+        _meleeSnapThreshold = MELEE_SNAP_THRESHOLD_MIN_MS + urand(0, MELEE_SNAP_THRESHOLD_JITTER_MS);
         _illidariKit.Reset();
         _enemyKit.Reset();
     }
@@ -193,16 +203,20 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
                 {
                     me->AttackStop();
                     EnterEvadeMode();
+                    _evadeGuardTimer = EVADE_REENGAGE_GUARD_MS;
                     return;
                 }
 
                 if (!me->IsWithinMeleeRange(victim))
                 {
                     _meleeStuckTimer += diff;
-                    if (_meleeStuckTimer >= 3000)
+                    if (_meleeStuckTimer >= _meleeSnapThreshold)
                     {
                         _meleeStuckTimer = 0;
+                        _meleeSnapThreshold = MELEE_SNAP_THRESHOLD_MIN_MS + urand(0, MELEE_SNAP_THRESHOLD_JITTER_MS);
                         SnapIntoMeleeRange(me, victim);
+
+                        return;
                     }
                 }
                 else
@@ -223,6 +237,12 @@ struct npc_legion_scenario_combatantAI : public ScriptedAI
 
         if (_isBoss)
             return;
+
+        if (_evadeGuardTimer > 0)
+        {
+            _evadeGuardTimer = (_evadeGuardTimer > diff) ? _evadeGuardTimer - diff : 0;
+            return;
+        }
 
         if (_seekTimer <= diff)
         {
@@ -353,6 +373,8 @@ private:
     uint32 _seekTimer;
     uint32 _meleeStuckTimer;
     uint32 _artilleryScanTimer;
+    uint32 _evadeGuardTimer;
+    uint32 _meleeSnapThreshold;
     LegionScenario::IllidariCombatKit _illidariKit;
     LegionScenario::EnemyCombatKit _enemyKit;
 };
