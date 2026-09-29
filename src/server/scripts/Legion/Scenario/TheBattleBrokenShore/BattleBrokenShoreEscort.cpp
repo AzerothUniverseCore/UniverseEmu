@@ -41,6 +41,9 @@ constexpr uint32 COMBAT_CLEAR_DEBOUNCE_MS = 3000;
 constexpr uint32 MELEE_SNAP_THRESHOLD_MIN_MS = 3000;
 constexpr uint32 MELEE_SNAP_THRESHOLD_JITTER_MS = 1500;
 
+// How long a wiped party (leader/member/questgiver dead) waits, once combat
+// has fully settled, before being revived in place. See
+// MaintainPartyWipeRecovery() below.
 constexpr uint32 WIPE_RECOVERY_DELAY_MS = 8000;
 
 enum LegionEscortMisc
@@ -264,7 +267,8 @@ public:
             partyPauseWatchdog(0),
             combatClearTimer(0),
             stallCheckTimer(0),
-            phaseSyncTimer(0)
+            phaseSyncTimer(0),
+            selfDefenseScanTimer(0)
         {
             me->SetReactState(REACT_AGGRESSIVE);
         }
@@ -441,6 +445,13 @@ public:
             ++pathIndex;
         }
 
+        // Called on the leader once the whole party has been revived after
+        // a wipe (see MaintainPartyWipeRecovery()). Only the leader's own
+        // state blocks progress (pathIndex/partyPaused live here), so this
+        // just clears the pause and, unless we're waiting on a gossip gate,
+        // resting, or watching the final boss, re-issues movement toward
+        // the current path point so the escort actually continues instead
+        // of standing there alive-but-idle.
         void RecoverFromWipe()
         {
             partyPaused = false;
@@ -452,6 +463,27 @@ public:
                 me->GetMotionMaster()->Clear();
                 StepForward();
             }
+        }
+
+        // Players reported enemies attacking an escort NPC (often one of the
+        // Demon Hunter allies) while it just stands there and never fights
+        // back - only in some fights, not every one, which points at an
+        // edge case rather than a systematic block: most likely a stale
+        // GetVictim() (e.g. left over from an evaded/out-of-range target)
+        // that makes the engine's default "someone attacked me, go fight
+        // them" reaction (CreatureAI::AttackedBy) refuse to switch onto the
+        // real attacker because it thinks it's already got a target. Force
+        // the switch here instead of trusting that default.
+        void AttackedBy(Unit* attacker) override
+        {
+            if (!attacker || !attacker->IsAlive())
+                return;
+            if (LegionScenario::GetSide(attacker->GetEntry()) != LegionScenario::SIDE_ENEMY)
+                return;
+            if (me->GetVictim() == attacker)
+                return;
+
+            AttackStart(attacker);
         }
 
         void UpdateAI(uint32 diff) override
@@ -487,6 +519,27 @@ public:
                 me->GetMotionMaster()->Clear();
             }
             meleeStuckTimer = 0;
+
+            // Backstop for the same "attacked but not fighting back" case
+            // AttackedBy() above targets: if the engine considers me in
+            // combat (something is actively hitting me) but I somehow have
+            // no victim - AttackedBy missed it, a ranged/DoT source that
+            // doesn't route through it, whatever the cause - re-scan for
+            // the nearest hostile every second instead of standing there
+            // taking hits. Gated on IsInCombat() so this never makes the
+            // escort proactively pull fights while walking, waiting at a
+            // gossip gate, or resting.
+            if (!me->GetVictim() && me->IsInCombat())
+            {
+                selfDefenseScanTimer += diff;
+                if (selfDefenseScanTimer >= 500)
+                {
+                    selfDefenseScanTimer = 0;
+                    EngageNearbyEnemy(me, 30.0f);
+                }
+            }
+            else
+                selfDefenseScanTimer = 0;
 
             if (!isLeader && !leaderGuid.IsEmpty())
             {
@@ -707,6 +760,7 @@ public:
 
         uint32 stallCheckTimer;
         uint32 phaseSyncTimer;
+        uint32 selfDefenseScanTimer;
     };
 
     CreatureAI* GetAI(Creature* creature) const override
@@ -963,6 +1017,9 @@ namespace
         if (!creature || creature->IsAlive())
             return;
 
+        // Same in-place "become alive again" step Creature::Respawn() uses
+        // internally, without its position-reset - the party should come
+        // back where it fell, not snap back to its original spawn point.
         creature->setDeathState(JUST_RESPAWNED);
         creature->SetFullHealth();
         creature->SetVisible(true);
@@ -980,6 +1037,15 @@ namespace
         ChatHandler(player->GetSession()).PSendSysMessage("|cff1eff00[Le Rivage Brise]|r %s", text);
     }
 
+    // A dead leader can no longer move - StepForward()/HandleReachedPoint()
+    // never fire for a corpse - and dead members stop following and stop
+    // fighting. Without this, once the leader (or the whole party) goes
+    // down in a losing fight, the escort is permanently stuck with no way
+    // to continue except abandoning the scenario and re-triggering the
+    // whole thing from scratch. This revives any dead leader/member/
+    // questgiver in place once combat has fully settled - win or lose -
+    // and stayed settled for WIPE_RECOVERY_DELAY_MS, so players can
+    // regroup and carry on instead of restarting.
     void MaintainPartyWipeRecovery(Player* player, EscortParty& party, uint32 diff)
     {
         Creature* leader = ObjectAccessor::GetCreature(*player, party.leader);
