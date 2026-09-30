@@ -111,6 +111,7 @@ namespace
     void DespawnParty(Player* player);
     bool IsPartyInCombat(Player* player);
     void ResyncScenarioPhase(Player* player);
+    void BeginVictoryLootWindow(Player* player);
 
     void SnapIntoMeleeRange(Creature* attacker, Unit* victim)
     {
@@ -309,7 +310,14 @@ public:
                     {
                         owner->AreaExploredOrEventHappens(LegionEscort::MAIN_QUEST_ID);
                         owner->AreaExploredOrEventHappens(LegionEscort::WEEKLY_QUEST_ID);
-                        DespawnParty(owner);
+
+                        // Don't tear down the party/phase the instant Krosus
+                        // dies - that despawns his corpse (it's part of the
+                        // roster) and kicks the player back to their normal
+                        // phase before they can loot. Quest credit still
+                        // fires immediately above; the actual cleanup is
+                        // deferred so there's time to loot first.
+                        BeginVictoryLootWindow(owner);
                     }
                 }
                 return;
@@ -525,22 +533,44 @@ public:
             }
             meleeStuckTimer = 0;
 
-            // Backstop for the same "attacked but not fighting back" case
-            // AttackedBy() above targets: if the engine considers me in
-            // combat (something is actively hitting me) but I somehow have
-            // no victim - AttackedBy missed it, a ranged/DoT source that
-            // doesn't route through it, whatever the cause - re-scan for
-            // the nearest hostile every second instead of standing there
-            // taking hits. Gated on IsInCombat() so this never makes the
-            // escort proactively pull fights while walking, waiting at a
-            // gossip gate, or resting.
-            if (!me->GetVictim() && me->IsInCombat())
+            // Ambient combat-join scan, run whenever I have no victim. This
+            // covers two distinct symptoms players reported:
+            //  - "attacked but not fighting back": JustStartedThreateningMe()
+            //    above should already force this, but if a damage source
+            //    ever slips past it this is the backstop. For the leader -
+            //    who has its own proactive scan further down, deliberately
+            //    gated on waitingForGossip/finalBossEngaged so it can't pull
+            //    a fight early while parked at a gossip gate - only run this
+            //    while actually being hit (IsInCombat()), so it stays a pure
+            //    self-defense backstop and never bypasses that gating.
+            //  - "only one Demon Hunter ally ever fights, the other three
+            //    just stand there watching": WakeNearbyAllies() is only ever
+            //    called from the leader's own scan below, which stops
+            //    running the instant the leader has a victim (see the early
+            //    return at the top of this function) - so once the leader
+            //    is mid-fight, nothing re-invites whichever followers the
+            //    original wake-up call didn't reach. Followers have no gate
+            //    of their own to protect (waitingForGossip/finalBossEngaged
+            //    only ever get set on the leader), so they just look for a
+            //    nearby fight on their own every second instead of only
+            //    ever being told about one.
+            bool allowAmbientScan = isLeader ? me->IsInCombat() : true;
+            if (allowAmbientScan)
             {
                 selfDefenseScanTimer += diff;
-                if (selfDefenseScanTimer >= 500)
+                if (selfDefenseScanTimer >= 1000)
                 {
                     selfDefenseScanTimer = 0;
-                    EngageNearbyEnemy(me, 30.0f);
+
+                    // If this found and engaged something, stop here for this
+                    // tick instead of falling into the follow-leader block
+                    // right below: AttackStart() just switched the motion
+                    // master onto the new target, and letting the follow
+                    // check run in the same tick would immediately see
+                    // "not currently following" and call MoveFollow() again,
+                    // silently cancelling the chase we just started.
+                    if (EngageNearbyEnemy(me, 25.0f))
+                        return;
                 }
             }
             else
@@ -785,9 +815,14 @@ namespace
         uint32 scenarioPhaseMask = 0;
         uint32 previousPhaseMask = 0;
         uint32 wipeRecoveryTimer = 0;
+        uint32 victoryDespawnTimer = 0; // 0 = not pending; see BeginVictoryLootWindow()
     };
 
     std::unordered_map<uint64, EscortParty> g_parties;
+
+    // How long players get to loot Krosus before the party/phase gets torn
+    // down. See BeginVictoryLootWindow() and legion_escort_world::OnUpdate().
+    constexpr uint32 VICTORY_LOOT_WINDOW_MS = 30 * 1000;
 
     constexpr uint32 RESPAWN_LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes
     std::unordered_map<uint64, uint32> g_respawnLockouts;
@@ -854,6 +889,31 @@ namespace
         }
 
         g_parties.erase(itr);
+    }
+
+    // Krosus's corpse (loot and all) is part of the roster DespawnParty()
+    // clears out, and DespawnParty() is also what sends the player back to
+    // their normal phase - so despawning the instant the boss dies does
+    // both of those before anyone can loot. This starts a countdown instead;
+    // legion_escort_world::OnUpdate() ages it down and calls DespawnParty()
+    // once it runs out, so the actual cleanup happens from the world tick
+    // rather than synchronously off the kill.
+    void BeginVictoryLootWindow(Player* player)
+    {
+        if (!player)
+            return;
+
+        uint64 pguid = player->GetGUID().GetRawValue();
+        auto itr = g_parties.find(pguid);
+        if (itr == g_parties.end())
+            return;
+
+        itr->second.victoryDespawnTimer = VICTORY_LOOT_WINDOW_MS;
+
+        char const* text = IsFrenchClient(player)
+            ? "Krosus est vaincu ! Vous avez 30 secondes pour recuperer le butin avant que la zone ne se referme."
+            : "Krosus is defeated! You have 30 seconds to loot before the area closes.";
+        ChatHandler(player->GetSession()).PSendSysMessage("|cff1eff00[Le Rivage Brise]|r %s", text);
     }
 
     void ResyncScenarioPhase(Player* player)
@@ -1149,7 +1209,16 @@ public:
             auto partyItr = g_parties.find(pguid);
             if (partyItr != g_parties.end())
             {
-                MaintainPartyWipeRecovery(player, partyItr->second, elapsed);
+                if (partyItr->second.victoryDespawnTimer > 0)
+                {
+                    if (partyItr->second.victoryDespawnTimer <= elapsed)
+                        DespawnParty(player); // invalidates partyItr - do nothing else with it below
+                    else
+                        partyItr->second.victoryDespawnTimer -= elapsed;
+                }
+                else
+                    MaintainPartyWipeRecovery(player, partyItr->second, elapsed);
+
                 continue;
             }
 
