@@ -501,6 +501,74 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
+            // Checked first, every tick, regardless of what I'm personally
+            // doing: the leader can easily still be mid-fight with some
+            // unrelated trash mob long after Krosus is already dead
+            // elsewhere - LaunchCombat()'s EngageNearbyEnemy() at the boss
+            // gate just grabs the nearest enemy, not necessarily Krosus
+            // itself, and the ambient-join scan further down can hand it a
+            // fresh target too. This used to live further down, past the
+            // "if (Unit* victim = me->GetVictim()) ... return;" block at
+            // the top of this function - so as long as the leader always
+            // had *some* victim, Krosus's death was never even checked for:
+            // no victory message, no scenario cleanup, player stuck in the
+            // scenario phase forever even after finishing and looting.
+            if (isLeader && finalBossEngaged && pathIndex < LegionEscort::PATH_SIZE)
+            {
+                finalBossWatchTimer += diff;
+                finalBossWaitElapsedMs += diff;
+
+                if (finalBossWatchTimer >= 1000)
+                {
+                    finalBossWatchTimer = 0;
+                    bool confirmedDead = false;
+
+                    if (!finalBossGuid.IsEmpty())
+                    {
+                        Creature* boss = ObjectAccessor::GetCreature(*me, finalBossGuid);
+                        if (!boss || !boss->IsAlive())
+                            confirmedDead = true;
+                    }
+
+                    if (!confirmedDead)
+                    {
+                        std::list<Creature*> nearby;
+                        me->GetCreatureListWithEntryInGrid(nearby, LegionScenario::BOSS_ENTRIES[2], 150.0f);
+                        bool aliveNow = false;
+                        for (Creature* c : nearby)
+                        {
+                            if (c->IsAlive() && LegionScenario::IsSameScenarioInstance(me, c))
+                            {
+                                aliveNow = true;
+                                break;
+                            }
+                        }
+                        if (aliveNow)
+                            finalBossSawAliveViaRescan = true;
+                        else if (finalBossSawAliveViaRescan)
+                            confirmedDead = true;
+                    }
+
+                    if (!confirmedDead && finalBossWaitElapsedMs >= 20u * 60u * 1000u)
+                        confirmedDead = true;
+
+                    if (confirmedDead)
+                    {
+                        finalBossEngaged = false;
+
+                        // Stop whatever unrelated fight I might still be in
+                        // now that the encounter is actually over.
+                        me->AttackStop();
+                        me->GetMotionMaster()->Clear();
+
+                        Talk(SAY_ESCORT_END);
+                        pathIndex = LegionEscort::PATH_SIZE;
+                        StepForward();
+                        return;
+                    }
+                }
+            }
+
             if (Unit* victim = me->GetVictim())
             {
                 if (victim->IsAlive() && me->IsAlive())
@@ -651,56 +719,6 @@ public:
                     restTimer -= diff;
                 }
                 return;
-            }
-
-            if (finalBossEngaged && pathIndex < LegionEscort::PATH_SIZE)
-            {
-                finalBossWatchTimer += diff;
-                finalBossWaitElapsedMs += diff;
-
-                if (finalBossWatchTimer >= 1000)
-                {
-                    finalBossWatchTimer = 0;
-                    bool confirmedDead = false;
-
-                    if (!finalBossGuid.IsEmpty())
-                    {
-                        Creature* boss = ObjectAccessor::GetCreature(*me, finalBossGuid);
-                        if (!boss || !boss->IsAlive())
-                            confirmedDead = true;
-                    }
-
-                    if (!confirmedDead)
-                    {
-                        std::list<Creature*> nearby;
-                        me->GetCreatureListWithEntryInGrid(nearby, LegionScenario::BOSS_ENTRIES[2], 150.0f);
-                        bool aliveNow = false;
-                        for (Creature* c : nearby)
-                        {
-                            if (c->IsAlive() && LegionScenario::IsSameScenarioInstance(me, c))
-                            {
-                                aliveNow = true;
-                                break;
-                            }
-                        }
-                        if (aliveNow)
-                            finalBossSawAliveViaRescan = true;
-                        else if (finalBossSawAliveViaRescan)
-                            confirmedDead = true;
-                    }
-
-                    if (!confirmedDead && finalBossWaitElapsedMs >= 20u * 60u * 1000u)
-                        confirmedDead = true;
-
-                    if (confirmedDead)
-                    {
-                        finalBossEngaged = false;
-                        Talk(SAY_ESCORT_END);
-                        pathIndex = LegionEscort::PATH_SIZE;
-                        StepForward();
-                        return;
-                    }
-                }
             }
 
             if (!waitingForGossip && !finalBossEngaged && pathIndex < LegionEscort::PATH_SIZE)
